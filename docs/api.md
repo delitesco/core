@@ -6,11 +6,9 @@
 - [POST /api/auth/register](#post-apiauthregister): Register a new account.
 - [POST /api/auth/activate](#post-apiauthactivate): Activate new account.
 - [POST /api/auth/reactivate](##post-apiauthreactivate): Request a new activation code.
-- [POST /api/auth/forgot_password](#post-apiauthforgot_password): Request reset password link.
 - [GET /api/user_info](#get-apiuser_info): Get user's information.
 - [PATCH /api/sudo](#patch-apisudo): Enable sudo mode.
 - [DELETE /api/user](#delete-apiuser): Delete the current user.
-- [GET /api/user/cookie_token](#get-apiusercookie_token): Get a one time use token to exchange it for a valid cookie
 - [PATCH /api/user_info](#patch-apiuser_info): Update user's information.
 - [POST /api/api_key](#post-apiapi_key): Create a new API key.
 - [GET /api/stats](#get-apistats): Get user's stats.
@@ -160,14 +158,6 @@ Output:
 
 - 200: user is going to receive an email that contains the activation code.
 
-#### POST /api/auth/forgot_password
-
-Input:
-
-- email
-
-Output: always return 200, even if email doesn't exist. User need to enter correctly their email.
-
 #### GET /api/user_info
 
 Given the API Key, return user name and whether user is premium. This endpoint could be used to validate the api key.
@@ -252,19 +242,6 @@ Output:
 - 440 with ```{"error": "Need sudo"}``` if sudo mode is not enabled.
 - 403 with ```{"error": "Some error"}``` if there is an error.
 
-
-#### GET /api/user/cookie_token
-
-Get a one time use cookie to exchange it for a valid cookie in the web app
-
-Input:
-
-- `Authentication` header that contains the api key
-
-Output:
-
-- 200 with ```{"token": "token value"}```
-- 403 with ```{"error": "Some error"}``` if there is an error.
 
 #### POST /api/api_key
 

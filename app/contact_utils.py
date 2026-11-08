@@ -8,6 +8,11 @@ from app.alias_audit_log_utils import emit_alias_audit_log, AliasAuditLogAction
 from app.db import Session
 from app.email_utils import generate_reply_email, parse_full_address
 from app.email_validation import is_valid_email
+from app.errors import (
+    ErrAddressInvalid,
+    ErrContactAlreadyExists,
+    ErrContactErrorUpgradeNeeded,
+)
 from app.log import LOG
 from app.models import Contact, Alias
 from app.utils import sanitize_email
@@ -136,3 +141,34 @@ def create_contact(
             return ContactCreateResult(
                 None, created=False, error=ContactCreateError.Unknown
             )
+
+
+def create_contact_for_alias(alias: Alias, contact_address: str) -> Contact:
+    """
+    Create a contact for a user. Can be restricted for new free users by enabling DISABLE_CREATE_CONTACTS_FOR_FREE_USERS.
+    Can throw exceptions:
+     - ErrAddressInvalid
+     - ErrContactAlreadyExists
+     - ErrContactUpgradeNeeded - If DISABLE_CREATE_CONTACTS_FOR_FREE_USERS this exception will be raised for new free users
+    """
+    if not contact_address:
+        raise ErrAddressInvalid("Empty address")
+    output = create_contact(email=contact_address, alias=alias)
+    if output.error == ContactCreateError.InvalidEmail:
+        raise ErrAddressInvalid(contact_address)
+    elif output.error == ContactCreateError.NotAllowed:
+        raise ErrContactErrorUpgradeNeeded()
+    elif output.error is not None:
+        raise ErrAddressInvalid("Invalid address")
+    elif not output.created:
+        raise ErrContactAlreadyExists(output.contact)
+
+    contact = output.contact
+    LOG.d(
+        "create reverse-alias for %s %s, reverse alias:%s",
+        contact_address,
+        alias,
+        contact.reply_email,
+    )
+
+    return contact

@@ -7,10 +7,9 @@ from email.message import EmailMessage
 from typing import Optional, Dict
 
 import jinja2
-from flask import url_for
 
 from app.db import Session
-from app.models import User, PartnerUser, UserAliasDeleteAction
+from app.models import ApiKey, User, PartnerUser, UserAliasDeleteAction
 from app.proton.proton_partner import get_proton_partner
 from app.utils import random_string
 
@@ -51,17 +50,12 @@ def create_partner_linked_user() -> tuple[User, PartnerUser]:
 
 
 def login(flask_client, user: Optional[User] = None) -> User:
+    """Authenticate every following request of flask_client with a fresh API key for user."""
     if not user:
         user = create_new_user()
 
-    r = flask_client.post(
-        url_for("auth.login"),
-        data={"email": user.email, "password": "password"},
-        follow_redirects=True,
-    )
-
-    assert r.status_code == 200
-    assert b"/auth/logout" in r.data
+    api_key = ApiKey.create(user_id=user.id, name="test", commit=True)
+    flask_client.environ_base["HTTP_AUTHENTICATION"] = api_key.code
 
     return user
 

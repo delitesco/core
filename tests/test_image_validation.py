@@ -5,7 +5,7 @@ from pathlib import Path
 def get_path_to_static_dir() -> Path:
     this_path = Path(__file__)
     repo_root_path = this_path.parent.parent
-    return repo_root_path.joinpath("static")
+    return repo_root_path.joinpath("tests", "data")
 
 
 def read_static_file_contents(filename: str) -> bytes:

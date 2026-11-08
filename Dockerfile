@@ -1,9 +1,3 @@
-# Install npm packages
-FROM node:10.17.0-alpine AS npm
-WORKDIR /code
-COPY ./static/package*.json /code/static/
-RUN cd /code/static && npm ci
-
 FROM --platform=linux/amd64 ubuntu:22.04
 
 ARG UV_VERSION="0.7.13"
@@ -41,9 +35,6 @@ RUN apt-get update \
 
 # Copy code
 COPY . .
-
-# copy npm packages
-COPY --from=npm /code /code
 
 ENV PATH="/code/.venv/bin:$PATH"
 EXPOSE 7777

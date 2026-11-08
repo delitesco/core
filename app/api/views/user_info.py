@@ -8,8 +8,8 @@ from flask import jsonify, g, request, make_response
 from app import s3, config
 from app.api.base import api_bp, require_api_auth
 from app.config import SESSION_COOKIE_NAME
-from app.dashboard.views.index import get_stats
 from app.db import Session
+from app.user_stats import get_stats
 from app.image_validation import detect_image_format, ImageFormat
 from app.models import ApiKey, File, PartnerUser, User
 from app.proton.proton_partner import get_proton_partner

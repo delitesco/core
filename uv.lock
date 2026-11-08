@@ -572,16 +572,6 @@ wheels = [
 ]
 
 [[package]]
-name = "flask-admin"
-version = "1.5.7"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "flask" },
-    { name = "wtforms" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/79/a2/315f7657004ad65ebe13fe051afb15c5529a57bdce5f019401897e97bff7/Flask-Admin-1.5.7.tar.gz", hash = "sha256:145f59407d78319925e20f7c3021f60c71f0cacc98e916e52000845dc4c63621", size = 6641522, upload-time = "2020-10-26T02:13:36.546Z" }
-
-[[package]]
 name = "flask-cors"
 version = "3.0.9"
 source = { registry = "https://pypi.org/simple" }
@@ -592,48 +582,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/99/fc/cd117ea122e28037a5ec60356a7ffae8b77af527713f7b5e4eb63089f669/Flask-Cors-3.0.9.tar.gz", hash = "sha256:6bcfc100288c5d1bcb1dbb854babd59beee622ffd321e444b05f24d6d58466b8", size = 29038, upload-time = "2020-08-30T21:48:46.894Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/69/7f/d0aeaaafb5c3c76c8d2141dbe2d4f6dca5d6c31872d4e5349768c1958abc/Flask_Cors-3.0.9-py2.py3-none-any.whl", hash = "sha256:cee4480aaee421ed029eaa788f4049e3e26d15b5affb6a880dade6bafad38324", size = 14060, upload-time = "2020-08-30T21:48:45.446Z" },
-]
-
-[[package]]
-name = "flask-debugtoolbar"
-version = "0.11.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "blinker" },
-    { name = "flask" },
-    { name = "itsdangerous" },
-    { name = "werkzeug" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/ec/2b/d84b57b653401de99bdbddce3ad58dd149b57144c8847c773c93230dd6fa/Flask-DebugToolbar-0.11.0.tar.gz", hash = "sha256:3c4e79d354ede014e6657c545a536d4fb273cc89e3fd6b4835b02e346dd3aab4", size = 253995, upload-time = "2020-02-18T09:14:23.729Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/0e/60/c3e8de2191ecf78d750d1038ab45195b97a9ee569351865d60d01941bcc6/Flask_DebugToolbar-0.11.0-py2.py3-none-any.whl", hash = "sha256:0e9a80d4c599233c68376e81cc99976200b5ac5248cfb24f18935cc5b69ac5b3", size = 325004, upload-time = "2020-02-18T09:14:21.406Z" },
-]
-
-[[package]]
-name = "flask-debugtoolbar-sqlalchemy"
-version = "0.2.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "flask-debugtoolbar" },
-    { name = "pygments" },
-    { name = "sqlalchemy" },
-    { name = "sqlparse" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/61/63/f34dd880719a2fd2b4aee31aba3c124f67073fd0c529b5a2f9a6b0ef804a/flask-debugtoolbar-sqlalchemy-0.2.0.tar.gz", hash = "sha256:82be8b0c20784a71f9f89bcb38b0f4f9220c70964e4cb86f04e0403e7c6b19b5", size = 3586, upload-time = "2019-01-08T08:55:10.451Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/49/5a/377ad84545b88f962ce51701386ba850a7723df00b5828e96dab0c1d097b/flask_debugtoolbar_sqlalchemy-0.2.0-py3-none-any.whl", hash = "sha256:86ff6c21b7c9a3fe555b16fcd665947c9a03defcf0dfa941d94f82343d9d261a", size = 16683, upload-time = "2019-01-08T08:55:08.893Z" },
-]
-
-[[package]]
-name = "flask-httpauth"
-version = "4.1.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "flask" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/79/a0/ff7dc053f03c49f1614a79171d15f58cc7d824c85b1ba11d0df6ef3aa92b/Flask-HTTPAuth-4.1.0.tar.gz", hash = "sha256:9e028e4375039a49031eb9ecc40be4761f0540476040f6eff329a31dabd4d000", size = 227132, upload-time = "2020-06-04T23:03:11.528Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/e1/a8/c1cda654d5da7ba45bc0bd567cd7e2d2508997decfae5191813f31c93b9e/Flask_HTTPAuth-4.1.0-py2.py3-none-any.whl", hash = "sha256:29e0288869a213c7387f0323b6bf2c7191584fb1da8aa024d9af118e5cd70de7", size = 5841, upload-time = "2020-06-04T23:03:09.209Z" },
 ]
 
 [[package]]
@@ -677,20 +625,6 @@ wheels = [
 ]
 
 [[package]]
-name = "flask-profiler"
-version = "1.8.1"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "flask" },
-    { name = "flask-httpauth" },
-    { name = "simplejson" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/74/ba/91dd2fc1759b9e2e5117154017277e222b98774e7f2e5ac475db30e7eaf7/flask_profiler-1.8.1.tar.gz", hash = "sha256:fc9f2875a4f22223ddc04ffacd75792854162c4cdbef165598a51f898521ac51", size = 328141, upload-time = "2018-11-19T23:11:07.702Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/b6/f4/efd944904ed1fda58fcf856649a2a91ed5b04b44bda575fdcd0c69bd3972/flask_profiler-1.8.1-py3-none-any.whl", hash = "sha256:56b51e47c98e9f36150fafffd449b075c58a9b404389a071d405222a35183758", size = 347006, upload-time = "2018-11-19T23:11:10.702Z" },
-]
-
-[[package]]
 name = "flask-sqlalchemy"
 version = "2.5.1"
 source = { registry = "https://pypi.org/simple" }
@@ -701,20 +635,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/35/f0/39dd2d8e7e5223f78a5206d7020dc0e16718a964acfb3564d89e9798ab9b/Flask-SQLAlchemy-2.5.1.tar.gz", hash = "sha256:2bda44b43e7cacb15d4e05ff3cc1f8bc97936cc464623424102bfc2c35e95912", size = 132750, upload-time = "2021-03-18T19:03:02.733Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/26/2c/9088b6bd95bca539230bbe9ad446737ed391aab9a83aff403e18dded3e75/Flask_SQLAlchemy-2.5.1-py2.py3-none-any.whl", hash = "sha256:f12c3d4cc5cc7fdcc148b9527ea05671718c3ea45d50c7e732cceb33f574b390", size = 17716, upload-time = "2021-03-18T19:03:00.702Z" },
-]
-
-[[package]]
-name = "flask-wtf"
-version = "0.14.3"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "flask" },
-    { name = "itsdangerous" },
-    { name = "wtforms" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/2e/f4/3d9e1905ffad67e20ef4f5963d711e8e29ab9439120d7ffec3d2922020e3/Flask-WTF-0.14.3.tar.gz", hash = "sha256:d417e3a0008b5ba583da1763e4db0f55a1269d9dd91dcc3eb3c026d3c5dbd720", size = 44507, upload-time = "2020-02-06T23:18:18.294Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/36/a9/8c01171066bd7a524ee005d81bb4a8aa446ab178043a1ad6cb5dc8f0bd83/Flask_WTF-0.14.3-py2.py3-none-any.whl", hash = "sha256:57b3faf6fe5d6168bda0c36b0df1d05770f8e205e18332d0376ddb954d17aef2", size = 13379, upload-time = "2020-02-06T23:18:16.132Z" },
 ]
 
 [[package]]
@@ -1709,12 +1629,6 @@ wheels = [
 ]
 
 [[package]]
-name = "simplejson"
-version = "3.17.2"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/49/45/a16db4f0fa383aaf0676fb7e3c660304fe390415c243f41a77c7f917d59b/simplejson-3.17.2.tar.gz", hash = "sha256:75ecc79f26d99222a084fbdd1ce5aad3ac3a8bd535cd9059528452da38b68841", size = 83210, upload-time = "2020-07-16T18:34:44.852Z" }
-
-[[package]]
 name = "simplelogin"
 version = "0.1.0"
 source = { editable = "." }
@@ -1736,15 +1650,10 @@ dependencies = [
     { name = "email-validator" },
     { name = "flanker" },
     { name = "flask" },
-    { name = "flask-admin" },
     { name = "flask-cors" },
-    { name = "flask-debugtoolbar" },
-    { name = "flask-debugtoolbar-sqlalchemy" },
     { name = "flask-limiter" },
     { name = "flask-login" },
     { name = "flask-migrate" },
-    { name = "flask-profiler" },
-    { name = "flask-wtf" },
     { name = "gevent" },
     { name = "gunicorn" },
     { name = "ipython" },
@@ -1775,7 +1684,6 @@ dependencies = [
     { name = "watchtower" },
     { name = "webauthn" },
     { name = "werkzeug" },
-    { name = "wtforms" },
     { name = "yacron" },
 ]
 
@@ -1809,15 +1717,10 @@ requires-dist = [
     { name = "email-validator", specifier = "~=2.2.0" },
     { name = "flanker", specifier = "~=0.9.11" },
     { name = "flask", specifier = "~=1.1.2" },
-    { name = "flask-admin", specifier = "~=1.5.6" },
     { name = "flask-cors", specifier = "~=3.0.9" },
-    { name = "flask-debugtoolbar", specifier = "~=0.11.0" },
-    { name = "flask-debugtoolbar-sqlalchemy", specifier = "~=0.2.0" },
     { name = "flask-limiter", specifier = "==1.5" },
     { name = "flask-login", specifier = "~=0.5.0" },
     { name = "flask-migrate", specifier = "~=2.5.3" },
-    { name = "flask-profiler", specifier = "~=1.8.1" },
-    { name = "flask-wtf", specifier = "~=0.14.3" },
     { name = "gevent", specifier = "~=24.11.1" },
     { name = "gunicorn", specifier = "~=20.0.4" },
     { name = "ipython", specifier = "~=7.31.1" },
@@ -1849,7 +1752,6 @@ requires-dist = [
     { name = "watchtower", specifier = "~=0.8.0" },
     { name = "webauthn", specifier = "~=0.4.7" },
     { name = "werkzeug", specifier = "~=1.0.1" },
-    { name = "wtforms", specifier = "~=2.3.3" },
     { name = "yacron", specifier = "~=0.19.0" },
 ]
 
@@ -1888,15 +1790,6 @@ dependencies = [
     { name = "sqlalchemy" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/14/68/e5301c4c960c79a32333b8805e52cb69d3d237aa869a773b4157ccb3eb26/SQLAlchemy-Utils-0.36.8.tar.gz", hash = "sha256:fb66e9956e41340011b70b80f898fde6064ec1817af77199ee21ace71d7d6ab0", size = 138025, upload-time = "2020-07-08T08:34:58.558Z" }
-
-[[package]]
-name = "sqlparse"
-version = "0.4.4"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/65/16/10f170ec641ed852611b6c9441b23d10b5702ab5288371feab3d36de2574/sqlparse-0.4.4.tar.gz", hash = "sha256:d446183e84b8349fa3061f0fe7f06ca94ba65b426946ffebe6e3e8295332420c", size = 72383, upload-time = "2023-04-18T08:30:41.994Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/98/5a/66d7c9305baa9f11857f247d4ba761402cea75db6058ff850ed7128957b7/sqlparse-0.4.4-py3-none-any.whl", hash = "sha256:5430a4fe2ac7d0f93e66f1efc6e1338a41884b7ddf2a350cedd20ccc4d9d28f3", size = 41183, upload-time = "2023-04-18T08:30:36.96Z" },
-]
 
 [[package]]
 name = "strictyaml"
@@ -2105,18 +1998,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/f8/7d/73e4e3cdb2c780e13f9d87dc10488d7566d8fd77f8d68f0e416bfbd144c7/wrapt-1.15.0.tar.gz", hash = "sha256:d06730c6aed78cee4126234cf2d071e01b44b915e725a6cb439a879ec9754a3a", size = 53519, upload-time = "2023-02-27T01:58:31.241Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/f8/f8/e068dafbb844c1447c55b23c921f3d338cddaba4ea53187a7dd0058452d9/wrapt-1.15.0-py3-none-any.whl", hash = "sha256:64b1df0f83706b4ef4cfb4fb0e4c2669100fd7ecacfb59e091fad300d4e04640", size = 22007, upload-time = "2023-02-27T01:58:28.469Z" },
-]
-
-[[package]]
-name = "wtforms"
-version = "2.3.3"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "markupsafe" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/dd/3f/f25d26b1c66896e2876124a12cd8be8f606abf4e1890a20f3ca04e4a1555/WTForms-2.3.3.tar.gz", hash = "sha256:81195de0ac94fbc8368abbaf9197b88c4f3ffd6c2719b5bf5fc9da744f3d829c", size = 162945, upload-time = "2020-07-30T17:08:26.883Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/e0/31/614fc7dc7d76005b0acb8c0c8920d962b83d7422b4ba912886dfb63f86ff/WTForms-2.3.3-py2.py3-none-any.whl", hash = "sha256:7b504fc724d0d1d4d5d5c114e778ec88c37ea53144683e084215eed5155ada4c", size = 169106, upload-time = "2020-07-30T17:08:25.026Z" },
 ]
 
 [[package]]

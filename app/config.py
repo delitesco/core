@@ -290,8 +290,6 @@ AVATAR_URL_EXPIRATION = 3600 * 24 * 7  # 1h*24h/d*7d=1week
 # session key
 MFA_USER_ID = "mfa_user_id"
 
-FLASK_PROFILER_PATH = os.environ.get("FLASK_PROFILER_PATH")
-FLASK_PROFILER_PASSWORD = os.environ.get("FLASK_PROFILER_PASSWORD")
 
 # for pagination
 PAGE_LIMIT = 20

@@ -52,7 +52,6 @@ from app.models import (
     DeletedSubdomain,
     PartnerSubscription,
     PartnerUser,
-    ApiToCookieToken,
 )
 from app.pgp_utils import load_public_key_and_check, PGPException
 from app.proton.proton_partner import get_proton_partner
@@ -913,16 +912,6 @@ def delete_old_monitoring():
     LOG.d("delete monitoring records older than %s, nb row %s", max_time, nb_row)
 
 
-def delete_expired_tokens():
-    """
-    Delete old tokens
-    """
-    max_time = arrow.now().shift(hours=-1)
-    nb_row = ApiToCookieToken.filter(ApiToCookieToken.created_at < max_time).delete()
-    Session.commit()
-    LOG.d("Delete api to cookie tokens older than %s, nb row %s", max_time, nb_row)
-
-
 async def _hibp_check(api_key: str, queue: asyncio.Queue):
     """
     Uses a single API key to check the queue as fast as possible.
@@ -1270,9 +1259,6 @@ if __name__ == "__main__":
         elif args.job == "notify_hibp":
             LOG.d("Notify users about HIBP breaches")
             notify_hibp()
-        elif args.job == "cleanup_tokens":
-            LOG.d("Cleanup expired tokens")
-            delete_expired_tokens()
         elif args.job == "send_undelivered_mails":
             LOG.d("Sending undelivered emails")
             load_unsent_mails_from_fs_and_resend()

@@ -92,18 +92,6 @@ def test_create_api_key(flask_client):
     assert r.json["api_key"]
 
 
-def test_logout(flask_client):
-    login(flask_client)
-
-    # logout
-    r = flask_client.get(
-        url_for("auth.logout"),
-        follow_redirects=True,
-    )
-
-    assert r.status_code == 200
-
-
 def test_change_profile_picture(flask_client):
     user = login(flask_client)
     assert not user.profile_picture_id
