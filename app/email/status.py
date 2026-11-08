@@ -32,6 +32,8 @@ E402 = "421 SL E402 Encryption failed - Retry later"
 E404 = "421 SL E404 Unexpected error - Retry later"
 E405 = "421 SL E405 Mailbox domain problem - Retry later"
 E407 = "421 SL E407 Retry later"
+E410 = "421 SL E410 Account paused - Retry later"
+E411 = "421 SL E411 Alias cannot be created now - Retry later"
 # endregion
 
 # region 5** errors
@@ -62,4 +64,5 @@ E523 = "550 SL E523 Unknown error"
 E524 = "550 SL E524 Wrong use of reverse-alias"
 E525 = "550 SL E525 Alias loop"
 E526 = "550 SL E526 Too many recipients"
+E527 = "550 SL E527 Replies are disabled for this account"
 # endregion

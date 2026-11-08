@@ -211,6 +211,18 @@ class JobState(EnumE):
     error = 3
 
 
+class AccountState(EnumE):
+    """Set by the backend in front of this service from the account's subscription."""
+
+    # everything works
+    active = 0
+    # subscription ended, short grace period: mail is forwarded, but no replies and
+    # no new aliases
+    grace = 1
+    # mail is refused with a temporary error (senders retry), nothing is created
+    paused = 2
+
+
 class UnsubscribeBehaviourEnum(EnumE):
     DisableAlias = 0
     BlockContact = 1
@@ -469,6 +481,13 @@ class User(Base, ModelMixin):
     )
 
     # Keep original unsub behaviour
+    account_state = sa.Column(
+        IntEnumType(AccountState),
+        default=AccountState.active,
+        server_default=str(AccountState.active.value),
+        nullable=False,
+    )
+
     unsub_behaviour = sa.Column(
         IntEnumType(UnsubscribeBehaviourEnum),
         default=UnsubscribeBehaviourEnum.PreserveOriginal,
@@ -580,7 +599,8 @@ class User(Base, ModelMixin):
         if self.disabled:
             return False
 
-        return True
+        # no new aliases outside of an active subscription
+        return self.account_state == AccountState.active
 
     def can_send_or_receive(self) -> bool:
         if self.disabled:

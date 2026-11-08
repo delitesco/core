@@ -54,6 +54,7 @@ from sqlalchemy.exc import IntegrityError
 
 from app import pgp_utils, file_storage, config, contact_utils
 from app.alias_utils import (
+    owner_of_auto_create_address,
     try_auto_create,
     change_alias_status,
     get_alias_recipient_name,
@@ -153,6 +154,7 @@ from app.mail_sender import sl_sendmail
 from app.mailbox_utils import get_mailbox_for_reply_phase
 from app.message_utils import message_to_bytes
 from app.models import (
+    AccountState,
     Alias,
     Contact,
     BlockBehaviourEnum,
@@ -548,6 +550,12 @@ def handle_forward(envelope, msg: Message, rcpt_to: str) -> List[Tuple[bool, str
             "alias %s not exist. Try to see if it can be created on the fly",
             alias_address,
         )
+        owner = owner_of_auto_create_address(alias_address)
+        if owner and owner.account_state != AccountState.active:
+            # paused or in grace: no alias is created now; the sender retries and the
+            # alias can be created once the subscription is active again
+            LOG.i(f"{owner} is {owner.account_state.name}, defer {alias_address}")
+            return [(False, status.E411)]
         alias = try_auto_create(alias_address)
         if not alias:
             LOG.d("alias %s cannot be created on-the-fly, return 550", alias_address)
@@ -568,6 +576,10 @@ def handle_forward(envelope, msg: Message, rcpt_to: str) -> List[Tuple[bool, str
             return [(True, status.E207)]
         else:
             return [(False, status.E504)]
+
+    if user.account_state == AccountState.paused:
+        LOG.i(f"{user} is paused, defer email to {alias}")
+        return [(False, status.E410)]
 
     # check if email is sent from alias's owning mailbox(es)
     mail_from = envelope.mail_from
@@ -1046,6 +1058,13 @@ def handle_reply(envelope, msg: Message, rcpt_to: str) -> (bool, str):
     if not user.can_send_or_receive():
         LOG.i(f"User {user} cannot send emails")
         return False, status.E504
+
+    if user.account_state == AccountState.paused:
+        LOG.i(f"{user} is paused, defer reply from {alias}")
+        return False, status.E410
+    if user.account_state == AccountState.grace:
+        LOG.i(f"{user} is in grace period, refuse reply from {alias}")
+        return False, status.E527
 
     # Check if we need to reject or quarantine based on dmarc
     dmarc_delivery_status = apply_dmarc_policy_for_reply_phase(

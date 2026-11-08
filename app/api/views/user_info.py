@@ -14,6 +14,7 @@ def user_to_dict(user: User) -> dict:
         "is_premium": user.is_premium(),
         "email": user.email,
         "can_create_reverse_alias": user.can_create_contacts(),
+        "account_state": user.account_state.name,
     }
 
     return ret
