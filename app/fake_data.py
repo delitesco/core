@@ -34,7 +34,6 @@ def fake_data():
         name="John Wick",
         password="password",
         activated=True,
-        is_admin=True,
         # enable_otp=True,
         otp_secret="base32secret3232",
         intro_shown=True,
