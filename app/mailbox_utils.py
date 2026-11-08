@@ -263,10 +263,7 @@ def generate_activation_code(
 ) -> MailboxActivation:
     clear_activation_codes_for_mailbox(mailbox)
     if use_digit_code:
-        if config.MAILBOX_VERIFICATION_OVERRIDE_CODE:
-            code = config.MAILBOX_VERIFICATION_OVERRIDE_CODE
-        else:
-            code = "{:06d}".format(secrets.randbelow(1000000))[:6]
+        code = "{:06d}".format(secrets.randbelow(1000000))
     else:
         code = secrets.token_urlsafe(16)
     return MailboxActivation.create(
