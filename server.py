@@ -92,7 +92,6 @@ from app.newsletter_utils import send_newsletter_to_user
 from app.onboarding.base import onboarding_bp
 from app.payments.coinbase import setup_coinbase_commerce
 from app.payments.paddle import setup_paddle_callback
-from app.phone.base import phone_bp
 from app.redis_services import initialize_redis_services
 from app.request_utils import generate_request_id
 
@@ -208,7 +207,6 @@ def register_blueprints(app: Flask):
     app.register_blueprint(auth_bp)
     app.register_blueprint(monitor_bp)
     app.register_blueprint(dashboard_bp)
-    app.register_blueprint(phone_bp)
 
     app.register_blueprint(onboarding_bp)
 

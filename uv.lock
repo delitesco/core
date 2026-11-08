@@ -1405,15 +1405,6 @@ wheels = [
 ]
 
 [[package]]
-name = "pyjwt"
-version = "2.4.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/d8/6b/6287745054dbcccf75903630346be77d4715c594402cec7c2518032416c2/PyJWT-2.4.0.tar.gz", hash = "sha256:d42908208c699b3b973cbeb01a969ba6a96c821eefb1c5bfe4c390c01d67abba", size = 66327, upload-time = "2022-05-12T18:58:21.274Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/1c/fb/b82e9601b00d88cf8bbee1f39b855ae773f9d5bcbcedb3801b2f72460696/PyJWT-2.4.0-py3-none-any.whl", hash = "sha256:72d1d253f32dbd4f5c88eaf1fdc62f3a19f676ccbadb9dbc5d07e951b2b26daf", size = 18228, upload-time = "2022-05-12T18:58:19.269Z" },
-]
-
-[[package]]
 name = "pylint"
 version = "2.14.4"
 source = { registry = "https://pypi.org/simple" }
@@ -1780,7 +1771,6 @@ dependencies = [
     { name = "sqlalchemy-utils" },
     { name = "strictyaml" },
     { name = "tldextract" },
-    { name = "twilio" },
     { name = "unidecode" },
     { name = "watchtower" },
     { name = "webauthn" },
@@ -1855,7 +1845,6 @@ requires-dist = [
     { name = "sqlalchemy-utils", specifier = "~=0.36.8" },
     { name = "strictyaml", specifier = "~=1.7.3" },
     { name = "tldextract", specifier = "~=3.1.2" },
-    { name = "twilio", specifier = "~=7.3.2" },
     { name = "unidecode", specifier = "~=1.1.1" },
     { name = "watchtower", specifier = "~=0.8.0" },
     { name = "webauthn", specifier = "~=0.4.7" },
@@ -1989,20 +1978,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/5e/3a/f510eeb8388cf4028c690faec22843176772f5e59c8d418e8268d71ebd7a/traitlets-5.0.4.tar.gz", hash = "sha256:86c9351f94f95de9db8a04ad8e892da299a088a64fd283f9f6f18770ae5eae1b", size = 124409, upload-time = "2020-09-07T07:41:19.162Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/e6/20/f73a1130598ffaf561fda74d761bbe66db7a3639f34456761e781509881b/traitlets-5.0.4-py3-none-any.whl", hash = "sha256:9664ec0c526e48e7b47b7d14cd6b252efa03e0129011de0a9c1d70315d4309c3", size = 98383, upload-time = "2020-09-07T07:41:17.447Z" },
-]
-
-[[package]]
-name = "twilio"
-version = "7.3.2"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "pyjwt" },
-    { name = "pytz" },
-    { name = "requests" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/31/0a/719a5e062f4a7302ed752c01ba53bbac8315043664c352625396e146a162/twilio-7.3.2.tar.gz", hash = "sha256:3170da33c7f4293bbebcd032b183866e044fcf8418e5c5e15bdd5ec7a0a958b6", size = 505827, upload-time = "2021-12-01T22:25:23.488Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/7b/e9/7f682be0365daab9421c209da6a7f99f1bde82fbe5b6811d3ba73ee2ca47/twilio-7.3.2-py2.py3-none-any.whl", hash = "sha256:6cc6ed114b07a7ce853503a5a27281f56237b411ea415012955cff3a57045f1b", size = 1325832, upload-time = "2021-12-01T22:25:21.291Z" },
 ]
 
 [[package]]

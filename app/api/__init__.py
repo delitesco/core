@@ -12,7 +12,6 @@ from .views import (
     notification,
     setting,
     export,
-    phone,
     sudo,
     user,
 )
@@ -31,7 +30,6 @@ __all__ = [
     "notification",
     "setting",
     "export",
-    "phone",
     "sudo",
     "user",
 ]
