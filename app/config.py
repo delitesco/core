@@ -486,10 +486,6 @@ UPCLOUD_DB_ID = os.environ.get("UPCLOUD_DB_ID", None)
 
 STORE_TRANSACTIONAL_EMAILS = "STORE_TRANSACTIONAL_EMAILS" in os.environ
 
-MAILBOX_VERIFICATION_OVERRIDE_CODE: Optional[str] = os.environ.get(
-    "MAILBOX_VERIFICATION_OVERRIDE_CODE", None
-)
-
 AUDIT_LOG_MAX_DAYS = int(os.environ.get("AUDIT_LOG_MAX_DAYS", 30))
 ALIAS_TRASH_DAYS = int(os.environ.get("ALIAS_TRASH_DAYS", 30))
 ALLOWED_OAUTH_SCHEMES = get_env_csv("ALLOWED_OAUTH_SCHEMES", "auth.simplelogin,https")
