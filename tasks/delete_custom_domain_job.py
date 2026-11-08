@@ -32,7 +32,6 @@ class DeleteCustomDomainJob:
         domain_name = self.custom_domain.domain
         user = self.custom_domain.user
 
-        custom_domain_partner_id = self.custom_domain.partner_id
         CustomDomain.delete(self.custom_domain.id)
         Session.commit()
 
@@ -49,14 +48,13 @@ class DeleteCustomDomainJob:
 
         LOG.d("Domain %s deleted", domain_name)
 
-        if custom_domain_partner_id is None:
-            send_email(
-                user.email,
-                f"Your domain {domain_name} has been deleted",
-                f"""Domain {domain_name} along with its aliases are deleted successfully.
+        send_email(
+            user.email,
+            f"Your domain {domain_name} has been deleted",
+            f"""Domain {domain_name} along with its aliases are deleted successfully.
 
         Regards,
         SimpleLogin team.
         """,
-                retries=3,
-            )
+            retries=3,
+        )

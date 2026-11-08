@@ -80,9 +80,7 @@ def render(template_name: str, user: Optional[User], **kwargs) -> str:
         if current_user and current_user.is_authenticated:
             user = current_user
 
-    use_partner_template = False
     if user:
-        use_partner_template = user.has_used_alias_from_partner()
         kwargs["user"] = user
 
     return template.render(
@@ -90,7 +88,6 @@ def render(template_name: str, user: Optional[User], **kwargs) -> str:
         URL=config.URL,
         LANDING_PAGE_URL=config.LANDING_PAGE_URL,
         YEAR=arrow.now().year,
-        USE_PARTNER_TEMPLATE=use_partner_template,
         **kwargs,
     )
 

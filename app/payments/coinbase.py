@@ -11,7 +11,6 @@ from app.db import Session
 from app.email_utils import send_email, render
 from app.log import LOG
 from app.models import CoinbaseSubscription, User
-from app.subscription_webhook import execute_subscription_webhook
 from app.user_audit_log_utils import emit_user_audit_log, UserAuditLogAction
 
 
@@ -116,6 +115,5 @@ def handle_coinbase_event(event) -> bool:
                 coinbase_subscription=coinbase_subscription,
             ),
         )
-    execute_subscription_webhook(user)
 
     return True

@@ -178,14 +178,6 @@ FIRST_ALIAS_DOMAIN = os.environ.get("FIRST_ALIAS_DOMAIN") or EMAIL_DOMAIN
 # e.g. [(10, "mx1.hostname."), (10, "mx2.hostname.")]
 EMAIL_SERVERS_WITH_PRIORITY = sl_getenv("EMAIL_SERVERS_WITH_PRIORITY")
 
-PROTON_MX_SERVERS = get_env_csv(
-    "PROTON_MX_SERVERS", "mail.protonmail.ch., mailsec.protonmail.ch."
-)
-
-PROTON_EMAIL_DOMAINS = get_env_csv(
-    "PROTON_EMAIL_DOMAINS", "proton.me, protonmail.com, protonmail.ch, proton.ch, pm.me"
-)
-
 # disable the alias suffix, i.e. the ".random_word" part
 DISABLE_ALIAS_SUFFIX = "DISABLE_ALIAS_SUFFIX" in os.environ
 
@@ -270,19 +262,6 @@ else:
         os.mkdir(GNUPGHOME, mode=0o700)
 
     print("WARNING: Use a temp directory for GNUPGHOME", GNUPGHOME)
-
-PROTON_CLIENT_ID = os.environ.get("PROTON_CLIENT_ID")
-PROTON_CLIENT_SECRET = os.environ.get("PROTON_CLIENT_SECRET")
-PROTON_BASE_URL = os.environ.get(
-    "PROTON_BASE_URL", "https://account.protonmail.com/api"
-)
-PROTON_VALIDATE_CERTS = "PROTON_VALIDATE_CERTS" in os.environ
-PROTON_PREVENT_CHANGE_LINKED_ACCOUNT = (
-    "PROTON_PREVENT_CHANGE_LINKED_ACCOUNT" in os.environ
-)
-CONNECT_WITH_PROTON = "CONNECT_WITH_PROTON" in os.environ
-PROTON_EXTRA_HEADER_NAME = os.environ.get("PROTON_EXTRA_HEADER_NAME")
-PROTON_EXTRA_HEADER_VALUE = os.environ.get("PROTON_EXTRA_HEADER_VALUE")
 
 # in seconds
 AVATAR_URL_EXPIRATION = 3600 * 24 * 7  # 1h*24h/d*7d=1week
@@ -373,7 +352,6 @@ ALERT_COMPLAINT_TRANSACTIONAL_PHASE = "alert_complaint_transactional_phase"
 
 ALERT_QUARANTINE_DMARC = "alert_quarantine_dmarc"
 
-ALERT_DUAL_SUBSCRIPTION_WITH_PARTNER = "alert_dual_sub_with_partner"
 ALERT_WARN_MULTIPLE_SUBSCRIPTIONS = "alert_multiple_subscription"
 
 # <<<<< END ALERT EMAIL >>>>
@@ -434,8 +412,6 @@ except Exception:
 HIBP_API_KEYS = sl_getenv("HIBP_API_KEYS", list) or []
 HIBP_MAX_ALIAS_CHECK = 10_000
 HIBP_RPM = int(os.environ.get("HIBP_API_RPM", 100))
-HIBP_SKIP_PARTNER_ALIAS = os.environ.get("HIBP_SKIP_PARTNER_ALIAS")
-
 KEEP_OLD_DATA_DAYS = 30
 
 POSTMASTER = os.environ.get("POSTMASTER")
@@ -534,10 +510,6 @@ ALIAS_RESTORE_ALL_RATE_LIMIT = getRateLimitFromConfig(
 )
 
 
-PARTNER_API_TOKEN_SECRET = os.environ.get("PARTNER_API_TOKEN_SECRET") or (
-    FLASK_SECRET + "partnerapitoken"
-)
-
 JOB_MAX_ATTEMPTS = 5
 JOB_TAKEN_RETRY_WAIT_MINS = 30
 
@@ -585,56 +557,6 @@ UPCLOUD_PASSWORD = os.environ.get("UPCLOUD_PASSWORD", None)
 UPCLOUD_DB_ID = os.environ.get("UPCLOUD_DB_ID", None)
 
 STORE_TRANSACTIONAL_EMAILS = "STORE_TRANSACTIONAL_EMAILS" in os.environ
-
-EVENT_WEBHOOK = os.environ.get("EVENT_WEBHOOK", None)
-
-# We want it disabled by default, so only skip if defined
-EVENT_WEBHOOK_SKIP_VERIFY_SSL = "EVENT_WEBHOOK_SKIP_VERIFY_SSL" in os.environ
-EVENT_WEBHOOK_DISABLE = "EVENT_WEBHOOK_DISABLE" in os.environ
-
-
-def read_webhook_enabled_user_ids() -> Optional[List[int]]:
-    user_ids = os.environ.get("EVENT_WEBHOOK_ENABLED_USER_IDS", None)
-    if user_ids is None:
-        return None
-
-    ids = []
-    for user_id in user_ids.split(","):
-        try:
-            ids.append(int(user_id.strip()))
-        except ValueError:
-            pass
-    return ids
-
-
-EVENT_WEBHOOK_ENABLED_USER_IDS: Optional[List[int]] = read_webhook_enabled_user_ids()
-
-# Allow to define a different DB_URI for the event listener, in case we want to skip the connection pool
-# It defaults to the regular DB_URI in case it's needed
-EVENT_LISTENER_DB_URI = os.environ.get("EVENT_LISTENER_DB_URI", DB_URI)
-
-
-def read_partner_dict(var: str) -> dict[int, str]:
-    partner_value = get_env_dict(var)
-    if len(partner_value) == 0:
-        return {}
-
-    res: dict[int, str] = {}
-    for partner_id in partner_value.keys():
-        try:
-            partner_id_int = int(partner_id.strip())
-            res[partner_id_int] = partner_value[partner_id]
-        except ValueError:
-            pass
-    return res
-
-
-PARTNER_DNS_CUSTOM_DOMAINS: dict[int, str] = read_partner_dict(
-    "PARTNER_DNS_CUSTOM_DOMAINS"
-)
-PARTNER_CUSTOM_DOMAIN_VALIDATION_PREFIXES: dict[int, str] = read_partner_dict(
-    "PARTNER_CUSTOM_DOMAIN_VALIDATION_PREFIXES"
-)
 
 MAILBOX_VERIFICATION_OVERRIDE_CODE: Optional[str] = os.environ.get(
     "MAILBOX_VERIFICATION_OVERRIDE_CODE", None

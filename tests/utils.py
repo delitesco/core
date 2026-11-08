@@ -9,8 +9,7 @@ from typing import Optional, Dict
 import jinja2
 
 from app.db import Session
-from app.models import ApiKey, User, PartnerUser, UserAliasDeleteAction
-from app.proton.proton_partner import get_proton_partner
+from app.models import ApiKey, User, UserAliasDeleteAction
 from app.utils import random_string
 
 
@@ -35,18 +34,6 @@ def create_new_user(
     Session.flush()
 
     return user
-
-
-def create_partner_linked_user() -> tuple[User, PartnerUser]:
-    user = create_new_user()
-    partner_user = PartnerUser.create(
-        partner_id=get_proton_partner().id,
-        user_id=user.id,
-        external_user_id=random_token(10),
-        flush=True,
-    )
-
-    return user, partner_user
 
 
 def login(flask_client, user: Optional[User] = None) -> User:

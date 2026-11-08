@@ -19,17 +19,12 @@ from app.email_utils import (
     send_email,
     render,
 )
-from app.events.event_dispatcher import PostgresDispatcher
 from app.import_utils import handle_batch_import
-from app.jobs.event_jobs import send_alias_creation_events_for_user
 from app.jobs.export_user_data_job import ExportUserDataJob
 from app.jobs.mark_abuser_job import MarkAbuserJob
-from app.jobs.send_event_job import SendEventToWebhookJob
-from app.jobs.sync_subscription_job import SyncSubscriptionJob
 from app.log import LOG
 from app.models import User, Job, BatchImport, Mailbox, JobState
 from app.user_audit_log_utils import emit_user_audit_log, UserAuditLogAction
-from events.event_sink import HttpEventSink
 from server import create_light_app
 from tasks.delete_custom_domain_job import DeleteCustomDomainJob
 
@@ -111,29 +106,6 @@ def onboarding_mailbox(user):
         render("com/onboarding/mailbox.html", user=user, to_email=comm_email),
         unsubscribe_link,
         via_email,
-        retries=3,
-        ignore_smtp_error=True,
-    )
-
-
-def welcome_proton(user):
-    comm_email, _, _ = user.get_communication_email()
-    if not comm_email:
-        return
-
-    send_email(
-        comm_email,
-        "Welcome to SimpleLogin, an email masking service provided by Proton",
-        render(
-            "com/onboarding/welcome-proton-user.txt.jinja2",
-            user=user,
-            to_email=comm_email,
-        ),
-        render(
-            "com/onboarding/welcome-proton-user.html",
-            user=user,
-            to_email=comm_email,
-        ),
         retries=3,
         ignore_smtp_error=True,
     )
@@ -225,13 +197,8 @@ def process_job(job: Job):
         # user might delete their account in the meantime
         # or disable the notification
         if user and user.notification and user.activated:
-            # if user only has 1 mailbox which is Proton then do not send PGP onboarding email
-            mailboxes = user.mailboxes()
-            if len(mailboxes) == 1 and mailboxes[0].is_proton():
-                LOG.d("Do not send onboarding PGP email to Proton mailbox")
-            else:
-                LOG.d("send onboarding pgp email to user %s", user)
-                onboarding_pgp(user)
+            LOG.d("send onboarding pgp email to user %s", user)
+            onboarding_pgp(user)
 
     elif job.name == JobType.BATCH_IMPORT.value:
         batch_import_id = job.payload.get("batch_import_id")
@@ -268,28 +235,6 @@ def process_job(job: Job):
         export_job = ExportUserDataJob.create_from_job(job)
         if export_job:
             export_job.run()
-    elif job.name == JobType.SEND_PROTON_WELCOME_1.value:
-        user_id = job.payload.get("user_id")
-        user = User.get(user_id)
-        if user and user.activated:
-            LOG.d("Send proton welcome email to user %s", user)
-            welcome_proton(user)
-    elif job.name == JobType.SEND_ALIAS_CREATION_EVENTS.value:
-        user_id = job.payload.get("user_id")
-        user = User.get(user_id)
-        if user and user.activated:
-            LOG.d(f"Sending alias creation events for {user}")
-            send_alias_creation_events_for_user(
-                user, dispatcher=PostgresDispatcher.get()
-            )
-    elif job.name == JobType.SEND_EVENT_TO_WEBHOOK.value:
-        send_job = SendEventToWebhookJob.create_from_job(job)
-        if send_job:
-            send_job.run(HttpEventSink())
-    elif job.name == JobType.SYNC_SUBSCRIPTION.value:
-        sync_job = SyncSubscriptionJob.create_from_job(job)
-        if sync_job:
-            sync_job.run(HttpEventSink())
     elif job.name == JobType.ABUSER_MARK.value:
         mark_abuser_job = MarkAbuserJob.create_from_job(job)
         if mark_abuser_job:

@@ -2,8 +2,7 @@ import re
 
 from app.alias_suffix import get_alias_suffixes
 from app.db import Session
-from app.models import SLDomain, PartnerUser, AliasOptions, CustomDomain
-from app.proton.proton_partner import get_proton_partner
+from app.models import SLDomain, AliasOptions, CustomDomain
 from init_app import add_sl_domains
 from tests.utils import create_new_user, random_token
 
@@ -13,24 +12,8 @@ def setup_module():
     SLDomain.create(
         domain="hidden", premium_only=False, flush=True, order=5, hidden=True
     )
-    SLDomain.create(domain="free_non_partner", premium_only=False, flush=True, order=4)
-    SLDomain.create(
-        domain="premium_non_partner", premium_only=True, flush=True, order=3
-    )
-    SLDomain.create(
-        domain="free_partner",
-        premium_only=False,
-        flush=True,
-        partner_id=get_proton_partner().id,
-        order=2,
-    )
-    SLDomain.create(
-        domain="premium_partner",
-        premium_only=True,
-        flush=True,
-        partner_id=get_proton_partner().id,
-        order=1,
-    )
+    SLDomain.create(domain="free", premium_only=False, flush=True, order=4)
+    SLDomain.create(domain="premium", premium_only=True, flush=True, order=3)
     Session.commit()
 
 
@@ -41,42 +24,22 @@ def teardown_module():
 
 def test_get_default_domain_even_if_is_not_allowed():
     user = create_new_user()
-    PartnerUser.create(
-        partner_id=get_proton_partner().id,
-        user_id=user.id,
-        external_user_id=random_token(10),
-        flush=True,
-    )
     user.trial_end = None
-    default_domain = SLDomain.filter_by(
-        hidden=False, partner_id=None, premium_only=False
-    ).first()
+    default_domain = SLDomain.filter_by(hidden=False, premium_only=False).first()
     user.default_alias_public_domain_id = default_domain.id
     Session.flush()
-    options = AliasOptions(
-        show_sl_domains=False, show_partner_domains=get_proton_partner()
-    )
+    options = AliasOptions(show_sl_domains=False)
     suffixes = get_alias_suffixes(user, alias_options=options)
     assert suffixes[0].domain == default_domain.domain
 
 
 def test_get_default_domain_hidden():
     user = create_new_user()
-    PartnerUser.create(
-        partner_id=get_proton_partner().id,
-        user_id=user.id,
-        external_user_id=random_token(10),
-        flush=True,
-    )
     user.trial_end = None
-    default_domain = SLDomain.filter_by(
-        hidden=True, partner_id=None, premium_only=False
-    ).first()
+    default_domain = SLDomain.filter_by(hidden=True, premium_only=False).first()
     user.default_alias_public_domain_id = default_domain.id
     Session.flush()
-    options = AliasOptions(
-        show_sl_domains=False, show_partner_domains=get_proton_partner()
-    )
+    options = AliasOptions(show_sl_domains=True)
     suffixes = get_alias_suffixes(user, alias_options=options)
     for suffix in suffixes:
         domain = SLDomain.get_by(domain=suffix.domain)
@@ -86,19 +49,11 @@ def test_get_default_domain_hidden():
 
 def test_get_default_domain_is_premium_for_free_user():
     user = create_new_user()
-    PartnerUser.create(
-        partner_id=get_proton_partner().id,
-        user_id=user.id,
-        external_user_id=random_token(10),
-        flush=True,
-    )
     user.trial_end = None
-    default_domain = SLDomain.filter_by(partner_id=None, premium_only=True).first()
+    default_domain = SLDomain.filter_by(premium_only=True).first()
     user.default_alias_public_domain_id = default_domain.id
     Session.flush()
-    options = AliasOptions(
-        show_sl_domains=False, show_partner_domains=get_proton_partner()
-    )
+    options = AliasOptions(show_sl_domains=True)
     suffixes = get_alias_suffixes(user, alias_options=options)
     for suffix in suffixes:
         domain = SLDomain.get_by(domain=suffix.domain)
@@ -108,20 +63,12 @@ def test_get_default_domain_is_premium_for_free_user():
 
 def test_suffixes_are_valid():
     user = create_new_user()
-    PartnerUser.create(
-        partner_id=get_proton_partner().id,
-        user_id=user.id,
-        external_user_id=random_token(10),
-        flush=True,
-    )
     CustomDomain.create(
         user_id=user.id, domain=f"{random_token(10)}.com", verified=True
     )
     user.trial_end = None
     Session.flush()
-    options = AliasOptions(
-        show_sl_domains=True, show_partner_domains=get_proton_partner()
-    )
+    options = AliasOptions(show_sl_domains=True)
     alias_suffixes = get_alias_suffixes(user, alias_options=options)
     valid_re = re.compile(r"^(\.[\w_]+)?@[\.\w]+$")
     has_prefix = 0
@@ -138,9 +85,7 @@ def test_get_default_domain_is_only_shown_once():
     default_domain = SLDomain.filter_by(hidden=False).order_by(SLDomain.order).first()
     user.default_alias_public_domain_id = default_domain.id
     Session.flush()
-    options = AliasOptions(
-        show_sl_domains=True, show_partner_domains=get_proton_partner()
-    )
+    options = AliasOptions(show_sl_domains=True)
     suffixes = get_alias_suffixes(user, alias_options=options)
     found_default = False
     found_domains = set()

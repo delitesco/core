@@ -6,16 +6,12 @@ from sqlalchemy import or_, update, and_
 from app.config import ADMIN_EMAIL
 from app.db import Session
 from app.email_utils import send_email
-from app.events.event_dispatcher import EventDispatcher
-from app.events.generated.event_pb2 import EventContent, UserPlanChanged
 from app.log import LOG
 from app.models import (
     User,
     ManualSubscription,
     Coupon,
     LifetimeCoupon,
-    PartnerSubscription,
-    PartnerUser,
 )
 from app.user_audit_log_utils import emit_user_audit_log, UserAuditLogAction
 
@@ -88,26 +84,12 @@ def redeem_coupon(coupon_code: str, user: User) -> Optional[Coupon]:
         action=UserAuditLogAction.Upgrade,
         message=f"User {user} redeemed coupon {coupon.id} for {coupon.nb_year} years",
     )
-    EventDispatcher.send_event(
-        user=user,
-        content=EventContent(
-            user_plan_change=UserPlanChanged(plan_end_time=sub.end_at.timestamp)
-        ),
-    )
     Session.commit()
     return coupon
 
 
 def redeem_lifetime_coupon(coupon_code: str, user: User) -> Optional[Coupon]:
     if user.lifetime:
-        return None
-    partner_sub = (
-        Session.query(PartnerSubscription)
-        .join(PartnerUser, PartnerUser.id == PartnerSubscription.partner_user_id)
-        .filter(PartnerUser.user_id == user.id, PartnerSubscription.lifetime == True)  # noqa: E712
-        .first()
-    )
-    if partner_sub is not None:
         return None
     coupon: LifetimeCoupon = LifetimeCoupon.get_by(code=coupon_code)
     if not coupon:
@@ -132,10 +114,6 @@ def redeem_lifetime_coupon(coupon_code: str, user: User) -> Optional[Coupon]:
     user.lifetime_coupon_id = coupon.id
     if coupon.paid:
         user.paid_lifetime = True
-    EventDispatcher.send_event(
-        user=user,
-        content=EventContent(user_plan_change=UserPlanChanged(lifetime=True)),
-    )
     Session.commit()
 
     # notify admin

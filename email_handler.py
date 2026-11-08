@@ -211,7 +211,6 @@ def get_or_create_contact(
         mail_from=mail_from,
         allow_empty_email=True,
         automatic_created=True,
-        from_partner=False,
     )
     if contact_result.error:
         LOG.w(f"Error creating contact: {contact_result.error.value}")

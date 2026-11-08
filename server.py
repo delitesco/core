@@ -1,4 +1,3 @@
-import os
 import time
 from datetime import timedelta
 
@@ -41,9 +40,6 @@ from app.payments.coinbase import setup_coinbase_commerce
 from app.payments.paddle import setup_paddle_callback
 from app.redis_services import initialize_redis_services
 from app.request_utils import generate_request_id
-
-# the app is served behind nginx which uses http and not https
-os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
 
 
 def create_light_app() -> Flask:
@@ -244,10 +240,9 @@ def register_custom_commands(app):
 
     @app.cli.command("dummy-data")
     def dummy_data():
-        from init_app import add_sl_domains, add_proton_partner
+        from init_app import add_sl_domains
 
         LOG.w("reset db, add fake data")
-        add_proton_partner()
         fake_data()
         add_sl_domains()
 

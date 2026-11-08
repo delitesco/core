@@ -10,11 +10,7 @@ from app.models import (
     CoinbaseSubscription,
     ManualSubscription,
     Subscription,
-    PartnerUser,
-    PartnerSubscription,
-    User,
 )
-from app.proton.proton_partner import get_proton_partner
 from tests.utils import create_new_user, random_token
 
 
@@ -54,19 +50,6 @@ def test_get_alias_for_lifetime_with_old_hibp_date():
     assert alias_id == aliases[0].id
 
 
-def create_partner_sub(user: User):
-    pu = PartnerUser.create(
-        partner_id=get_proton_partner().id,
-        partner_email=user.email,
-        external_user_id=random_token(10),
-        user_id=user.id,
-        flush=True,
-    )
-    PartnerSubscription.create(
-        partner_user_id=pu.id, end_at=arrow.utcnow().shift(days=15)
-    )
-
-
 sub_generator_list = [
     lambda u: AppleSubscription.create(
         user_id=u.id,
@@ -92,7 +75,6 @@ sub_generator_list = [
         next_bill_date=arrow.now().shift(days=15).date(),
         plan=PlanEnum.monthly,
     ),
-    create_partner_sub,
 ]
 
 

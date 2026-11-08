@@ -16,7 +16,6 @@ from app.db import Session
 from app.email_utils import send_email, render
 from app.log import LOG
 from app.models import Subscription, PlanEnum, User, Coupon
-from app.subscription_webhook import execute_subscription_webhook
 from app.user_audit_log_utils import emit_user_audit_log, UserAuditLogAction
 from app.utils import random_string
 
@@ -94,7 +93,6 @@ def setup_paddle_callback(app: Flask):
                     message="Extended Paddle subscription",
                 )
 
-            execute_subscription_webhook(user)
             LOG.d("User %s upgrades!", user)
 
             Session.commit()
@@ -113,7 +111,6 @@ def setup_paddle_callback(app: Flask):
                 ).date()
 
                 Session.commit()
-                execute_subscription_webhook(sub.user)
 
         elif request.form.get("alert_name") == "subscription_cancelled":
             subscription_id = request.form.get("subscription_id")
@@ -149,7 +146,6 @@ def setup_paddle_callback(app: Flask):
                         end_date=request.form.get("cancellation_effective_date"),
                     ),
                 )
-                execute_subscription_webhook(sub.user)
 
             else:
                 # user might have deleted their account
@@ -197,7 +193,6 @@ def setup_paddle_callback(app: Flask):
                 )
 
                 Session.commit()
-                execute_subscription_webhook(sub.user)
             else:
                 LOG.w(
                     f"update non-exist subscription {subscription_id}. {request.form}"
@@ -219,7 +214,6 @@ def setup_paddle_callback(app: Flask):
                 )
                 Session.commit()
                 LOG.e("%s requests a refund", user)
-                execute_subscription_webhook(sub.user)
 
         elif request.form.get("alert_name") == "subscription_payment_refunded":
             subscription_id = request.form.get("subscription_id")
@@ -253,7 +247,6 @@ def setup_paddle_callback(app: Flask):
                     LOG.e("Unknown plan_id %s", plan_id)
             else:
                 LOG.w("partial subscription_payment_refunded, not handled")
-            execute_subscription_webhook(sub.user)
 
         return "OK"
 

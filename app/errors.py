@@ -63,10 +63,6 @@ class MailSentFromReverseAlias(SLException):
     pass
 
 
-class ProtonPartnerNotSetUp(SLException):
-    pass
-
-
 class ErrContactErrorUpgradeNeeded(SLException):
     """raised when user cannot create a contact because the plan doesn't allow it"""
 
@@ -101,33 +97,6 @@ class ErrContactAlreadyExists(SLException):
 
     def error_for_user(self) -> str:
         return f"{self.contact.website_email} is already added"
-
-
-class LinkException(SLException):
-    def __init__(self, message: str):
-        self.message = message
-
-
-class AccountAlreadyLinkedToAnotherPartnerException(LinkException):
-    def __init__(self):
-        super().__init__("This account is already linked to another partner")
-
-
-class AccountAlreadyLinkedToAnotherUserException(LinkException):
-    def __init__(self):
-        super().__init__("This account is linked to another user")
-
-
-class AccountIsUsingAliasAsEmail(LinkException):
-    def __init__(self):
-        super().__init__("Your account has an alias as it's email address")
-
-
-class ProtonAccountNotVerified(LinkException):
-    def __init__(self):
-        super().__init__(
-            "The Proton account you are trying to use has not been verified"
-        )
 
 
 class CannotCreateAliasQuotaExceeded(SLException):
