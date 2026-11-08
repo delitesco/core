@@ -11,7 +11,6 @@
     by your mailbox {{ mailbox_email }}.
   {% endcall %}
 
-  {{ render_button("View the refused email", refused_email_url) }}
   {% call text() %}
     As security measure, we have disabled the alias.
   {% endcall %}
@@ -20,5 +19,4 @@
   {{ render_text('Thanks,
     <br />
     SimpleLogin Team.') }}
-  {{ raw_url(refused_email_url) }}
 {% endblock %}

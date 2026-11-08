@@ -52,7 +52,7 @@ from flanker.addresslib import address
 from flanker.addresslib.address import EmailAddress
 from sqlalchemy.exc import IntegrityError
 
-from app import pgp_utils, s3, config, contact_utils
+from app import pgp_utils, file_storage, config, contact_utils
 from app.alias_utils import (
     try_auto_create,
     change_alias_status,
@@ -496,7 +496,7 @@ def handle_email_sent_to_ourself(alias, from_addr: str, msg: Message, user):
     # store the refused email
     random_name = str(uuid.uuid4())
     full_report_path = f"refused-emails/cycle-{random_name}.eml"
-    s3.upload_email_from_bytesio(
+    file_storage.upload_email_from_bytesio(
         full_report_path, BytesIO(message_to_bytes(msg)), random_name
     )
     refused_email = RefusedEmail.create(
@@ -504,8 +504,6 @@ def handle_email_sent_to_ourself(alias, from_addr: str, msg: Message, user):
     )
     Session.commit()
     LOG.d("Create refused email %s", refused_email)
-    # link available for 6 days as it gets deleted in 7 days
-    refused_email_url = refused_email.get_url(expires_in=518400)
 
     Notification.create(
         user_id=user.id,
@@ -514,7 +512,6 @@ def handle_email_sent_to_ourself(alias, from_addr: str, msg: Message, user):
             "notification/cycle-email.html",
             alias=alias,
             from_addr=from_addr,
-            refused_email_url=refused_email_url,
         ),
         commit=True,
     )
@@ -529,14 +526,12 @@ def handle_email_sent_to_ourself(alias, from_addr: str, msg: Message, user):
             user=user,
             alias=alias,
             from_addr=from_addr,
-            refused_email_url=refused_email_url,
         ),
         render(
             "transactional/cycle-email.html",
             user=user,
             alias=alias,
             from_addr=from_addr,
-            refused_email_url=refused_email_url,
         ),
     )
 
@@ -1485,7 +1480,7 @@ def handle_bounce_forward_phase(msg: Message, email_log: EmailLog):
     random_name = str(uuid.uuid4())
 
     full_report_path = f"refused-emails/full-{random_name}.eml"
-    s3.upload_email_from_bytesio(
+    file_storage.upload_email_from_bytesio(
         full_report_path, BytesIO(message_to_bytes(msg)), f"full-{random_name}"
     )
 
@@ -1504,7 +1499,7 @@ def handle_bounce_forward_phase(msg: Message, email_log: EmailLog):
         )
     else:
         file_path = f"refused-emails/{random_name}.eml"
-        s3.upload_email_from_bytesio(
+        file_storage.upload_email_from_bytesio(
             file_path, BytesIO(message_to_bytes(orig_msg)), random_name
         )
 
@@ -1518,8 +1513,6 @@ def handle_bounce_forward_phase(msg: Message, email_log: EmailLog):
     email_log.refused_email_id = refused_email.id
     email_log.bounced_mailbox_id = mailbox.id
     Session.commit()
-
-    refused_email_url = f"{URL}/dashboard/refused_email?highlight_id={email_log.id}"
 
     alias_will_be_disabled, reason = should_disable(alias)
     if alias_will_be_disabled:
@@ -1549,14 +1542,12 @@ def handle_bounce_forward_phase(msg: Message, email_log: EmailLog):
                 "transactional/bounce/automatic-disable-alias.txt",
                 user=alias.user,
                 alias=alias,
-                refused_email_url=refused_email_url,
                 mailbox_email=mailbox.email,
             ),
             render(
                 "transactional/bounce/automatic-disable-alias.html",
                 user=alias.user,
                 alias=alias,
-                refused_email_url=refused_email_url,
                 mailbox_email=mailbox.email,
             ),
             max_nb_alert=10,
@@ -1580,7 +1571,6 @@ def handle_bounce_forward_phase(msg: Message, email_log: EmailLog):
                 alias=alias,
                 website_email=contact.website_email,
                 disable_alias_link=disable_alias_link,
-                refused_email_url=refused_email.get_url(),
                 mailbox_email=mailbox.email,
                 block_sender_link=block_sender_link,
             ),
@@ -1598,7 +1588,6 @@ def handle_bounce_forward_phase(msg: Message, email_log: EmailLog):
                 website_email=contact.website_email,
                 disable_alias_link=disable_alias_link,
                 block_sender_link=block_sender_link,
-                refused_email_url=refused_email_url,
                 mailbox_email=mailbox.email,
             ),
             render(
@@ -1607,7 +1596,6 @@ def handle_bounce_forward_phase(msg: Message, email_log: EmailLog):
                 alias=alias,
                 website_email=contact.website_email,
                 disable_alias_link=disable_alias_link,
-                refused_email_url=refused_email_url,
                 mailbox_email=mailbox.email,
             ),
             max_nb_alert=10,
@@ -1646,7 +1634,7 @@ def handle_bounce_reply_phase(envelope, msg: Message, email_log: EmailLog):
     random_name = str(uuid.uuid4())
 
     full_report_path = f"refused-emails/full-{random_name}.eml"
-    s3.upload_email_from_bytesio(
+    file_storage.upload_email_from_bytesio(
         full_report_path, BytesIO(message_to_bytes(msg)), random_name
     )
 
@@ -1654,7 +1642,7 @@ def handle_bounce_reply_phase(envelope, msg: Message, email_log: EmailLog):
     file_path = None
     if orig_msg:
         file_path = f"refused-emails/{random_name}.eml"
-        s3.upload_email_from_bytesio(
+        file_storage.upload_email_from_bytesio(
             file_path, BytesIO(message_to_bytes(orig_msg)), random_name
         )
 
@@ -1670,8 +1658,6 @@ def handle_bounce_reply_phase(envelope, msg: Message, email_log: EmailLog):
 
     Session.commit()
 
-    refused_email_url = f"{URL}/dashboard/refused_email?highlight_id={email_log.id}"
-
     LOG.d(
         "Inform user %s about bounced email sent by %s to %s",
         user,
@@ -1685,7 +1671,6 @@ def handle_bounce_reply_phase(envelope, msg: Message, email_log: EmailLog):
             "notification/bounce-reply-phase.html",
             alias=alias,
             contact=contact,
-            refused_email_url=refused_email.get_url(),
         ),
         commit=True,
     )
@@ -1699,14 +1684,12 @@ def handle_bounce_reply_phase(envelope, msg: Message, email_log: EmailLog):
             user=user,
             alias=alias,
             contact=contact,
-            refused_email_url=refused_email_url,
         ),
         render(
             "transactional/bounce/bounce-email-reply-phase.html",
             user=user,
             alias=alias,
             contact=contact,
-            refused_email_url=refused_email_url,
         ),
     )
 
@@ -1726,14 +1709,14 @@ def handle_spam(
     random_name = str(uuid.uuid4())
 
     full_report_path = f"spams/full-{random_name}.eml"
-    s3.upload_email_from_bytesio(
+    file_storage.upload_email_from_bytesio(
         full_report_path, BytesIO(message_to_bytes(msg)), random_name
     )
 
     file_path = None
     if orig_msg:
         file_path = f"spams/{random_name}.eml"
-        s3.upload_email_from_bytesio(
+        file_storage.upload_email_from_bytesio(
             file_path, BytesIO(message_to_bytes(orig_msg)), random_name
         )
 
@@ -1747,7 +1730,6 @@ def handle_spam(
 
     LOG.d("Create spam email %s", refused_email)
 
-    refused_email_url = f"{URL}/dashboard/refused_email?highlight_id={email_log.id}"
     disable_alias_link = f"{URL}/dashboard/unsubscribe/{alias.id}"
 
     if is_reply:
@@ -1770,7 +1752,6 @@ def handle_spam(
                 alias=alias,
                 website_email=contact.website_email,
                 disable_alias_link=disable_alias_link,
-                refused_email_url=refused_email_url,
             ),
             render(
                 "transactional/spam-email-reply-phase.html",
@@ -1778,7 +1759,6 @@ def handle_spam(
                 alias=alias,
                 website_email=contact.website_email,
                 disable_alias_link=disable_alias_link,
-                refused_email_url=refused_email_url,
             ),
         )
     else:
@@ -1801,7 +1781,6 @@ def handle_spam(
                 alias=alias,
                 website_email=contact.website_email,
                 disable_alias_link=disable_alias_link,
-                refused_email_url=refused_email_url,
             ),
             render(
                 "transactional/spam-email.html",
@@ -1809,7 +1788,6 @@ def handle_spam(
                 alias=alias,
                 website_email=contact.website_email,
                 disable_alias_link=disable_alias_link,
-                refused_email_url=refused_email_url,
             ),
         )
 

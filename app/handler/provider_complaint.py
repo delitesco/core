@@ -5,7 +5,7 @@ from io import BytesIO
 from mailbox import Message
 from typing import Optional, Union
 
-from app import s3
+from app import file_storage
 from app.config import (
     ALERT_COMPLAINT_REPLY_PHASE,
     ALERT_COMPLAINT_TRANSACTIONAL_PHASE,
@@ -337,7 +337,7 @@ def report_complaint_to_user_in_forward_phase(
 def store_provider_complaint(alias, message):
     email_name = f"reply-{uuid.uuid4().hex}.eml"
     full_report_path = f"provider_complaint/{email_name}"
-    s3.upload_email_from_bytesio(
+    file_storage.upload_email_from_bytesio(
         full_report_path, BytesIO(to_bytes(message)), email_name
     )
     refused_email = RefusedEmail.create(

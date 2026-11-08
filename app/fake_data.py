@@ -1,13 +1,12 @@
 import os
 
 
-from app import s3
+from app import file_storage
 from app.config import ROOT_DIR, get_abs_path, FIRST_ALIAS_DOMAIN
 from app.db import Session
 from app.log import LOG
 from app.models import (
     User,
-    File,
     Alias,
     RefusedEmail,
     Contact,
@@ -41,23 +40,12 @@ def fake_data():
     )
     Session.commit()
 
-    # add a profile picture
-    file_path = "profile_pic.svg"
-    s3.upload_from_bytesio(
-        file_path,
-        open(os.path.join(ROOT_DIR, "static", "default-icon.svg"), "rb"),
-        content_type="image/svg",
-    )
-    file = File.create(user_id=user.id, path=file_path, commit=True)
-    user.profile_picture_id = file.id
-    Session.commit()
-
     # create a bounced email
     alias = Alias.create_new_random(user)
     Session.commit()
 
     bounce_email_file_path = "bounce.eml"
-    s3.upload_email_from_bytesio(
+    file_storage.upload_email_from_bytesio(
         bounce_email_file_path,
         open(os.path.join(ROOT_DIR, "local_data", "email_tests", "2.eml"), "rb"),
         "download.eml",

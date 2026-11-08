@@ -1,18 +1,13 @@
-import base64
 import dataclasses
-from io import BytesIO
 
 from flask import jsonify, g, request, make_response
 
-from app import s3
 from app.api.base import api_bp, require_api_auth
 from app.config import SESSION_COOKIE_NAME
 from app.db import Session
 from app.user_stats import get_stats
-from app.image_validation import detect_image_format, ImageFormat
-from app.models import ApiKey, File, User
+from app.models import ApiKey, User
 from app.session import logout_session
-from app.utils import random_string
 
 
 def user_to_dict(user: User) -> dict:
@@ -22,11 +17,6 @@ def user_to_dict(user: User) -> dict:
         "email": user.email,
         "can_create_reverse_alias": user.can_create_contacts(),
     }
-
-    if user.profile_picture_id:
-        ret["profile_picture_url"] = user.profile_picture.get_url()
-    else:
-        ret["profile_picture_url"] = None
 
     return ret
 
@@ -54,31 +44,10 @@ def user_info():
 def update_user_info():
     """
     Input
-    - profile_picture (optional): base64 of the profile picture. Set to null to remove the profile picture
     - name (optional)
     """
     user = g.user
     data = request.get_json() or {}
-
-    if "profile_picture" in data:
-        if user.profile_picture_id:
-            file = user.profile_picture
-            user.profile_picture_id = None
-            Session.flush()
-            if file:
-                File.delete(file.id)
-                s3.delete(file.path)
-                Session.flush()
-        if data["profile_picture"] is not None:
-            raw_data = base64.decodebytes(data["profile_picture"].encode())
-            if detect_image_format(raw_data) == ImageFormat.Unknown:
-                return jsonify(error="Unsupported image format"), 400
-            file_path = random_string(30)
-            file = File.create(user_id=user.id, path=file_path)
-            Session.flush()
-            s3.upload_from_bytesio(file_path, BytesIO(raw_data))
-            user.profile_picture_id = file.id
-            Session.flush()
 
     if "name" in data:
         user.name = data["name"]
