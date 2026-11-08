@@ -8,7 +8,6 @@ from itsdangerous import Signer
 from app.api.base import api_bp
 from app.abuser_utils import check_if_abuser_email
 from app.config import FLASK_SECRET, DISABLE_REGISTRATION
-from app.dashboard.views.account_setting import send_reset_password_email
 from app.db import Session
 from app.email_utils import (
     email_can_be_used_as_mailbox,
@@ -251,30 +250,3 @@ def auth_payload(user, device) -> dict:
         login_user(user)
 
     return ret
-
-
-@api_bp.route("/auth/forgot_password", methods=["POST"])
-@limiter.limit("2/minute")
-def forgot_password():
-    """
-    User forgot password
-    Input:
-        email
-    Output:
-        200 and a reset password email is sent to user
-        400 if email not exist
-
-    """
-    data = request.get_json()
-    if not data or not data.get("email"):
-        return jsonify(error="request body must contain email"), 400
-
-    email = sanitize_email(data.get("email"))
-    canonical_email = canonicalize_email(data.get("email"))
-
-    user = User.get_by(email=email) or User.get_by(email=canonical_email)
-
-    if user:
-        send_reset_password_email(user)
-
-    return jsonify(ok=True)

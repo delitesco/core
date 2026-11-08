@@ -249,24 +249,3 @@ def test_auth_reactivate_success(flask_client):
     assert act_code
     assert len(act_code.code) == 6
     assert act_code.tries == 3
-
-
-def test_auth_login_forgot_password(flask_client):
-    email = random_email()
-    User.create(email=email, password="password", name="Test User", activated=True)
-    Session.commit()
-
-    r = flask_client.post(
-        url_for("api.forgot_password"),
-        json={"email": email},
-    )
-
-    assert r.status_code == 200
-
-    # No such email, still return 200
-    r = flask_client.post(
-        url_for("api.forgot_password"),
-        json={"email": random_email()},
-    )
-
-    assert r.status_code == 200

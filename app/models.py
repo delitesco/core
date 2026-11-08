@@ -7,7 +7,6 @@ import hashlib
 import hmac
 import os
 import random
-import secrets
 import uuid
 from typing import List, Tuple, Optional, Union
 
@@ -3610,27 +3609,6 @@ class NewsletterUser(Base, ModelMixin):
     newsletter = orm.relationship(Newsletter)
 
     __table_args__ = (sa.Index("ix_newsletter_user_user_id", "user_id"),)
-
-
-class ApiToCookieToken(Base, ModelMixin):
-    __tablename__ = "api_cookie_token"
-    code = sa.Column(sa.String(128), unique=True, nullable=False)
-    user_id = sa.Column(sa.ForeignKey(User.id, ondelete="cascade"), nullable=False)
-    api_key_id = sa.Column(sa.ForeignKey(ApiKey.id, ondelete="cascade"), nullable=False)
-
-    user = orm.relationship(User)
-    api_key = orm.relationship(ApiKey)
-
-    __table_args__ = (
-        sa.Index("ix_api_to_cookie_token_api_key_id", "api_key_id"),
-        sa.Index("ix_api_to_cookie_token_user_id", "user_id"),
-    )
-
-    @classmethod
-    def create(cls, **kwargs):
-        code = secrets.token_urlsafe(32)
-
-        return super().create(code=code, **kwargs)
 
 
 class SyncEvent(Base, ModelMixin):

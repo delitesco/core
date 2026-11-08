@@ -19,8 +19,8 @@ from app.api.serializer import (
     get_alias_info_v2,
     get_alias_infos_with_pagination_v3,
 )
-from app.dashboard.views.alias_contact_manager import create_contact
-from app.dashboard.views.alias_log import get_alias_log
+from app.alias_activity import get_alias_log
+from app.contact_utils import create_contact_for_alias
 from app.db import Session
 from app.errors import (
     CannotCreateContactForReverseAlias,
@@ -432,7 +432,7 @@ def create_contact_route(alias_id):
     contact_address = data.get("contact")
 
     try:
-        contact = create_contact(alias, contact_address)
+        contact = create_contact_for_alias(alias, contact_address)
     except ErrContactErrorUpgradeNeeded as err:
         return jsonify(error=err.error_for_user()), 403
     except (ErrAddressInvalid, CannotCreateContactForReverseAlias) as err:
