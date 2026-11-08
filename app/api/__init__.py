@@ -10,6 +10,7 @@ from .views import (
     setting,
     export,
     provision,
+    directory,
 )
 
 __all__ = [
@@ -24,4 +25,5 @@ __all__ = [
     "setting",
     "export",
     "provision",
+    "directory",
 ]
