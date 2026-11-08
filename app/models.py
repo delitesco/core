@@ -41,7 +41,6 @@ from app.errors import (
 )
 from app.handler.unsubscribe_encoder import UnsubscribeAction, UnsubscribeEncoder
 from app.log import LOG
-from app.oauth_models import Scope
 from app.pw_models import PasswordOracle
 from app.utils import (
     convert_to_id,
@@ -1231,16 +1230,6 @@ class User(Base, ModelMixin, UserMixin, PasswordOracle):
         # can have duplicate where a "root" user has a domain that's also listed in SL domains
         return list(set(domains))
 
-    def should_show_app_page(self) -> bool:
-        """whether to show the app page"""
-        return (
-            # when user has used the "Sign in with SL" button before
-            ClientUser.filter(ClientUser.user_id == self.id).count()
-            # or when user has created an app
-            + Client.filter(Client.user_id == self.id).count()
-            > 0
-        )
-
     def get_random_alias_suffix(self, custom_domain: Optional["CustomDomain"] = None):
         """Get random suffix for an alias based on user's preference.
 
@@ -1281,10 +1270,6 @@ def _expiration_1h():
 
 def _expiration_12h():
     return arrow.now().shift(hours=12)
-
-
-def _expiration_5m():
-    return arrow.now().shift(minutes=5)
 
 
 def _expiration_7d():
@@ -1343,19 +1328,6 @@ class SocialAuth(Base, ModelMixin):
 # <<< OAUTH models >>>
 
 
-def generate_oauth_client_id(client_name) -> str:
-    oauth_client_id = convert_to_id(client_name) + "-" + random_string()
-
-    # check that the client does not exist yet
-    if not Client.get_by(oauth_client_id=oauth_client_id):
-        LOG.d("generate oauth_client_id %s", oauth_client_id)
-        return oauth_client_id
-
-    # Rerun the function
-    LOG.w("client_id %s already exists, generate a new client_id", oauth_client_id)
-    return generate_oauth_client_id(client_name)
-
-
 class MfaBrowser(Base, ModelMixin):
     __tablename__ = "mfa_browser"
 
@@ -1397,145 +1369,6 @@ class MfaBrowser(Base, ModelMixin):
 
     def reset_expire(self):
         self.expires = arrow.now().shift(days=30)
-
-
-class Client(Base, ModelMixin):
-    __tablename__ = "client"
-    oauth_client_id = sa.Column(sa.String(128), unique=True, nullable=False)
-    oauth_client_secret = sa.Column(sa.String(128), nullable=False)
-
-    name = sa.Column(sa.String(128), nullable=False)
-    home_url = sa.Column(sa.String(1024))
-
-    # user who created this client
-    user_id = sa.Column(sa.ForeignKey(User.id, ondelete="cascade"), nullable=False)
-    icon_id = sa.Column(sa.ForeignKey(File.id), nullable=True)
-
-    # an app needs to be approved by SimpleLogin team
-    approved = sa.Column(sa.Boolean, nullable=False, default=False, server_default="0")
-    description = sa.Column(sa.Text, nullable=True)
-
-    # a referral can be attached to a client
-    # so all users who sign up via the authorize screen are counted towards this referral
-    referral_id = sa.Column(
-        sa.ForeignKey("referral.id", ondelete="SET NULL"), nullable=True
-    )
-
-    icon = orm.relationship(File)
-    user = orm.relationship(User)
-    referral = orm.relationship("Referral")
-
-    __table_args__ = (
-        sa.Index("ix_client_user_id", "user_id"),
-        sa.Index("ix_client_icon_id", "icon_id"),
-        sa.Index("ix_client_referral_id", "referral_id"),
-    )
-
-    def nb_user(self):
-        return ClientUser.filter_by(client_id=self.id).count()
-
-    def get_scopes(self) -> [Scope]:
-        # todo: client can choose which scopes they want to have access
-        return [Scope.NAME, Scope.EMAIL, Scope.AVATAR_URL]
-
-    @classmethod
-    def create_new(cls, name, user_id) -> "Client":
-        # generate a client-id
-        oauth_client_id = generate_oauth_client_id(name)
-        oauth_client_secret = random_string(40)
-        client = Client.create(
-            name=name,
-            oauth_client_id=oauth_client_id,
-            oauth_client_secret=oauth_client_secret,
-            user_id=user_id,
-        )
-
-        return client
-
-    def get_icon_url(self):
-        if self.icon_id:
-            return self.icon.get_url()
-        else:
-            return config.URL + "/static/default-icon.svg"
-
-    def last_user_login(self) -> "ClientUser":
-        client_user = (
-            ClientUser.filter(ClientUser.client_id == self.id)
-            .order_by(ClientUser.updated_at)
-            .first()
-        )
-        if client_user:
-            return client_user
-        return None
-
-
-class RedirectUri(Base, ModelMixin):
-    """Valid redirect uris for a client"""
-
-    __tablename__ = "redirect_uri"
-
-    client_id = sa.Column(sa.ForeignKey(Client.id, ondelete="cascade"), nullable=False)
-    uri = sa.Column(sa.String(1024), nullable=False)
-
-    client = orm.relationship(Client, backref="redirect_uris")
-
-    __table_args__ = (sa.Index("ix_redirect_uri_client_id", "client_id"),)
-
-
-class AuthorizationCode(Base, ModelMixin):
-    __tablename__ = "authorization_code"
-
-    code = sa.Column(sa.String(128), unique=True, nullable=False)
-    client_id = sa.Column(sa.ForeignKey(Client.id, ondelete="cascade"), nullable=False)
-    user_id = sa.Column(sa.ForeignKey(User.id, ondelete="cascade"), nullable=False)
-
-    scope = sa.Column(sa.String(128))
-    redirect_uri = sa.Column(sa.String(1024))
-
-    # what is the input response_type, e.g. "code", "code,id_token", ...
-    response_type = sa.Column(sa.String(128))
-
-    nonce = sa.Column(sa.Text, nullable=True, default=None, server_default=text("NULL"))
-
-    user = orm.relationship(User, lazy=False)
-    client = orm.relationship(Client, lazy=False)
-
-    expired = sa.Column(ArrowType, nullable=False, default=_expiration_5m)
-
-    __table_args__ = (
-        sa.Index("ix_authorization_code_client_id", "client_id"),
-        sa.Index("ix_authorization_code_user_id", "user_id"),
-    )
-
-    def is_expired(self):
-        return self.expired < arrow.now()
-
-
-class OauthToken(Base, ModelMixin):
-    __tablename__ = "oauth_token"
-
-    access_token = sa.Column(sa.String(128), unique=True)
-    client_id = sa.Column(sa.ForeignKey(Client.id, ondelete="cascade"), nullable=False)
-    user_id = sa.Column(sa.ForeignKey(User.id, ondelete="cascade"), nullable=False)
-
-    scope = sa.Column(sa.String(128))
-    redirect_uri = sa.Column(sa.String(1024))
-
-    # what is the input response_type, e.g. "token", "token,id_token", ...
-    response_type = sa.Column(sa.String(128))
-
-    user = orm.relationship(User)
-    client = orm.relationship(Client)
-
-    expired = sa.Column(ArrowType, nullable=False, default=_expiration_1h)
-
-    __table_args__ = (
-        sa.Index("ix_oauth_token_user_id", "user_id"),
-        sa.Index("ix_oauth_token_client_id", "client_id"),
-    )
-
-    def is_expired(self):
-        return self.expired < arrow.now()
 
 
 def available_sl_email(email: str) -> bool:
@@ -1904,97 +1737,6 @@ class Alias(Base, ModelMixin):
 
     def __repr__(self):
         return f"<Alias {self.id} {self.email}>"
-
-
-class ClientUser(Base, ModelMixin):
-    __tablename__ = "client_user"
-    __table_args__ = (
-        sa.UniqueConstraint("user_id", "client_id", name="uq_client_user"),
-    )
-
-    user_id = sa.Column(sa.ForeignKey(User.id, ondelete="cascade"), nullable=False)
-    client_id = sa.Column(sa.ForeignKey(Client.id, ondelete="cascade"), nullable=False)
-
-    # Null means client has access to user original email
-    alias_id = sa.Column(
-        sa.ForeignKey(Alias.id, ondelete="cascade"), nullable=True, index=True
-    )
-
-    # user can decide to send to client another name
-    name = sa.Column(
-        sa.String(128), nullable=True, default=None, server_default=text("NULL")
-    )
-
-    # user can decide to send to client a default avatar
-    default_avatar = sa.Column(
-        sa.Boolean, nullable=False, default=False, server_default="0"
-    )
-
-    alias = orm.relationship(Alias, backref="client_users")
-
-    user = orm.relationship(User)
-    client = orm.relationship(Client)
-
-    def get_email(self):
-        return self.alias.email if self.alias_id else self.user.email
-
-    def get_user_name(self):
-        if self.name:
-            return self.name
-        else:
-            return self.user.name
-
-    def get_user_info(self) -> dict:
-        """return user info according to client scope
-        Return dict with key being scope name. For now all the fields are the same for all clients:
-
-        {
-          "client": "Demo",
-          "email": "test-avk5l@mail-tester.com",
-          "email_verified": true,
-          "id": 1,
-          "name": "Son GM",
-          "avatar_url": "http://s3..."
-        }
-
-        """
-        res = {
-            "id": self.id,
-            "client": self.client.name,
-            "email_verified": True,
-            "sub": str(self.id),
-        }
-
-        for scope in self.client.get_scopes():
-            if scope == Scope.NAME:
-                if self.name:
-                    res[Scope.NAME.value] = self.name or ""
-                else:
-                    res[Scope.NAME.value] = self.user.name or ""
-            elif scope == Scope.AVATAR_URL:
-                if self.user.profile_picture_id:
-                    if self.default_avatar:
-                        res[Scope.AVATAR_URL.value] = (
-                            config.URL + "/static/default-avatar.png"
-                        )
-                    else:
-                        res[Scope.AVATAR_URL.value] = self.user.profile_picture.get_url(
-                            config.AVATAR_URL_EXPIRATION
-                        )
-                else:
-                    res[Scope.AVATAR_URL.value] = None
-            elif scope == Scope.EMAIL:
-                # Use generated email
-                if self.alias_id:
-                    LOG.d(
-                        "Use gen email for user %s, client %s", self.user, self.client
-                    )
-                    res[Scope.EMAIL.value] = self.alias.email
-                # Use user original email
-                else:
-                    res[Scope.EMAIL.value] = self.user.email
-
-        return res
 
 
 class Contact(Base, ModelMixin):

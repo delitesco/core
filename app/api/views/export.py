@@ -2,7 +2,7 @@ from flask import g
 from flask import jsonify
 
 from app.api.base import api_bp, require_api_auth
-from app.models import Alias, Client, CustomDomain
+from app.models import Alias, CustomDomain
 from app.alias_utils import alias_export_csv
 
 
@@ -21,7 +21,6 @@ def export_data():
         "email": user.email,
         "name": user.name,
         "aliases": [],
-        "apps": [],
         "custom_domains": [],
     }
 
@@ -30,9 +29,6 @@ def export_data():
 
     for custom_domain in CustomDomain.filter_by(user_id=user.id).all():
         data["custom_domains"].append(custom_domain.domain)
-
-    for app in Client.filter_by(user_id=user.id):  # type: Client
-        data["apps"].append(dict(name=app.name, home_url=app.home_url))
 
     return jsonify(data)
 

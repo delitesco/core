@@ -32,7 +32,6 @@ from app.models import (
     Alias,
     EmailLog,
     CustomDomain,
-    Client,
     ManualSubscription,
     RefusedEmail,
     AppleSubscription,
@@ -389,7 +388,6 @@ def compute_metric2() -> Metric2:
         nb_directory=Directory.count(),
         nb_deleted_directory=DeletedDirectory.count(),
         nb_deleted_subdomain=DeletedSubdomain.count(),
-        nb_app=Client.count(),
         commit=True,
     )
 
@@ -580,7 +578,6 @@ nb_directory: {stats_today.nb_directory} - {increase_percent(stats_yesterday.nb_
 nb_deleted_directory: {stats_today.nb_deleted_directory} - {increase_percent(stats_yesterday.nb_deleted_directory, stats_today.nb_deleted_directory)}
 nb_deleted_subdomain: {stats_today.nb_deleted_subdomain} - {increase_percent(stats_yesterday.nb_deleted_subdomain, stats_today.nb_deleted_subdomain)}
 
-nb_app: {stats_today.nb_app} - {increase_percent(stats_yesterday.nb_app, stats_today.nb_app)}
 nb_referred_user: {stats_today.nb_referred_user} - {increase_percent(stats_yesterday.nb_referred_user, stats_today.nb_referred_user)}
 nb_referred_user_upgrade: {stats_today.nb_referred_user_paid} - {increase_percent(stats_yesterday.nb_referred_user_paid, stats_today.nb_referred_user_paid)}
     """

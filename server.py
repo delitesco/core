@@ -18,7 +18,7 @@ from flask import (
     g,
 )
 from flask_admin import Admin
-from flask_cors import cross_origin, CORS
+from flask_cors import CORS
 from flask_login import current_user
 from werkzeug.middleware.proxy_fix import ProxyFix
 
@@ -68,12 +68,9 @@ from app.config import (
 )
 from app.dashboard.base import dashboard_bp
 from app.db import Session
-from app.developer.base import developer_bp
-from app.discover.base import discover_bp
 from app.extensions import login_manager, limiter
 from app.fake_data import fake_data
 from app.internal.base import internal_bp
-from app.jose_utils import get_jwk_key
 from app.log import LOG
 from app.models import (
     User,
@@ -95,7 +92,6 @@ from app.models import (
 )
 from app.monitor.base import monitor_bp
 from app.newsletter_utils import send_newsletter_to_user
-from app.oauth.base import oauth_bp
 from app.onboarding.base import onboarding_bp
 from app.payments.coinbase import setup_coinbase_commerce
 from app.payments.paddle import setup_paddle_callback
@@ -157,7 +153,6 @@ def create_app() -> Flask:
     jinja2_filter(app)
 
     setup_favicon_route(app)
-    setup_openid_metadata(app)
 
     init_admin(app)
     setup_paddle_callback(app)
@@ -216,14 +211,10 @@ def register_blueprints(app: Flask):
     app.register_blueprint(auth_bp)
     app.register_blueprint(monitor_bp)
     app.register_blueprint(dashboard_bp)
-    app.register_blueprint(developer_bp)
     app.register_blueprint(phone_bp)
 
-    app.register_blueprint(oauth_bp, url_prefix="/oauth")
-    app.register_blueprint(oauth_bp, url_prefix="/oauth2")
     app.register_blueprint(onboarding_bp)
 
-    app.register_blueprint(discover_bp)
     app.register_blueprint(internal_bp)
     app.register_blueprint(api_bp)
 
@@ -274,39 +265,6 @@ def set_index_page(app):
                 time.time() - start_time,
             )
         return res
-
-
-def setup_openid_metadata(app):
-    @app.route("/.well-known/openid-configuration")
-    @cross_origin()
-    def openid_config():
-        res = {
-            "issuer": URL,
-            "authorization_endpoint": URL + "/oauth2/authorize",
-            "token_endpoint": URL + "/oauth2/token",
-            "userinfo_endpoint": URL + "/oauth2/userinfo",
-            "jwks_uri": URL + "/jwks",
-            "response_types_supported": [
-                "code",
-                "token",
-                "id_token",
-                "id_token token",
-                "id_token code",
-            ],
-            "subject_types_supported": ["public"],
-            "id_token_signing_alg_values_supported": ["RS256"],
-            # todo: add introspection and revocation endpoints
-            # "introspection_endpoint": URL + "/oauth2/token/introspection",
-            # "revocation_endpoint": URL + "/oauth2/token/revocation",
-        }
-
-        return jsonify(res)
-
-    @app.route("/jwks")
-    @cross_origin()
-    def jwks():
-        res = {"keys": [get_jwk_key()]}
-        return jsonify(res)
 
 
 def get_current_user():

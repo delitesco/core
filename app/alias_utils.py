@@ -49,7 +49,6 @@ from app.models import (
     Contact,
     AutoCreateRule,
     AliasUsedOn,
-    ClientUser,
 )
 from app.regex_utils import regex_match
 
@@ -421,10 +420,6 @@ def transfer_alias(alias: Alias, new_user: User, new_mailboxes: [Mailbox]):
     )
 
     Session.query(AliasUsedOn).filter(AliasUsedOn.alias_id == alias.id).update(
-        {"user_id": new_user.id}
-    )
-
-    Session.query(ClientUser).filter(ClientUser.alias_id == alias.id).update(
         {"user_id": new_user.id}
     )
 

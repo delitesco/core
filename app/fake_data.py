@@ -23,9 +23,6 @@ from app.models import (
     AliasMailbox,
     CustomDomain,
     Directory,
-    Client,
-    RedirectUri,
-    ClientUser,
     Referral,
     Payout,
     Notification,
@@ -200,23 +197,6 @@ def fake_data():
     Directory.create(user_id=user.id, name="abcd")
     Directory.create(user_id=user.id, name="xyzt")
     Session.commit()
-
-    # Create a client
-    client1 = Client.create_new(name="Demo", user_id=user.id)
-    client1.oauth_client_id = "client-id"
-    client1.oauth_client_secret = "client-secret"
-    Session.commit()
-
-    RedirectUri.create(
-        client_id=client1.id, uri="https://your-website.com/oauth-callback"
-    )
-
-    client2 = Client.create_new(name="Demo 2", user_id=user.id)
-    client2.oauth_client_id = "client-id2"
-    client2.oauth_client_secret = "client-secret2"
-    Session.commit()
-
-    ClientUser.create(user_id=user.id, client_id=client1.id, name="Fake Name")
 
     referral = Referral.create(user_id=user.id, code="Website", name="First referral")
     Referral.create(user_id=user.id, code="Podcast", name="First referral")
