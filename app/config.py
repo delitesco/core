@@ -98,7 +98,9 @@ RP_ID = urlparse(URL).hostname
 NOT_SEND_EMAIL = "NOT_SEND_EMAIL" in os.environ
 EMAIL_DOMAIN = os.environ["EMAIL_DOMAIN"].lower()
 SUPPORT_EMAIL = os.environ["SUPPORT_EMAIL"]
-SUPPORT_NAME = os.environ.get("SUPPORT_NAME", "Son from SimpleLogin")
+# Name of the service in emails and notifications
+BRAND_NAME = os.environ.get("BRAND_NAME") or "delitesco"
+SUPPORT_NAME = os.environ.get("SUPPORT_NAME") or BRAND_NAME
 
 # VERP: mail_from set to BOUNCE_PREFIX + email_log.id + BOUNCE_SUFFIX
 BOUNCE_PREFIX = os.environ.get("BOUNCE_PREFIX") or "bounce+"
@@ -228,9 +230,8 @@ MAX_ACTIVITY_DURING_MINUTE_PER_ALIAS = 10
 # nb max of activity (forward/reply) a mailbox can have during 1 min
 MAX_ACTIVITY_DURING_MINUTE_PER_MAILBOX = 15
 
-LANDING_PAGE_URL = os.environ.get("LANDING_PAGE_URL") or "https://simplelogin.io"
+LANDING_PAGE_URL = os.environ.get("LANDING_PAGE_URL") or URL
 
-STATUS_PAGE_URL = os.environ.get("STATUS_PAGE_URL") or "https://status.simplelogin.io"
 
 # Loading PGP keys when mail_handler runs. To be used locally when init_app is not called.
 LOAD_PGP_EMAIL_HANDLER = "LOAD_PGP_EMAIL_HANDLER" in os.environ
@@ -490,7 +491,6 @@ STORE_TRANSACTIONAL_EMAILS = "STORE_TRANSACTIONAL_EMAILS" in os.environ
 
 AUDIT_LOG_MAX_DAYS = int(os.environ.get("AUDIT_LOG_MAX_DAYS", 30))
 ALIAS_TRASH_DAYS = int(os.environ.get("ALIAS_TRASH_DAYS", 30))
-ALLOWED_OAUTH_SCHEMES = get_env_csv("ALLOWED_OAUTH_SCHEMES", "auth.simplelogin,https")
 MAX_EMAIL_FORWARD_RECIPIENTS = int(os.environ.get("MAX_EMAIL_FORWARD_RECIPIENTS", 30))
 
 

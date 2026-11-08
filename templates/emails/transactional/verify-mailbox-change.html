@@ -14,6 +14,6 @@
   {{ render_text("This email will only be valid for the next 15 minutes.") }}
   {{ render_text('Thanks,
     <br />
-    SimpleLogin Team.') }}
+    ' ~ BRAND_NAME ~ ' Team.') }}
   {% if link %}{{ raw_url(link) }}{% endif %}
 {% endblock %}

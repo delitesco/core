@@ -2073,6 +2073,7 @@ class Notification(Base, ModelMixin):
         return template.render(
             URL=config.URL,
             LANDING_PAGE_URL=config.LANDING_PAGE_URL,
+            BRAND_NAME=config.BRAND_NAME,
             YEAR=arrow.now().year,
             **kwargs,
         )

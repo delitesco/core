@@ -1,7 +1,0 @@
-{% extends "base.txt.jinja2" %}
-
-{% block content %}
-{{ alias.email }} has been transferred.
-
-Your (previously) alias {{  alias.email }} has been received by another user.
-{% endblock %}

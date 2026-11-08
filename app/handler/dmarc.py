@@ -35,13 +35,11 @@ def apply_dmarc_policy_for_forward_phase(
 
     from_header = get_header_unicode(msg[headers.FROM])
 
-    warning_plain_text = """This email failed anti-phishing checks when it was received by SimpleLogin, be careful with its content.
-More info on https://simplelogin.io/docs/getting-started/anti-phishing/
+    warning_plain_text = f"""This email failed anti-phishing checks when it was received by {config.BRAND_NAME}, be careful with its content.
             """
-    warning_html = """
+    warning_html = f"""
         <p style="color:red">
-            This email failed anti-phishing checks when it was received by SimpleLogin, be careful with its content.
-            More info on <a href="https://simplelogin.io/docs/getting-started/anti-phishing/">anti-phishing measure</a>
+            This email failed anti-phishing checks when it was received by {config.BRAND_NAME}, be careful with its content.
         </p>
         """
 

@@ -3,7 +3,7 @@
 {% block content %}
 
   {% call text() %}
-    This is SimpleLogin team.
+    This is {{ BRAND_NAME }} team.
   {% endcall %}
 
   {% call text() %}
@@ -12,19 +12,18 @@
   {% endcall %}
 
   {% call text() %}
-    Please note that explicitly marking a SimpleLogin's forwarded email as Spam affects SimpleLogin email delivery,
+    Please note that explicitly marking a {{ BRAND_NAME }}'s forwarded email as Spam affects {{ BRAND_NAME }} email delivery,
     has a negative effect for all users and is a violation of our terms and condition.
   {% endcall %}
 
   {% call text() %}
     If somehow {{ provider }} considers a forwarded email as Spam, it helps us if you can move the email
-    out of the Spam folder. You can also set up a filter to avoid this
-    from happening in the future using this guide at
-    https://simplelogin.io/docs/getting-started/troubleshooting/
+    out of the Spam folder. You can also set up a filter in your mailbox to avoid this
+    from happening in the future.
   {% endcall %}
 
   {% call text() %}
-    Please don't put our emails into the Spam folder. This can end up in your account being disabled on SimpleLogin.
+    Please don't put our emails into the Spam folder. This can end up in your account being disabled on {{ BRAND_NAME }}.
   {% endcall %}
 
   {% call text() %}
@@ -34,7 +33,7 @@
   {% call text() %}
     Best,
     <br />
-    SimpleLogin Team.
+    {{ BRAND_NAME }} Team.
   {% endcall %}
 
 {% endblock %}

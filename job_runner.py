@@ -73,7 +73,7 @@ def delete_mailbox_job(job: Job):
             f"Your mailbox {mailbox_email} has been deleted",
             f"""Mailbox {mailbox_email} and its alias have been transferred to {alias_transferred_to}.
 Regards,
-SimpleLogin team.
+{config.BRAND_NAME} team.
 """,
             retries=3,
         )
@@ -83,7 +83,7 @@ SimpleLogin team.
             f"Your mailbox {mailbox_email} has been deleted",
             f"""Mailbox {mailbox_email} along with its aliases have been deleted successfully.
 Regards,
-SimpleLogin team.
+{config.BRAND_NAME} team.
 """,
             retries=3,
         )
@@ -102,7 +102,7 @@ def process_job(job: Job):
         LOG.w("Delete user %s", user)
         send_email(
             user_email,
-            "Your SimpleLogin account has been deleted",
+            f"Your {config.BRAND_NAME} account has been deleted",
             render("transactional/account-delete.txt", user=user),
             render("transactional/account-delete.html", user=user),
             retries=3,

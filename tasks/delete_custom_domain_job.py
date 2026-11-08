@@ -1,5 +1,6 @@
 from typing import Optional
 
+from app import config
 from app.db import Session
 from app.email_utils import send_email
 from app.log import LOG
@@ -54,7 +55,7 @@ class DeleteCustomDomainJob:
             f"""Domain {domain_name} along with its aliases are deleted successfully.
 
         Regards,
-        SimpleLogin team.
+        {config.BRAND_NAME} team.
         """,
             retries=3,
         )

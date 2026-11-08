@@ -24,6 +24,6 @@
 
   {{ render_text('Thanks,
     <br />
-    SimpleLogin Team.') }}
+    ' ~ BRAND_NAME ~ ' Team.') }}
   {% if disable_alias_link %}{{ raw_url(disable_alias_link) }}{% endif %}
 {% endblock %}

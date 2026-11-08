@@ -20,7 +20,7 @@
     }
 
     a {
-      color: #3869D4;
+      color: #0b5f73;
     }
 
     a img {
@@ -107,11 +107,11 @@
     /* Buttons ------------------------------ */
 
     .button {
-      background-color: #3869D4;
-      border-top: 10px solid #3869D4;
-      border-right: 18px solid #3869D4;
-      border-bottom: 10px solid #3869D4;
-      border-left: 18px solid #3869D4;
+      background-color: #0b5f73;
+      border-top: 10px solid #0b5f73;
+      border-right: 18px solid #0b5f73;
+      border-bottom: 10px solid #0b5f73;
+      border-left: 18px solid #0b5f73;
       display: inline-block;
       color: #FFF;
       text-decoration: none;
@@ -500,12 +500,12 @@
                   align="center">
                 <a href="{{ LANDING_PAGE_URL }}"
                    class="f-fallback email-masthead_name"
-                   style="color: #A8AAAF;
-                          font-size: 16px;
-                          font-weight: bold;
-                          text-decoration: none;
-                          text-shadow: 0 1px 0 white">
-                  {% block logo %}<img src="{{ URL }}/static/logo.png" style="width: 150px; margin: auto">{% endblock %}
+                   style="color: #22201d;
+                          font-size: 22px;
+                          font-weight: 700;
+                          letter-spacing: -0.04em;
+                          text-decoration: none">
+                  {% block logo %}{{ BRAND_NAME }}{% endblock %}
                 </a>
               </td>
             </tr>
@@ -587,7 +587,7 @@
                                 color: #A8AAAF;
                                 margin: .4em 0 1.1875em"
                          align="center">
-                        © {{ YEAR }} SimpleLogin - a Proton product. All rights reserved.
+                        © {{ YEAR }} {{ BRAND_NAME }} - a Proton product. All rights reserved.
                         <br />
                         {% block footer %}{% endblock %}
                       </p>

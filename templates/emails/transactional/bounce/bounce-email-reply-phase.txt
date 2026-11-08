@@ -7,7 +7,7 @@ This might mean {{ contact.email }}
 
 
 Best,
-SimpleLogin Team.
+{{ BRAND_NAME }} Team.
 
 
 

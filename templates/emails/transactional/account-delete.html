@@ -3,14 +3,14 @@
 {% block content %}
 
   {% call text() %}
-    <h1>Your SimpleLogin account has been deleted successfully.</h1>
+    <h1>Your {{ BRAND_NAME }} account has been deleted successfully.</h1>
   {% endcall %}
 
   {% call text() %}
-    Thank you for having used SimpleLogin.
+    Thank you for having used {{ BRAND_NAME }}.
   {% endcall %}
 
   {{ render_text('Best,
     <br />
-    SimpleLogin Team.') }}
+    ' ~ BRAND_NAME ~ ' Team.') }}
 {% endblock %}
