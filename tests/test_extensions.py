@@ -91,7 +91,7 @@ def test_rate_limit_limits_by_user_id_ignoring_ip(flask_client):
     assert res.status_code == HTTPStatus.TOO_MANY_REQUESTS
 
     # Log out
-    flask_client.cookie_jar.clear()
+    flask_client.environ_base.pop("HTTP_AUTHENTICATION", None)
 
     # Log in with another user
     login(flask_client)
