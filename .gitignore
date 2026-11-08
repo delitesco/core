@@ -15,3 +15,5 @@ htmlcov
 adhoc
 .env.*
 /data/
+deploy/tls/
+!.env.example

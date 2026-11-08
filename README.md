@@ -33,6 +33,11 @@ Required in production, besides the mail server setup below:
 - `PROVISIONING_API_KEY` (long random string), `MAILBOX_VERIFY_URL`, `UNSUBSCRIBER`;
 - the API port reachable only by the backend in front of this service (or behind TLS), port 25 open for mail.
 
+## Quick start with Docker Compose
+
+`deploy/docker-compose.yml` runs everything (Postgres, Redis, API, mail handler, jobs, cron, Postfix) with one
+command; see [deploy/README.md](deploy/README.md). The manual setup below is the alternative.
+
 ## Development
 
 Tests need Postgres and Redis (see `tests/test.env`):

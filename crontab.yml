@@ -1,5 +1,5 @@
 jobs:
-  - name: SimpleLogin Custom Domain check
+  - name: delitesco Custom Domain check
     command: python /code/cron.py -j check_custom_domain
     shell: /bin/bash
     schedule: "15 */4 * * *"
@@ -12,7 +12,7 @@ jobs:
         maximumDelay: 30
         backoffMultiplier: 2
 
-  - name: SimpleLogin HIBP check
+  - name: delitesco HIBP check
     command: python /code/cron.py -j check_hibp
     shell: /bin/bash
     schedule: "13 */4 * * *"
@@ -25,7 +25,7 @@ jobs:
         maximumDelay: 30
         backoffMultiplier: 2
 
-  - name: SimpleLogin Notify HIBP breaches
+  - name: delitesco Notify HIBP breaches
     command: python /code/cron.py -j notify_hibp
     shell: /bin/bash
     schedule: "15 4 * * *"
@@ -33,47 +33,47 @@ jobs:
     concurrencyPolicy: Forbid
 
 
-  - name: SimpleLogin Delete Logs
+  - name: delitesco Delete Logs
     command: python /code/cron.py -j delete_logs
     shell: /bin/bash
     schedule: "15 5 * * *"
     captureStderr: true
 
-  - name: SimpleLogin Delete Old data
+  - name: delitesco Delete Old data
     command: python /code/cron.py -j delete_old_data
     shell: /bin/bash
     schedule: "30 5 * * *"
     captureStderr: true
 
-  - name: SimpleLogin delete users scheduled to be deleted
+  - name: delitesco delete users scheduled to be deleted
     command: python /code/cron.py -j delete_scheduled_users
     shell: /bin/bash
     schedule: "15 11 * * *"
     captureStderr: true
     concurrencyPolicy: Forbid
 
-  - name: SimpleLogin send unsent emails
+  - name: delitesco send unsent emails
     command: python /code/cron.py -j send_undelivered_mails
     shell: /bin/bash
     schedule: "*/5 * * * *"
     captureStderr: true
     concurrencyPolicy: Forbid
 
-  - name: SimpleLogin clear alias_audit_log old entries
+  - name: delitesco clear alias_audit_log old entries
     command: python /code/cron.py -j clear_alias_audit_log
     shell: /bin/bash
     schedule: "0 * * * *" # Once every hour
     captureStderr: true
     concurrencyPolicy: Forbid
 
-  - name: SimpleLogin clear user_audit_log old entries
+  - name: delitesco clear user_audit_log old entries
     command: python /code/cron.py -j clear_user_audit_log
     shell: /bin/bash
     schedule: "0 * * * *" # Once every hour
     captureStderr: true
     concurrencyPolicy: Forbid
 
-  - name: SimpleLogin clear alias pending to be deleted
+  - name: delitesco clear alias pending to be deleted
     command: python /code/cron.py -j clear_alias_delete_on
     shell: /bin/bash
     schedule: "0 * * * *" # Once every hour

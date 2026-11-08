@@ -15,3 +15,5 @@ venv/
 htmlcov
 .git/
 /data/
+**/.env
+deploy/tls

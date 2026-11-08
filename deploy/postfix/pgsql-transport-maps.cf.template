@@ -1,0 +1,9 @@
+hosts = ${POSTGRES_HOST}
+user = ${POSTGRES_USER}
+password = ${POSTGRES_PASSWORD}
+dbname = ${POSTGRES_DB}
+
+# forward to the email handler for custom domains, alias domains and the main domain
+query = SELECT 'smtp:${EMAIL_HANDLER}' FROM custom_domain WHERE domain='%s' AND verified=true
+    UNION SELECT 'smtp:${EMAIL_HANDLER}' FROM public_domain WHERE domain='%s'
+    UNION SELECT 'smtp:${EMAIL_HANDLER}' WHERE '%s' = '${DOMAIN}' LIMIT 1
