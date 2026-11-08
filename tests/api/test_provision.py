@@ -1,10 +1,21 @@
+import arrow
 import pytest
 from flask import url_for
 
 from app import config
 from app.constants import JobType
 from app.db import Session
-from app.models import ApiKey, Job, User
+from app.models import (
+    Alias,
+    ApiKey,
+    Contact,
+    CustomDomain,
+    Job,
+    Mailbox,
+    Notification,
+    User,
+)
+from tests.utils import create_new_user, random_token
 
 PROVISIONING_KEY = "test-provisioning-key"
 
@@ -140,3 +151,108 @@ def test_delete_user(flask_client, provisioning_key):
         headers=provisioning_key,
     )
     assert r.status_code == 404
+
+
+def _user_with_mailbox():
+    user = create_new_user()
+    mailbox = Mailbox.create(
+        user_id=user.id, email=f"mb_{random_token(10)}@gmail.com", verified=True
+    )
+    Session.commit()
+    return user, mailbox
+
+
+def _transfer(flask_client, headers, alias_id, to_user_id, mailbox_ids):
+    return flask_client.post(
+        url_for("api.provision_transfer_alias", alias_id=alias_id),
+        headers=headers,
+        json={"to_user_id": to_user_id, "mailbox_ids": mailbox_ids},
+    )
+
+
+def test_transfer_alias(flask_client, provisioning_key):
+    old_user, _ = _user_with_mailbox()
+    new_user, new_mailbox = _user_with_mailbox()
+    alias = Alias.create_new_random(old_user)
+    Session.commit()
+    contact = Contact.create(
+        user_id=old_user.id,
+        alias_id=alias.id,
+        website_email="sender@example.com",
+        reply_email=f"r_{random_token(8)}@sl.lan",
+        commit=True,
+    )
+
+    r = _transfer(
+        flask_client, provisioning_key, alias.id, new_user.id, [new_mailbox.id]
+    )
+
+    assert r.status_code == 200
+    alias = Alias.get(alias.id)
+    assert alias.user_id == new_user.id
+    assert alias.original_owner_id == old_user.id
+    assert alias.mailbox_id == new_mailbox.id
+    assert Contact.get(contact.id).user_id == new_user.id
+    # the old owner is told through its notifications
+    assert Notification.filter_by(user_id=old_user.id).count() == 0  # not provisioned
+    # and loses access through the API
+    old_key = ApiKey.create(old_user.id, name="old", commit=True)
+    r = flask_client.get(
+        f"/api/aliases/{alias.id}", headers={"Authentication": old_key.code}
+    )
+    assert r.status_code in (403, 404)
+
+
+def test_transfer_requires_mailboxes_of_the_new_owner(flask_client, provisioning_key):
+    old_user, old_mailbox = _user_with_mailbox()
+    new_user, _ = _user_with_mailbox()
+    alias = Alias.create_new_random(old_user)
+    Session.commit()
+
+    r = _transfer(
+        flask_client, provisioning_key, alias.id, new_user.id, [old_mailbox.id]
+    )
+
+    assert r.status_code == 400
+    assert Alias.get(alias.id).user_id == old_user.id
+
+
+def test_cannot_transfer_custom_domain_or_trashed_alias(flask_client, provisioning_key):
+    old_user, _ = _user_with_mailbox()
+    new_user, new_mailbox = _user_with_mailbox()
+    domain = CustomDomain.create(
+        user_id=old_user.id, domain=f"{random_token(8)}.lan", verified=True
+    )
+    domain_alias = Alias.create(
+        user_id=old_user.id,
+        email=f"x@{domain.domain}",
+        mailbox_id=old_user.default_mailbox_id,
+        custom_domain_id=domain.id,
+    )
+    trashed = Alias.create_new_random(old_user)
+    trashed.delete_on = arrow.now()
+    Session.commit()
+
+    for alias in (domain_alias, trashed):
+        r = _transfer(
+            flask_client, provisioning_key, alias.id, new_user.id, [new_mailbox.id]
+        )
+        assert r.status_code == 400
+        assert Alias.get(alias.id).user_id == old_user.id
+
+
+def test_transfer_needs_provisioning_key(flask_client, provisioning_key):
+    old_user, _ = _user_with_mailbox()
+    new_user, new_mailbox = _user_with_mailbox()
+    alias = Alias.create_new_random(old_user)
+    api_key = ApiKey.create(old_user.id, name="user", commit=True)
+
+    r = _transfer(
+        flask_client,
+        {"Authentication": api_key.code},
+        alias.id,
+        new_user.id,
+        [new_mailbox.id],
+    )
+    assert r.status_code == 401
+    assert Alias.get(alias.id).user_id == old_user.id

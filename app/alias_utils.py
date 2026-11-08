@@ -2,7 +2,7 @@ import csv
 import re
 from dataclasses import dataclass
 from io import StringIO
-from typing import Optional, Tuple
+from typing import List, Optional, Tuple
 
 from email_validator import validate_email, EmailNotValidError
 from flask import make_response
@@ -24,6 +24,7 @@ from app.email_utils import (
     get_email_local_part,
     send_cannot_create_domain_alias,
     sl_formataddr,
+    send_email,
 )
 from app.errors import AliasInTrashError
 from app.log import LOG
@@ -38,6 +39,7 @@ from app.models import (
     EmailLog,
     Contact,
     AutoCreateRule,
+    AliasUsedOn,
 )
 from app.regex_utils import regex_match
 
@@ -449,3 +451,73 @@ def get_alias_recipient_name(alias: Alias) -> AliasRecipientName:
                 message=f"Put domain default alias name {alias.custom_domain.name} in from header",
             )
     return AliasRecipientName(name=alias.email)
+
+
+class AliasTransferError(Exception):
+    def __init__(self, msg: str):
+        self.msg = msg
+
+
+def transfer_alias(alias: Alias, new_user: User, new_mailboxes: List[Mailbox]):
+    """Give an alias, with its contacts, to another user.
+
+    The mailboxes must be verified mailboxes of new_user. Aliases on a custom domain
+    or a directory stay with their owner: they would keep pointing to the old
+    owner's domain/directory.
+    """
+    if new_user.id == alias.user_id:
+        raise AliasTransferError("The alias already belongs to this user")
+    if alias.delete_on is not None:
+        raise AliasTransferError("Cannot transfer an alias that is in the trash")
+    if alias.custom_domain_id is not None:
+        raise AliasTransferError("Cannot transfer an alias on a custom domain")
+    if alias.directory_id is not None:
+        raise AliasTransferError("Cannot transfer an alias of a directory")
+    if not new_mailboxes:
+        raise AliasTransferError("At least one mailbox is required")
+    for mailbox in new_mailboxes:
+        if mailbox.user_id != new_user.id or not mailbox.verified:
+            raise AliasTransferError(
+                "Mailboxes must be verified mailboxes of the new owner"
+            )
+
+    old_user = alias.user
+
+    Session.query(Contact).filter(Contact.alias_id == alias.id).update(
+        {"user_id": new_user.id}
+    )
+    Session.query(AliasUsedOn).filter(AliasUsedOn.alias_id == alias.id).update(
+        {"user_id": new_user.id}
+    )
+
+    Session.query(AliasMailbox).filter(AliasMailbox.alias_id == alias.id).delete()
+    alias.mailbox_id = new_mailboxes[0].id
+    for mailbox in new_mailboxes[1:]:
+        AliasMailbox.create(alias_id=alias.id, mailbox_id=mailbox.id)
+
+    if not alias.original_owner_id:
+        alias.original_owner_id = alias.user_id
+    alias.user_id = new_user.id
+    alias.disable_pgp = False
+    alias.pinned = False
+
+    emit_alias_audit_log(
+        alias=alias,
+        action=AliasAuditLogAction.TransferredAlias,
+        message=f"Lost ownership of alias due to alias transfer. New owner is {new_user.id}",
+        user_id=old_user.id,
+    )
+    emit_alias_audit_log(
+        alias=alias,
+        action=AliasAuditLogAction.AcceptTransferAlias,
+        message=f"Accepted alias transfer from user {old_user.id}",
+        user_id=new_user.id,
+    )
+    Session.commit()
+
+    # becomes a notification for provisioned users
+    send_email(
+        old_user.email,
+        f"Alias {alias.email} has been transferred",
+        f"Your alias {alias.email} now belongs to another account.",
+    )

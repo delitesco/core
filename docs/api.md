@@ -4,6 +4,7 @@
 - [POST /api/provision/users](#post-apiprovisionusers): Create a user and its API key.
 - [POST /api/provision/users/:user_id/api_key](#post-apiprovisionusersuser_idapi_key): Replace a user's API key.
 - [DELETE /api/provision/users/:user_id](#delete-apiprovisionusersuser_id): Delete a user.
+- [POST /api/provision/aliases/:alias_id/transfer](#post-apiprovisionaliasesalias_idtransfer): Give an alias to another user.
 
 [Account endpoints](#account-endpoints)
 - [GET /api/user_info](#get-apiuser_info): Get user's information.
@@ -108,6 +109,20 @@ Delete a user with its aliases, mailboxes and contacts. Its API keys are revoked
 mail immediately; the data is deleted by the job runner.
 
 Output: 200 `{"ok": true}`, 404 if the user does not exist or is already being deleted.
+
+#### POST /api/provision/aliases/:alias_id/transfer
+
+Give an alias, with its contacts, to another user. This backend decides who may transfer what (for example
+after the receiving account accepted a transfer link).
+
+Input (body):
+
+- `to_user_id`: the receiving user
+- `mailbox_ids`: verified mailboxes of the receiving user that the alias will forward to
+
+Output: 200 `{"ok": true}`; 404 if the alias or the user does not exist; 400 if the alias is on a custom domain,
+in a directory or in the trash, or if the mailboxes are not verified mailboxes of the receiving user.
+The previous owner gets a notification.
 
 ### Account endpoints
 
