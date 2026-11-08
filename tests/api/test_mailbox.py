@@ -2,6 +2,7 @@ import pytest
 from flask import url_for
 
 from app import config
+from app.config import get_abs_path
 from app.db import Session
 from app.dns_utils import InMemoryDNSClient, set_global_dns_client
 from app.models import Mailbox, MailboxActivation
@@ -317,3 +318,75 @@ def test_verification_emails_are_limited_per_address(flask_client):
     r = flask_client.post("/api/mailboxes", json={"email": target})
     assert r.status_code == 429
     assert Mailbox.filter_by(email=target).count() == max_hits
+
+
+def _own_verified_mailbox(flask_client):
+    user = login(flask_client)
+    mailbox = Mailbox.create(user_id=user.id, email=_mailbox_address(), verified=True)
+    Session.commit()
+    return mailbox
+
+
+def test_mailbox_pgp_key(flask_client):
+    mailbox = _own_verified_mailbox(flask_client)
+    public_key = open(get_abs_path("local_data/public-pgp.asc")).read()
+
+    r = flask_client.put(
+        f"/api/mailboxes/{mailbox.id}", json={"pgp_public_key": public_key}
+    )
+    assert r.status_code == 200
+    assert Mailbox.get(mailbox.id).pgp_finger_print
+    assert Mailbox.get(mailbox.id).pgp_enabled()
+
+    r = flask_client.put(f"/api/mailboxes/{mailbox.id}", json={"disable_pgp": True})
+    assert r.status_code == 200
+    assert not Mailbox.get(mailbox.id).pgp_enabled()
+
+    r = flask_client.get("/api/v2/mailboxes")
+    listed = next(m for m in r.json["mailboxes"] if m["id"] == mailbox.id)
+    assert listed["pgp_fingerprint"] == Mailbox.get(mailbox.id).pgp_finger_print
+    assert listed["disable_pgp"] is True
+
+    r = flask_client.put(f"/api/mailboxes/{mailbox.id}", json={"pgp_public_key": None})
+    assert r.status_code == 200
+    mailbox = Mailbox.get(mailbox.id)
+    assert mailbox.pgp_finger_print is None and mailbox.pgp_public_key is None
+
+
+def test_mailbox_invalid_pgp_key(flask_client):
+    mailbox = _own_verified_mailbox(flask_client)
+    r = flask_client.put(
+        f"/api/mailboxes/{mailbox.id}", json={"pgp_public_key": "not a key"}
+    )
+    assert r.status_code == 400
+    assert Mailbox.get(mailbox.id).pgp_finger_print is None
+
+
+def test_mailbox_generic_subject(flask_client):
+    mailbox = _own_verified_mailbox(flask_client)
+    r = flask_client.put(
+        f"/api/mailboxes/{mailbox.id}", json={"generic_subject": "New email"}
+    )
+    assert r.status_code == 200
+    assert Mailbox.get(mailbox.id).generic_subject == "New email"
+
+    r = flask_client.put(
+        f"/api/mailboxes/{mailbox.id}", json={"generic_subject": "x" * 79}
+    )
+    assert r.status_code == 400
+
+    r = flask_client.put(f"/api/mailboxes/{mailbox.id}", json={"generic_subject": None})
+    assert r.status_code == 200
+    assert Mailbox.get(mailbox.id).generic_subject is None
+
+
+def test_mailbox_dict_shows_pending_new_email(flask_client):
+    mailbox = _own_verified_mailbox(flask_client)
+    new_email = _mailbox_address()
+    r = flask_client.put(f"/api/mailboxes/{mailbox.id}", json={"email": new_email})
+    assert r.status_code == 200
+
+    r = flask_client.get("/api/v2/mailboxes")
+    listed = next(m for m in r.json["mailboxes"] if m["id"] == mailbox.id)
+    assert listed["email"] == mailbox.email
+    assert listed["new_email"] == new_email

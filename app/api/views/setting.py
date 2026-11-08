@@ -11,7 +11,17 @@ from app.models import (
     CustomDomain,
     SenderFormatEnum,
     AliasSuffixEnum,
+    UnsubscribeBehaviourEnum,
 )
+
+
+# what the List-Unsubscribe header of forwarded emails does
+_UNSUB_BEHAVIOUR_NAMES = {
+    UnsubscribeBehaviourEnum.DisableAlias: "disable_alias",
+    UnsubscribeBehaviourEnum.BlockContact: "block_contact",
+    UnsubscribeBehaviourEnum.PreserveOriginal: "preserve_original",
+}
+_UNSUB_BEHAVIOURS = {name: value for value, name in _UNSUB_BEHAVIOUR_NAMES.items()}
 
 
 def setting_to_dict(user: User):
@@ -24,6 +34,7 @@ def setting_to_dict(user: User):
         "sender_format": SenderFormatEnum.get_name(user.sender_format)
         or SenderFormatEnum.AT.name,
         "random_alias_suffix": AliasSuffixEnum.get_name(user.random_alias_suffix),
+        "unsubscribe_behaviour": _UNSUB_BEHAVIOUR_NAMES[user.unsub_behaviour],
     }
 
     return ret
@@ -56,9 +67,16 @@ def update_setting():
         "sender_format",
         "random_alias_suffix",
         "random_alias_default_domain",
+        "unsubscribe_behaviour",
     ):
         if field in data and not isinstance(data[field], str):
             return jsonify(error=f"Invalid {field}"), 400
+
+    if "unsubscribe_behaviour" in data:
+        behaviour = _UNSUB_BEHAVIOURS.get(data["unsubscribe_behaviour"])
+        if behaviour is None:
+            return jsonify(error="Invalid unsubscribe_behaviour"), 400
+        user.unsub_behaviour = behaviour
 
     if "alias_generator" in data:
         alias_generator = data["alias_generator"]

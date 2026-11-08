@@ -3,6 +3,7 @@ from app.models import (
     AliasGeneratorEnum,
     SenderFormatEnum,
     AliasSuffixEnum,
+    UnsubscribeBehaviourEnum,
 )
 from tests.utils import login, random_domain
 
@@ -17,6 +18,7 @@ def test_get_setting(flask_client):
         "random_alias_default_domain": "sl.lan",
         "sender_format": "AT",
         "random_alias_suffix": "word",
+        "unsubscribe_behaviour": "preserve_original",
     }
 
 
@@ -104,3 +106,19 @@ def test_update_settings_random_alias_suffix(flask_client):
     )
     assert r.status_code == 200
     assert user.random_alias_suffix == AliasSuffixEnum.random_string.value
+
+
+def test_update_unsubscribe_behaviour(flask_client):
+    user = login(flask_client)
+    for name, value in [
+        ("disable_alias", UnsubscribeBehaviourEnum.DisableAlias),
+        ("block_contact", UnsubscribeBehaviourEnum.BlockContact),
+        ("preserve_original", UnsubscribeBehaviourEnum.PreserveOriginal),
+    ]:
+        r = flask_client.patch("/api/setting", json={"unsubscribe_behaviour": name})
+        assert r.status_code == 200
+        assert r.json["unsubscribe_behaviour"] == name
+        assert user.unsub_behaviour == value
+
+    r = flask_client.patch("/api/setting", json={"unsubscribe_behaviour": "nope"})
+    assert r.status_code == 400
