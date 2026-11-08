@@ -190,27 +190,6 @@ wheels = [
 ]
 
 [[package]]
-name = "bcrypt"
-version = "3.2.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "cffi" },
-    { name = "six" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/d8/ba/21c475ead997ee21502d30f76fd93ad8d5858d19a3fad7cd153de698c4dd/bcrypt-3.2.0.tar.gz", hash = "sha256:5b93c1726e50a93a033c36e5ca7fdcd29a5c7395af50a6892f5d9e7c6cfbfb29", size = 42416, upload-time = "2020-08-16T17:22:44.805Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/6d/41/9c68492335dc668066a420b1fb1809f24b933e74807142f9e2dd38dafe4b/bcrypt-3.2.0-cp36-abi3-macosx_10_10_universal2.whl", hash = "sha256:b589229207630484aefe5899122fb938a5b017b0f4349f769b8c13e78d99a8fd", size = 49596, upload-time = "2021-12-31T18:52:00.168Z" },
-    { url = "https://files.pythonhosted.org/packages/bf/6a/0afb1e04aebd4c3ceae630a87a55fbfbbd94dea4eaf01e53d36743c85f02/bcrypt-3.2.0-cp36-abi3-macosx_10_9_x86_64.whl", hash = "sha256:c95d4cbebffafcdd28bd28bb4e25b31c50f6da605c81ffd9ad8a3d1b2ab7b1b6", size = 31892, upload-time = "2020-08-16T17:28:18.362Z" },
-    { url = "https://files.pythonhosted.org/packages/52/a7/51ab6481ac355517696477889d8ab232106a0ddadda642c54e47a2ab40b9/bcrypt-3.2.0-cp36-abi3-manylinux1_x86_64.whl", hash = "sha256:63d4e3ff96188e5898779b6057878fecf3f11cfe6ec3b313ea09955d587ec7a7", size = 63887, upload-time = "2020-08-16T17:28:20.043Z" },
-    { url = "https://files.pythonhosted.org/packages/26/70/6d218afbe4c73538053c1016dd631e8f25fffc10cd01f5c272d7acf3c03d/bcrypt-3.2.0-cp36-abi3-manylinux2010_x86_64.whl", hash = "sha256:cd1ea2ff3038509ea95f687256c46b79f5fc382ad0aa3664d200047546d511d1", size = 63891, upload-time = "2020-08-16T17:28:22.634Z" },
-    { url = "https://files.pythonhosted.org/packages/b5/96/a2819de4faae6b6339a398ab1354770bf8fa532a5e0df0e2f08481fdb670/bcrypt-3.2.0-cp36-abi3-manylinux2014_aarch64.whl", hash = "sha256:cdcdcb3972027f83fe24a48b1e90ea4b584d35f1cc279d76de6fc4b13376239d", size = 56833, upload-time = "2020-08-16T17:28:23.719Z" },
-    { url = "https://files.pythonhosted.org/packages/c0/75/323f3e9e051726cef8a1d71d340a208ed5fe9dbdebc13b83428355c1382e/bcrypt-3.2.0-cp36-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.manylinux_2_24_x86_64.whl", hash = "sha256:a0584a92329210fcd75eb8a3250c5a941633f8bfaf2a18f81009b097732839b7", size = 61878, upload-time = "2021-12-31T18:52:02.239Z" },
-    { url = "https://files.pythonhosted.org/packages/66/23/f0e4f9f37c00bbebb9014e3daaa8ca40561fef4a3dc12aee3643248c4208/bcrypt-3.2.0-cp36-abi3-musllinux_1_1_x86_64.whl", hash = "sha256:56e5da069a76470679f312a7d3d23deb3ac4519991a0361abc11da837087b61d", size = 61621, upload-time = "2021-12-31T18:52:04.311Z" },
-    { url = "https://files.pythonhosted.org/packages/74/a5/1812e225ef3d0e59fb24662f922a1a756111e8b75dd65d9b168441017007/bcrypt-3.2.0-cp36-abi3-win32.whl", hash = "sha256:a67fb841b35c28a59cebed05fbd3e80eea26e6d75851f0574a9273c80f3e9b55", size = 27314, upload-time = "2020-08-16T17:28:26.481Z" },
-    { url = "https://files.pythonhosted.org/packages/21/8d/ed20081491e71f078e61804fe0c8250167008cf3ff594e1fb396cf138f2b/bcrypt-3.2.0-cp36-abi3-win_amd64.whl", hash = "sha256:81fec756feff5b6818ea7ab031205e1d323d8943d237303baca2c5f9c7846f34", size = 28948, upload-time = "2020-08-16T17:28:25.159Z" },
-]
-
-[[package]]
 name = "black"
 version = "22.1.0"
 source = { registry = "https://pypi.org/simple" }
@@ -243,12 +222,6 @@ sdist = { url = "https://files.pythonhosted.org/packages/fc/c8/0b52cf3132b4b85c9
 wheels = [
     { url = "https://files.pythonhosted.org/packages/cd/5c/f3aa86b6d5482f3051b433c7616668a9b96fbe49a622210e2c9781938a5c/cachetools-4.1.1-py3-none-any.whl", hash = "sha256:513d4ff98dd27f85743a8dc0e92f55ddb1b49e060c2d5961512855cda2c01a98", size = 10960, upload-time = "2020-06-28T19:42:38.034Z" },
 ]
-
-[[package]]
-name = "cbor2"
-version = "5.2.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/02/15/f4d7fb47753099fcd9d7f7c81920d422a3ab2e710400ec0f4a1b511b51ae/cbor2-5.2.0.tar.gz", hash = "sha256:a33aa2e5534fd74401ac95686886e655e3b2ce6383b3f958199b6e70a87c94bf", size = 81467, upload-time = "2020-09-30T09:59:42.1Z" }
 
 [[package]]
 name = "certifi"
@@ -531,19 +504,6 @@ wheels = [
 ]
 
 [[package]]
-name = "flask-cors"
-version = "3.0.9"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "flask" },
-    { name = "six" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/99/fc/cd117ea122e28037a5ec60356a7ffae8b77af527713f7b5e4eb63089f669/Flask-Cors-3.0.9.tar.gz", hash = "sha256:6bcfc100288c5d1bcb1dbb854babd59beee622ffd321e444b05f24d6d58466b8", size = 29038, upload-time = "2020-08-30T21:48:46.894Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/69/7f/d0aeaaafb5c3c76c8d2141dbe2d4f6dca5d6c31872d4e5349768c1958abc/Flask_Cors-3.0.9-py2.py3-none-any.whl", hash = "sha256:cee4480aaee421ed029eaa788f4049e3e26d15b5affb6a880dade6bafad38324", size = 14060, upload-time = "2020-08-30T21:48:45.446Z" },
-]
-
-[[package]]
 name = "flask-limiter"
 version = "1.5"
 source = { registry = "https://pypi.org/simple" }
@@ -555,18 +515,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/c1/a0/fd3203cb6186a58a275f2ad01ca715bc42a65876a128cc9931b0ba0f46ed/Flask-Limiter-1.5.tar.gz", hash = "sha256:f5816ebd606d41df39479b4f6f9b770d98d47a0801c8a513198aa436bb4139e7", size = 94964, upload-time = "2021-11-27T17:34:27.93Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/e4/ff/f2f922af0058561243f68c47fe90a34532883d29101543c518df5f7f79c8/Flask_Limiter-1.5-py3-none-any.whl", hash = "sha256:7cb3b4350874b2da8d3ff440413d16c4bfd1a26aedf3ad9ea68a1669945ae515", size = 15630, upload-time = "2021-11-27T17:34:23.226Z" },
-]
-
-[[package]]
-name = "flask-login"
-version = "0.5.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "flask" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/f9/01/f6c0a3a654ca125cf9cd273314c03a8bc6a47bf861765c8c1d375e15a28d/Flask-Login-0.5.0.tar.gz", hash = "sha256:6d33aef15b5bcead780acc339464aae8a6e28f13c90d8b1cf9de8b549d1c0b4b", size = 41702, upload-time = "2020-02-09T16:55:43.898Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/2b/83/ac5bf3279f969704fc1e63f050c50e10985e50fd340e6069ec7e09df5442/Flask_Login-0.5.0-py2.py3-none-any.whl", hash = "sha256:7451b5001e17837ba58945aead261ba425fdf7b4f0448777e597ddab39f4fba0", size = 16039, upload-time = "2020-02-09T16:55:42.35Z" },
 ]
 
 [[package]]
@@ -634,12 +582,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/17/c4/b7db1206a3fea44bf3b838ca61deb6f74424a8a5db1dd53ecb21da669be6/frozenlist-1.5.0-cp313-cp313-win_amd64.whl", hash = "sha256:11aabdd62b8b9c4b84081a3c246506d1cddd2dd93ff0ad53ede5defec7886b28", size = 51167, upload-time = "2024-10-23T09:47:41.812Z" },
     { url = "https://files.pythonhosted.org/packages/c6/c8/a5be5b7550c10858fcf9b0ea054baccab474da77d37f1e828ce043a3a5d4/frozenlist-1.5.0-py3-none-any.whl", hash = "sha256:d994863bba198a4a518b467bb971c56e1db3f180a25c6cf7bb1949c267f748c3", size = 11901, upload-time = "2024-10-23T09:48:28.851Z" },
 ]
-
-[[package]]
-name = "future"
-version = "0.18.3"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/8f/2e/cf6accf7415237d6faeeebdc7832023c90e0282aa16fd3263db0eb4715ec/future-0.18.3.tar.gz", hash = "sha256:34a17436ed1e96697a86f9de3d15a3b0be01d8bc8de9c1dffd59fb8234ed5307", size = 840896, upload-time = "2023-01-13T03:15:17.607Z" }
 
 [[package]]
 name = "gevent"
@@ -1277,15 +1219,6 @@ wheels = [
 ]
 
 [[package]]
-name = "pyotp"
-version = "2.4.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/9b/1b/179c53123bd712b6073e928546b7d7c480e2504955ede53b4a8bef24f31c/pyotp-2.4.0.tar.gz", hash = "sha256:01eceab573181188fe038d001e42777884a7f5367203080ef5bda0e30fe82d28", size = 14789, upload-time = "2020-07-29T20:07:00.082Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/3d/2f/9bc720582b37d648f949fd190be6e50d6530c5223709462d7b7fab7c0c2c/pyotp-2.4.0-py2.py3-none-any.whl", hash = "sha256:e96c2d725d0b613b793775bb184e90297fda5f4989e210e28acf08a09ac2cc83", size = 11246, upload-time = "2020-07-29T20:06:58.811Z" },
-]
-
-[[package]]
 name = "pyre2"
 version = "0.3.6"
 source = { registry = "https://pypi.org/simple" }
@@ -1533,7 +1466,6 @@ dependencies = [
     { name = "aiospamc" },
     { name = "alembic" },
     { name = "arrow" },
-    { name = "bcrypt" },
     { name = "blinker" },
     { name = "cachetools" },
     { name = "coloredlogs" },
@@ -1544,9 +1476,7 @@ dependencies = [
     { name = "email-validator" },
     { name = "flanker" },
     { name = "flask" },
-    { name = "flask-cors" },
     { name = "flask-limiter" },
-    { name = "flask-login" },
     { name = "flask-migrate" },
     { name = "gevent" },
     { name = "gunicorn" },
@@ -1560,7 +1490,6 @@ dependencies = [
     { name = "psycopg2-binary" },
     { name = "pycryptodome" },
     { name = "pyopenssl" },
-    { name = "pyotp" },
     { name = "pyre2" },
     { name = "pyspf" },
     { name = "python-dotenv" },
@@ -1572,7 +1501,6 @@ dependencies = [
     { name = "strictyaml" },
     { name = "tldextract" },
     { name = "unidecode" },
-    { name = "webauthn" },
     { name = "werkzeug" },
     { name = "yacron" },
 ]
@@ -1594,7 +1522,6 @@ requires-dist = [
     { name = "aiospamc", specifier = "==0.10" },
     { name = "alembic", specifier = "~=1.4.3" },
     { name = "arrow", specifier = "~=0.16.0" },
-    { name = "bcrypt", specifier = "~=3.2.0" },
     { name = "blinker", specifier = "~=1.9.0" },
     { name = "cachetools", specifier = "~=4.1.1" },
     { name = "coloredlogs", specifier = "~=14.0" },
@@ -1605,9 +1532,7 @@ requires-dist = [
     { name = "email-validator", specifier = "~=2.2.0" },
     { name = "flanker", specifier = "~=0.9.11" },
     { name = "flask", specifier = "~=1.1.2" },
-    { name = "flask-cors", specifier = "~=3.0.9" },
     { name = "flask-limiter", specifier = "==1.5" },
-    { name = "flask-login", specifier = "~=0.5.0" },
     { name = "flask-migrate", specifier = "~=2.5.3" },
     { name = "gevent", specifier = "~=24.11.1" },
     { name = "gunicorn", specifier = "~=20.0.4" },
@@ -1621,7 +1546,6 @@ requires-dist = [
     { name = "psycopg2-binary", specifier = "~=2.9.10" },
     { name = "pycryptodome", specifier = "~=3.9.8" },
     { name = "pyopenssl", specifier = "~=19.1.0" },
-    { name = "pyotp", specifier = "~=2.4.0" },
     { name = "pyre2", specifier = "~=0.3.6" },
     { name = "pyspf", specifier = "~=2.0.14" },
     { name = "python-dotenv", specifier = "~=0.14.0" },
@@ -1634,7 +1558,6 @@ requires-dist = [
     { name = "strictyaml", specifier = "~=1.7.3" },
     { name = "tldextract", specifier = "~=3.1.2" },
     { name = "unidecode", specifier = "~=1.1.1" },
-    { name = "webauthn", specifier = "~=0.4.7" },
     { name = "werkzeug", specifier = "~=1.0.1" },
     { name = "yacron", specifier = "~=0.19.0" },
 ]
@@ -1818,22 +1741,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/89/38/459b727c381504f361832b9e5ace19966de1a235d73cdbdea91c771a1155/wcwidth-0.2.5.tar.gz", hash = "sha256:c4d647b99872929fdb7bdcaa4fbe7f01413ed3d98077df798530e5b04f116c83", size = 34755, upload-time = "2020-06-23T16:10:29.829Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/59/7c/e39aca596badaf1b78e8f547c807b04dae603a433d3e7a7e04d67f2ef3e5/wcwidth-0.2.5-py2.py3-none-any.whl", hash = "sha256:beb4802a9cebb9144e99086eff703a642a13d6a0052920003a230f3294bbe784", size = 30763, upload-time = "2020-06-23T16:10:28.529Z" },
-]
-
-[[package]]
-name = "webauthn"
-version = "0.4.7"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "cbor2" },
-    { name = "cryptography" },
-    { name = "future" },
-    { name = "pyopenssl" },
-    { name = "six" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/c1/a3/552f18e0d8a257219840f2a536f8c678dcaf95ef652f670f34b62619502a/webauthn-0.4.7.tar.gz", hash = "sha256:8ad9072ff1d6169f3be30d4dc8733ea563dd266962397bc58b40f674a6af74ac", size = 65784, upload-time = "2020-03-13T23:02:51.633Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/c7/ed/86e4437ed4c15a8c73b791c0500e9c80be5567aaa26356af21d02516b0e3/webauthn-0.4.7-py2.py3-none-any.whl", hash = "sha256:238391b2e2cc60fb51a2cd2d2d6be149920b9af6184651353d9f95856617a9e7", size = 18621, upload-time = "2020-03-13T23:02:50.486Z" },
 ]
 
 [[package]]

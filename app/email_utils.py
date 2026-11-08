@@ -31,7 +31,6 @@ from email_validator import (
 )
 from flanker.addresslib import address
 from flanker.addresslib.address import EmailAddress
-from flask_login import current_user
 from jinja2 import Environment, FileSystemLoader
 from sqlalchemy import func
 
@@ -76,10 +75,6 @@ def render(template_name: str, user: Optional[User], **kwargs) -> str:
 
     template = env.get_template(template_name)
 
-    if user is None:
-        if current_user and current_user.is_authenticated:
-            user = current_user
-
     if user:
         kwargs["user"] = user
 
@@ -88,63 +83,6 @@ def render(template_name: str, user: Optional[User], **kwargs) -> str:
         LANDING_PAGE_URL=config.LANDING_PAGE_URL,
         YEAR=arrow.now().year,
         **kwargs,
-    )
-
-
-def send_activation_email(user: User, activation_link):
-    send_email(
-        user.email,
-        "Just one more step to join SimpleLogin",
-        render(
-            "transactional/activation.txt",
-            user=user,
-            activation_link=activation_link,
-            email=user.email,
-        ),
-        render(
-            "transactional/activation.html",
-            user=user,
-            activation_link=activation_link,
-            email=user.email,
-        ),
-    )
-
-
-def send_reset_password_email(user: User, reset_password_link):
-    send_email(
-        user.email,
-        "Reset your password on SimpleLogin",
-        render(
-            "transactional/reset-password.txt",
-            user=user,
-            reset_password_link=reset_password_link,
-        ),
-        render(
-            "transactional/reset-password.html",
-            user=user,
-            reset_password_link=reset_password_link,
-        ),
-    )
-
-
-def send_change_email(user: User, new_email, link):
-    send_email(
-        new_email,
-        "Confirm email update on SimpleLogin",
-        render(
-            "transactional/change-email.txt",
-            user=user,
-            link=link,
-            new_email=new_email,
-            current_email=user.email,
-        ),
-        render(
-            "transactional/change-email.html",
-            user=user,
-            link=link,
-            new_email=new_email,
-            current_email=user.email,
-        ),
     )
 
 
@@ -268,6 +206,11 @@ def send_email(
     from_addr=None,
 ):
     to_email = sanitize_email(to_email)
+
+    if get_email_domain_part(to_email).endswith(".invalid"):
+        # provisioned users have a placeholder email on a reserved .invalid domain
+        LOG.d("Skip email to non-deliverable %s, subject '%s'", to_email, subject)
+        return
 
     LOG.d("send email to %s, subject '%s'", to_email, subject)
 

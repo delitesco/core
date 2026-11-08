@@ -1,9 +1,7 @@
 from __future__ import annotations
 
-import base64
 import dataclasses
 import enum
-import hmac
 import os
 import random
 import uuid
@@ -14,10 +12,9 @@ import sqlalchemy as sa
 from arrow import Arrow
 from email_validator import validate_email
 from flanker.addresslib import address
-from flask_login import UserMixin
 from jinja2 import FileSystemLoader, Environment
 from sqlalchemy import orm
-from sqlalchemy import text, desc, CheckConstraint, Index, Column
+from sqlalchemy import text, desc, Index, Column
 from sqlalchemy.dialects.postgresql import TSVECTOR
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import deferred
@@ -32,7 +29,6 @@ from app.errors import (
     CannotCreateContactForReverseAlias,
 )
 from app.log import LOG
-from app.pw_models import PasswordOracle
 from app.utils import (
     convert_to_id,
     random_string,
@@ -292,22 +288,6 @@ class HibpNotifiedAlias(Base, ModelMixin):
     __table_args__ = (sa.Index("ix_hibp_notified_alias_user_id", "user_id"),)
 
 
-class Fido(Base, ModelMixin):
-    __tablename__ = "fido"
-    credential_id = sa.Column(sa.String(), nullable=False, unique=True, index=True)
-    uuid = sa.Column(
-        sa.ForeignKey("users.fido_uuid", ondelete="cascade"),
-        unique=False,
-        nullable=False,
-    )
-    public_key = sa.Column(sa.String(), nullable=False, unique=True)
-    sign_count = sa.Column(sa.BigInteger(), nullable=False)
-    name = sa.Column(sa.String(128), nullable=False, unique=False)
-    user_id = sa.Column(sa.ForeignKey("users.id", ondelete="cascade"), nullable=True)
-
-    __table_args__ = (sa.Index("ix_fido_user_id", "user_id"),)
-
-
 class AbuserData(Base, ModelMixin):
     __tablename__ = "abuser_data"
 
@@ -339,7 +319,7 @@ class AbuserAuditLog(Base, ModelMixin):
     message = sa.Column(sa.Text, default=None, nullable=True)
 
 
-class User(Base, ModelMixin, UserMixin, PasswordOracle):
+class User(Base, ModelMixin):
     __tablename__ = "users"
 
     # bits 0-3 of `flags` held free-plan and partner flags; keep them unused
@@ -357,15 +337,6 @@ class User(Base, ModelMixin, UserMixin, PasswordOracle):
 
     # an account can be disabled if having harmful behavior
     disabled = sa.Column(sa.Boolean, default=False, nullable=False, server_default="0")
-
-    otp_secret = sa.Column(sa.String(16), nullable=True)
-    enable_otp = sa.Column(
-        sa.Boolean, nullable=False, default=False, server_default="0"
-    )
-    last_otp = sa.Column(sa.String(12), nullable=True, default=False)
-
-    # Fields for WebAuthn
-    fido_uuid = sa.Column(sa.String(), nullable=True, unique=True)
 
     # the default domain that's used when user creates a new random alias
     # default_alias_custom_domain_id XOR default_alias_public_domain_id
@@ -437,10 +408,6 @@ class User(Base, ModelMixin, UserMixin, PasswordOracle):
     ignore_loop_email = sa.Column(
         sa.Boolean, default=False, nullable=False, server_default="0"
     )
-
-    # used for flask-login as an "alternative token"
-    # cf https://flask-login.readthedocs.io/en/latest/#alternative-tokens
-    alternative_id = sa.Column(sa.String(128), unique=True, nullable=True)
 
     # by default, when an alias is automatically created, a note like "Created with ...." is created
     # If this field is True, the note won't be created.
@@ -553,30 +520,15 @@ class User(Base, ModelMixin, UserMixin, PasswordOracle):
     def subdomain_is_available():
         return SLDomain.filter_by(can_use_subdomain=True).count() > 0
 
-    # implement flask-login "alternative token"
-    def get_id(self):
-        if self.alternative_id:
-            return self.alternative_id
-        else:
-            return str(self.id)
-
     @classmethod
-    def create(cls, email, name="", password=None, **kwargs):
+    def create(cls, email, name="", **kwargs):
         email = sanitize_email(email)
         user: User = super(User, cls).create(email=email, name=name[:100], **kwargs)
-
-        if password:
-            user.set_password(password)
-
         Session.flush()
 
         mb = Mailbox.create(user_id=user.id, email=user.email, verified=True)
         Session.flush()
         user.default_mailbox_id = mb.id
-
-        # generate an alternative_id if needed
-        if "alternative_id" not in kwargs:
-            user.alternative_id = str(uuid.uuid4())
 
         from app.user_audit_log_utils import emit_user_audit_log, UserAuditLogAction
 
@@ -754,14 +706,6 @@ class User(Base, ModelMixin, UserMixin, PasswordOracle):
 
         return config.FIRST_ALIAS_DOMAIN
 
-    def fido_enabled(self) -> bool:
-        if self.fido_uuid is not None:
-            return True
-        return False
-
-    def two_factor_authentication_enabled(self) -> bool:
-        return self.enable_otp or self.fido_enabled()
-
     def available_sl_domains(
         self, alias_options: Optional[AliasOptions] = None
     ) -> [str]:
@@ -849,86 +793,7 @@ def _expiration_7d():
     return arrow.now().shift(days=7)
 
 
-class ActivationCode(Base, ModelMixin):
-    """For activate user account"""
-
-    __tablename__ = "activation_code"
-
-    user_id = sa.Column(sa.ForeignKey(User.id, ondelete="cascade"), nullable=False)
-    code = sa.Column(sa.String(128), unique=True, nullable=False)
-
-    user = orm.relationship(User)
-
-    expired = sa.Column(ArrowType, nullable=False, default=_expiration_1h)
-
-    __table_args__ = (sa.Index("ix_activation_code_user_id", "user_id"),)
-
-    def is_expired(self):
-        return self.expired < arrow.now()
-
-
-class ResetPasswordCode(Base, ModelMixin):
-    """For resetting password"""
-
-    __tablename__ = "reset_password_code"
-
-    user_id = sa.Column(sa.ForeignKey(User.id, ondelete="cascade"), nullable=False)
-    code = sa.Column(sa.String(128), unique=True, nullable=False)
-
-    user = orm.relationship(User)
-
-    expired = sa.Column(ArrowType, nullable=False, default=_expiration_1h)
-
-    __table_args__ = (sa.Index("ix_reset_password_code_user_id", "user_id"),)
-
-    def is_expired(self):
-        return self.expired < arrow.now()
-
-
 # <<< OAUTH models >>>
-
-
-class MfaBrowser(Base, ModelMixin):
-    __tablename__ = "mfa_browser"
-
-    user_id = sa.Column(sa.ForeignKey(User.id, ondelete="cascade"), nullable=False)
-    token = sa.Column(sa.String(64), default=False, unique=True, nullable=False)
-    expires = sa.Column(ArrowType, default=False, nullable=False)
-
-    user = orm.relationship(User)
-
-    __table_args__ = (sa.Index("ix_mfa_browser_user_id", "user_id"),)
-
-    @classmethod
-    def create_new(cls, user, token_length=64) -> "MfaBrowser":
-        found = False
-        while not found:
-            token = random_string(token_length)
-
-            if not cls.get_by(token=token):
-                found = True
-
-        return MfaBrowser.create(
-            user_id=user.id,
-            token=token,
-            expires=arrow.now().shift(days=30),
-        )
-
-    @classmethod
-    def delete(cls, token):
-        cls.filter(cls.token == token).delete()
-        Session.commit()
-
-    @classmethod
-    def delete_expired(cls):
-        cls.filter(cls.expires < arrow.now()).delete()
-        Session.commit()
-
-    def is_expired(self):
-        return self.expires < arrow.now()
-
-    def reset_expire(self):
-        self.expires = arrow.now().shift(days=30)
 
 
 def available_sl_email(email: str) -> bool:
@@ -1599,30 +1464,6 @@ class DeletedAlias(Base, ModelMixin):
         return f"<Deleted Alias {self.email}>"
 
 
-class EmailChange(Base, ModelMixin):
-    """Used when user wants to update their email"""
-
-    __tablename__ = "email_change"
-
-    user_id = sa.Column(
-        sa.ForeignKey(User.id, ondelete="cascade"),
-        nullable=False,
-        unique=True,
-        index=True,
-    )
-    new_email = sa.Column(sa.String(256), unique=True, nullable=False)
-    code = sa.Column(sa.String(128), unique=True, nullable=False)
-    expired = sa.Column(ArrowType, nullable=False, default=_expiration_12h)
-
-    user = orm.relationship(User)
-
-    def is_expired(self):
-        return self.expired < arrow.now()
-
-    def __repr__(self):
-        return f"<EmailChange {self.id} {self.new_email} {self.user_id}>"
-
-
 class AliasUsedOn(Base, ModelMixin):
     """Used to know where an alias is created"""
 
@@ -1654,8 +1495,6 @@ class ApiKey(Base, ModelMixin):
     name = sa.Column(sa.String(128), nullable=True)
     last_used = sa.Column(ArrowType, default=None)
     times = sa.Column(sa.Integer, default=0, nullable=False)
-    sudo_mode_at = sa.Column(ArrowType, default=None)
-
     user = orm.relationship(User)
 
     __table_args__ = (sa.Index("ix_api_key_user_id", "user_id"),)
@@ -2089,26 +1928,6 @@ class MailboxActivation(Base, ModelMixin):
     tries = sa.Column(sa.Integer, default=0, nullable=False)
 
 
-class AccountActivation(Base, ModelMixin):
-    """contains code to activate the user account when they sign up on mobile"""
-
-    __tablename__ = "account_activation"
-
-    user_id = sa.Column(
-        sa.ForeignKey(User.id, ondelete="cascade"), nullable=False, unique=True
-    )
-    # the activation code is usually 6 digits
-    code = sa.Column(sa.String(10), nullable=False)
-
-    # nb tries decrements each time user enters wrong code
-    tries = sa.Column(sa.Integer, default=3, nullable=False)
-
-    __table_args__ = (
-        CheckConstraint(tries >= 0, name="account_activation_tries_positive"),
-        {},
-    )
-
-
 class RefusedEmail(Base, ModelMixin):
     """Store emails that have been refused, i.e. bounced or classified as spams"""
 
@@ -2231,61 +2050,6 @@ class DomainMailbox(Base, ModelMixin):
 
 _NB_RECOVERY_CODE = 8
 _RECOVERY_CODE_LENGTH = 8
-
-
-class RecoveryCode(Base, ModelMixin):
-    """allow user to login in case you lose any of your authenticators"""
-
-    __tablename__ = "recovery_code"
-    __table_args__ = (sa.UniqueConstraint("user_id", "code", name="uq_recovery_code"),)
-
-    user_id = sa.Column(sa.ForeignKey(User.id, ondelete="cascade"), nullable=False)
-    code = sa.Column(sa.String(64), nullable=False)
-    used = sa.Column(sa.Boolean, nullable=False, default=False)
-    used_at = sa.Column(ArrowType, nullable=True, default=None)
-
-    user = orm.relationship(User)
-
-    @classmethod
-    def _hash_code(cls, code: str) -> str:
-        code_hmac = hmac.new(
-            config.RECOVERY_CODE_HMAC_SECRET.encode("utf-8"),
-            code.encode("utf-8"),
-            "sha3_224",
-        )
-        return base64.urlsafe_b64encode(code_hmac.digest()).decode("utf-8").rstrip("=")
-
-    @classmethod
-    def generate(cls, user):
-        """generate recovery codes for user"""
-        # delete all existing codes
-        cls.filter_by(user_id=user.id).delete()
-        Session.flush()
-
-        nb_code = 0
-        raw_codes = []
-        while nb_code < _NB_RECOVERY_CODE:
-            raw_code = random_string(_RECOVERY_CODE_LENGTH)
-            encoded_code = cls._hash_code(raw_code)
-            if not cls.get_by(user_id=user.id, code=encoded_code):
-                cls.create(user_id=user.id, code=encoded_code)
-                raw_codes.append(raw_code)
-                nb_code += 1
-
-        LOG.d("Create recovery codes for %s", user)
-        Session.commit()
-        return raw_codes
-
-    @classmethod
-    def find_by_user_code(cls, user: User, code: str):
-        hashed_code = cls._hash_code(code)
-        return cls.get_by(user_id=user.id, code=hashed_code)
-
-    @classmethod
-    def empty(cls, user):
-        """Delete all recovery codes for user"""
-        cls.filter_by(user_id=user.id).delete()
-        Session.commit()
 
 
 class Notification(Base, ModelMixin):

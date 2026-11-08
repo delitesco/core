@@ -1,18 +1,14 @@
 ## API
 
+[Provisioning endpoints](#provisioning-endpoints)
+- [POST /api/provision/users](#post-apiprovisionusers): Create a user and its API key.
+- [POST /api/provision/users/:user_id/api_key](#post-apiprovisionusersuser_idapi_key): Replace a user's API key.
+- [DELETE /api/provision/users/:user_id](#delete-apiprovisionusersuser_id): Delete a user.
+
 [Account endpoints](#account-endpoints)
-- [POST /api/auth/login](#post-apiauthlogin): Authentication
-- [POST /api/auth/mfa](#post-apiauthmfa): 2FA authentication
-- [POST /api/auth/register](#post-apiauthregister): Register a new account.
-- [POST /api/auth/activate](#post-apiauthactivate): Activate new account.
-- [POST /api/auth/reactivate](##post-apiauthreactivate): Request a new activation code.
 - [GET /api/user_info](#get-apiuser_info): Get user's information.
-- [PATCH /api/sudo](#patch-apisudo): Enable sudo mode.
-- [DELETE /api/user](#delete-apiuser): Delete the current user.
 - [PATCH /api/user_info](#patch-apiuser_info): Update user's information.
-- [POST /api/api_key](#post-apiapi_key): Create a new API key.
 - [GET /api/stats](#get-apistats): Get user's stats.
-- [GET /api/logout](#get-apilogout): Log out.
 
 [Alias endpoints](#alias-endpoints)
 - [GET /api/v5/alias/options](#get-apiv5aliasoptions): Get alias options. Used by create alias process.
@@ -54,16 +50,12 @@
 - [GET /api/export/data](#get-apiexportdata): Export user's data.
 - [GET /api/export/aliases](#get-apiexportaliases): Export aliases into a CSV.
 
-[MISC endpoints](#misc-endpoints)
-- [POST /api/apple/process_payment](#post-apiappleprocess_payment): Process Apple's receipt.
-
 ---
 
-SimpleLogin current API clients are Chrome/Firefox/Safari extension and mobile (iOS/Android) app. These clients rely
-on `API Code` for authentication.
-
-Once the `Api Code` is obtained, either via user entering it (in Browser extension case) or by logging in (in Mobile
-case), the client includes the `api code` in `Authentication` header in almost all requests.
+This service has a single API client: the backend in front of it, which owns accounts, login and billing.
+Each account of that backend has its own user here, created through the provisioning endpoints, and its own
+API key. Every other endpoint is authenticated with that key in the `Authentication` header and only gives
+access to the data of its user. There are no sessions, cookies, passwords or login endpoints.
 
 For some endpoints, the `hostname` should be passed in query string. `hostname` is the the URL hostname (
 cf https://en.wikipedia.org/wiki/URL), for ex if URL is http://www.example.com/index.html then the hostname
@@ -84,199 +76,70 @@ development error and should never be shown to user.
 
 All following endpoint return `401` status code if the API Key is incorrect.
 
+### Provisioning endpoints
+
+These endpoints are authenticated with the provisioning key set in `PROVISIONING_API_KEY`, sent in the
+`X-Provisioning-Key` header. They return 404 when `PROVISIONING_API_KEY` is not set, and 401 when the key is
+missing or wrong. They are rate limited by `PROVISIONING_RATE_LIMIT` (default `100/minute`) per source IP.
+
+#### POST /api/provision/users
+
+Create a user and its API key. The user's email is a random placeholder on `PROVISIONED_USER_EMAIL_DOMAIN`
+(default `users.invalid`); no email is ever sent to it.
+
+Output: 201
+
+```json
+{"user_id": 42, "api_key": "a long string"}
+```
+
+The API key is only returned here and by the rotate endpoint: store it.
+
+#### POST /api/provision/users/:user_id/api_key
+
+Revoke every API key of the user and create a new one.
+
+Output: 200 `{"api_key": "a long string"}`, 404 if the user does not exist or is being deleted.
+
+#### DELETE /api/provision/users/:user_id
+
+Delete a user with its aliases, mailboxes and contacts. Its API keys are revoked and its aliases stop handling
+mail immediately; the data is deleted by the job runner.
+
+Output: 200 `{"ok": true}`, 404 if the user does not exist or is already being deleted.
+
 ### Account endpoints
-
-#### POST /api/auth/login
-
-Input:
-
-- email
-- password
-- device: device name. Used to create the API Key. Should be humanly readable so user can manage later on the "API Key"
-  page.
-
-Output:
-
-- name: user name, could be an empty string
-- email: user email
-- mfa_enabled: boolean
-- mfa_key: only useful when user enables MFA. In this case, user needs to enter their OTP token in order to login.
-- api_key: if MFA is not enabled, the `api key` is returned right away.
-
-The `api_key` is used in all subsequent requests. It's empty if MFA is enabled. If user hasn't enabled MFA, `mfa_key` is
-empty.
-
-Return 403 if user has enabled FIDO. The client can display a message to suggest user to use the `API Key` instead.
-
-#### POST /api/auth/mfa
-
-Input:
-
-- mfa_token: OTP token that user enters
-- mfa_key: MFA key obtained in previous auth request, e.g. /api/auth/login
-- device: the device name, used to create an ApiKey associated with this device
-
-Output:
-
-- name: user name, could be an empty string
-- api_key: if MFA is not enabled, the `api key` is returned right away.
-- email: user email
-
-The `api_key` is used in all subsequent requests. It's empty if MFA is enabled. If user hasn't enabled MFA, `mfa_key` is
-empty.
-
-#### POST /api/auth/register
-
-Input:
-
-- email
-- password
-
-Output: 200 means user is going to receive an email that contains an *activation code*. User needs to enter this code to
-confirm their account -> next endpoint.
-
-#### POST /api/auth/activate
-
-Input:
-
-- email
-- code: the activation code
-
-Output:
-
-- 200: account is activated. User can login now
-- 400: wrong email, code
-- 410: wrong code too many times. User needs to ask for an reactivation -> next endpoint
-
-#### POST /api/auth/reactivate
-
-Input:
-
-- email
-
-Output:
-
-- 200: user is going to receive an email that contains the activation code.
 
 #### GET /api/user_info
 
-Given the API Key, return user name and whether user is premium. This endpoint could be used to validate the api key.
+Return the user's information. This endpoint can be used to validate an API key.
 
-Input:
-
-- `Authentication` header that contains the api key
-
-Output: if api key is correct, return a json with user name and whether user is premium, for example:
+Output:
 
 ```json
 {
-  "name": "John Wick",
-  "is_premium": false,
-  "email": "john@wick.com",
-  "in_trial": true,
-  "profile_picture_url": "https://profile.png",
-  "max_alias_free_plan": 5,
+  "name": "",
+  "is_premium": true,
+  "email": "0f3b...@users.invalid",
+  "can_create_reverse_alias": true
 }
 ```
 
-If api key is incorrect, return 401.
-
 #### PATCH /api/user_info
-
-Update user info
 
 Input:
 
-- profile_picture: the profile picture in base64. Setting to `null` remove the current profile picture.
 - name
 
 Output: same as GET /api/user_info
 
 #### GET /api/stats
 
-Given the API Key, return stats about the number of aliases, number of emails forwarded/replied/blocked
-
-Input:
-
-- `Authentication` header that contains the api key
-
-Output: if api key is correct, return a json with the following fields:
+Return stats about the number of aliases, number of emails forwarded/replied/blocked
 
 ```json
 {"nb_alias": 1, "nb_block": 0, "nb_forward": 0, "nb_reply": 0}
 ```
-
-If api key is incorrect, return 401.
-
-#### PATCH /api/sudo
-
-Enable sudo mode
-
-Input:
-
-- `Authentication` header that contains the api key
-- password: User password to validate the user presence and enter sudo mode
-
-```json
-{
-  "password": "yourpassword"
-}
-```
-
-Output:
-
-- 200 with ```{"ok": true}``` if sudo mode has been enabled.
-- 403 with ```{"error": "Some error"}``` if there is an error.
-
-#### DELETE /api/user
-
-Delete the current user. It requires sudo mode.
-
-Input:
-
-- `Authentication` header that contains the api key
-
-Output:
-
-- 200 with ```{"ok": true}``` if account is scheduled to be deleted.
-- 440 with ```{"error": "Need sudo"}``` if sudo mode is not enabled.
-- 403 with ```{"error": "Some error"}``` if there is an error.
-
-
-#### POST /api/api_key
-
-Create a new API Key
-
-Input:
-
-- `Authentication` header that contains the api key
-- Or the correct cookie is set, i.e. user is already logged in on the web
-- device: device's name
-
-Output
-
-- 401 if user is not authenticated
-- 201 with the `api_key`
-
-```json
-{
-  "api_key": "long string"
-}
-```
-
-#### GET /api/logout
-
-Log user out
-
-Input:
-
-- `Authentication` header that contains the api key
-- Or the correct cookie is set, i.e. user is already logged in on the web
-
-Output:
-
-- 401 if user is not authenticated
-- 200 if success
 
 ### Alias endpoints
 
@@ -1014,20 +877,3 @@ Input:
 
 Output:
 A CSV file with alias information that can be imported in the settings screen
-
-### Misc endpoints
-
-#### POST /api/apple/process_payment
-
-Process payment receipt
-
-Input:
-
-- `Authentication` in header: the api key
-- `receipt_data` in body: the receipt_data base64Encoded returned by StoreKit, i.e. `rawReceiptData.base64EncodedString`
-- (optional) `is_macapp` in body: if this field is present, the request is sent from the MacApp (Safari Extension) and
-  not iOS app.
-
-Output:
-200 if user is upgraded successfully 4** if any error.
-

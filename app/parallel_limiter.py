@@ -3,8 +3,7 @@ from datetime import timedelta
 from functools import wraps
 from typing import Callable, Any, Optional
 
-from flask import request
-from flask_login import current_user
+from flask import g, request
 from limits.storage import RedisStorage
 from werkzeug import exceptions
 
@@ -52,8 +51,11 @@ class _InnerLock:
                 return f(*args, **kwargs)
 
             lock_value = str(uuid.uuid4())[:10]
-            if "id" in dir(current_user):
-                lock_name = f"cl:{current_user.id}:{lock_suffix}"
+            # per user when the request is authenticated (g.user is set by the API
+            # auth decorator, which must run first), per source IP otherwise
+            user = g.get("user")
+            if user is not None:
+                lock_name = f"cl:{user.id}:{lock_suffix}"
             else:
                 lock_name = f"cl:{request.remote_addr}:{lock_suffix}"
             self.acquire_lock(lock_name, lock_value)

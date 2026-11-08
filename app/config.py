@@ -131,8 +131,6 @@ ENFORCE_SPF = "ENFORCE_SPF" in os.environ
 POSTFIX_SERVERS = get_env_csv("POSTFIX_SERVER", "240.0.0.1")
 POSTFIX_BACKUP_SERVERS = get_env_csv("POSTFIX_BACKUP_SERVERS", "")
 
-DISABLE_REGISTRATION = "DISABLE_REGISTRATION" in os.environ
-
 # allow using a different postfix port, useful when developing locally
 
 # Use port 587 instead of 25 when sending emails through Postfix
@@ -193,7 +191,6 @@ DB_CONN_NAME = os.environ.get("DB_CONN_NAME", "webapp")
 FLASK_SECRET = os.environ["FLASK_SECRET"]
 if not FLASK_SECRET:
     raise RuntimeError("FLASK_SECRET is empty. Please define it.")
-SESSION_COOKIE_NAME = "slapp"
 MAILBOX_SECRET = FLASK_SECRET + "mailbox"
 CUSTOM_ALIAS_SECRET = FLASK_SECRET + "custom_alias"
 UNSUBSCRIBE_SECRET = FLASK_SECRET + "unsub"
@@ -218,11 +215,6 @@ else:
     print("WARNING: Use a temp directory for GNUPGHOME", GNUPGHOME)
 
 # in seconds
-AVATAR_URL_EXPIRATION = 3600 * 24 * 7  # 1h*24h/d*7d=1week
-
-# session key
-MFA_USER_ID = "mfa_user_id"
-
 
 # for pagination
 PAGE_LIMIT = 20
@@ -330,6 +322,16 @@ NOREPLIES = sl_getenv("NOREPLIES", list) or [NOREPLY]
 
 
 ALIAS_LIMIT = os.environ.get("ALIAS_LIMIT") or "100/day;50/hour;5/minute"
+
+# User provisioning (/api/provision/*), used by the backend in front of this service
+# to create one user, with its own API key, per account. Disabled when not set.
+PROVISIONING_API_KEY: Optional[str] = os.environ.get("PROVISIONING_API_KEY") or None
+PROVISIONING_RATE_LIMIT = os.environ.get("PROVISIONING_RATE_LIMIT") or "100/minute"
+# Users have no email of their own: their email is a random address on this domain.
+# Keep it a reserved, non-deliverable domain (.invalid, RFC 2606).
+PROVISIONED_USER_EMAIL_DOMAIN = (
+    os.environ.get("PROVISIONED_USER_EMAIL_DOMAIN") or "users.invalid"
+)
 
 ENABLE_SPAM_ASSASSIN = "ENABLE_SPAM_ASSASSIN" in os.environ
 

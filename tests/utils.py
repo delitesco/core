@@ -25,7 +25,6 @@ def create_new_user(
     # new user has a different email address
     user = User.create(
         email=email,
-        password="password",
         name=name,
         activated=True,
         flush=True,

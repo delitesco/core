@@ -31,12 +31,8 @@ def fake_data():
     user = User.create(
         email="john@wick.com",
         name="John Wick",
-        password="password",
         activated=True,
-        # enable_otp=True,
-        otp_secret="base32secret3232",
         intro_shown=True,
-        fido_uuid=None,
     )
     Session.commit()
 
@@ -159,7 +155,6 @@ def fake_data():
 
     user2 = User.create(
         email="winston@continental.com",
-        password="password",
         activated=True,
     )
     Mailbox.create(user_id=user2.id, email="winston2@high.table", verified=True)

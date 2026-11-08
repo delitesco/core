@@ -3,7 +3,7 @@ import time
 from typing import Optional
 
 import werkzeug.exceptions
-from flask_login import login_user
+from flask import g
 
 from app.parallel_limiter import _InnerLock
 from tests.utils import create_new_user
@@ -12,7 +12,7 @@ from tests.utils import create_new_user
 def test_parallel_limiter(flask_app):
     user = create_new_user()
     with flask_app.test_request_context():
-        login_user(user)
+        g.user = user
         pl = _InnerLock("test", max_wait_secs=1)
         for loop_id in range(10):
             assert pl(lambda x: x)(loop_id) == loop_id
@@ -27,7 +27,7 @@ def sleep_thread(pl: _InnerLock, sem: Optional[threading.Semaphore] = None):
 def test_too_many_requests(flask_app):
     user = create_new_user()
     with flask_app.test_request_context():
-        login_user(user)
+        g.user = user
         sem = threading.Semaphore(0)
         pl = _InnerLock("test", max_wait_secs=5)
         t = threading.Thread(target=sleep_thread, args=(pl, sem))
@@ -40,3 +40,20 @@ def test_too_many_requests(flask_app):
         except werkzeug.exceptions.TooManyRequests:
             got_exception = True
         assert got_exception
+
+
+def test_lock_is_per_user(flask_app):
+    """All API calls come from one backend IP: users must not share a lock."""
+    user1 = create_new_user()
+    user2 = create_new_user()
+    pl = _InnerLock("per-user", max_wait_secs=1)
+
+    def as_user2():
+        with flask_app.test_request_context():
+            g.user = user2
+            # would raise TooManyRequests if it waited for user1's lock
+            return pl(lambda: "done")()
+
+    with flask_app.test_request_context():
+        g.user = user1
+        assert pl(as_user2)() == "done"
