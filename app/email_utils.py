@@ -1,3 +1,4 @@
+import html
 import base64
 import binascii
 import enum
@@ -173,6 +174,27 @@ def send_cannot_create_domain_alias(user, alias, domain):
     )
 
 
+def plaintext_to_notification_html(plaintext: str) -> str:
+    return html.escape(plaintext.strip()).replace("\n", "<br>\n")
+
+
+def notify_user_by_placeholder_email(to_email: str, subject: str, plaintext: str):
+    """Store what would have been an email to a user's placeholder address as a notification."""
+    from app.models import Notification, User
+
+    user = User.get_by(email=to_email)
+    if not user:
+        LOG.w("No user for placeholder email %s, drop '%s'", to_email, subject)
+        return
+    Notification.create(
+        user_id=user.id,
+        title=subject[:512],
+        message=plaintext_to_notification_html(plaintext),
+        commit=True,
+    )
+    LOG.d("Notification '%s' stored for %s", subject, user)
+
+
 def send_email(
     to_email,
     subject,
@@ -186,8 +208,10 @@ def send_email(
     to_email = sanitize_email(to_email)
 
     if get_email_domain_part(to_email).endswith(".invalid"):
-        # provisioned users have a placeholder email on a reserved .invalid domain
-        LOG.d("Skip email to non-deliverable %s, subject '%s'", to_email, subject)
+        # Provisioned users have no email of their own: their email is a placeholder
+        # on a reserved .invalid domain. What is addressed to the account goes to its
+        # notifications, which the frontend shows through /api/notifications.
+        notify_user_by_placeholder_email(to_email, subject, plaintext)
         return
 
     LOG.d("send email to %s, subject '%s'", to_email, subject)

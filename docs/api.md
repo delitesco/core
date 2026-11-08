@@ -770,7 +770,10 @@ If success, 200 along with the new alias status:
 
 #### GET /api/notifications
 
-Get notifications
+Get notifications. Users have no email of their own, so everything addressed to the account (quarantined
+emails, disabled aliases, bounces, custom domain problems, deletions...) is stored here for the frontend to
+show; emails are only sent to the user's mailboxes. `message` is HTML. Each notification also has
+`created_at_timestamp` (unix time) besides the human readable `created_at`.
 
 Input:
 
