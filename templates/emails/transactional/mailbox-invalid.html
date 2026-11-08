@@ -9,12 +9,12 @@
   {% endcall %}
 
   {% call text() %}
-    The alias domain should point to SimpleLogin servers so emails sent to it are forwarded by SimpleLogin.
+    The alias domain should point to {{ BRAND_NAME }} servers so emails sent to it are forwarded by {{ BRAND_NAME }}.
   {% endcall %}
 
   {% call text() %}
-    The mailbox domain should be your "final" email address that can receive emails from SimpleLogin
-    and cannot point to SimpleLogin.
+    The mailbox domain should be your "final" email address that can receive emails from {{ BRAND_NAME }}
+    and cannot point to {{ BRAND_NAME }}.
   {% endcall %}
 
   {% call text() %}
@@ -31,7 +31,7 @@
     <br />
     Best,
     <br />
-    SimpleLogin team.
+    {{ BRAND_NAME }} team.
   {% endcall %}
 
 {% endblock %}

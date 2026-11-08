@@ -852,8 +852,8 @@ def forward_email_to_mailbox(
         sender = get_header_unicode(sender)
         msg = add_header(
             msg,
-            f"""Forwarded by SimpleLogin to {alias.email} from "{sender}" with "{orig_subject}" as subject""",
-            f"""Forwarded by SimpleLogin to {alias.email} from "{sender}" with <b>{orig_subject}</b> as subject""",
+            f"""Forwarded by {config.BRAND_NAME} to {alias.email} from "{sender}" with "{orig_subject}" as subject""",
+            f"""Forwarded by {config.BRAND_NAME} to {alias.email} from "{sender}" with <b>{orig_subject}</b> as subject""",
         )
 
     # create PGP email if needed
@@ -1967,7 +1967,7 @@ def handle(envelope: Envelope, msg: Message) -> str:
             user,
             ALERT_FROM_ADDRESS_IS_REVERSE_ALIAS,
             user.email,
-            "SimpleLogin shouldn't be used with another email forwarding system",
+            f"{config.BRAND_NAME} shouldn't be used with another email forwarding system",
             render(
                 "transactional/email-sent-from-reverse-alias.txt.jinja2",
                 user=user,

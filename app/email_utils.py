@@ -82,6 +82,7 @@ def render(template_name: str, user: Optional[User], **kwargs) -> str:
     return template.render(
         URL=config.URL,
         LANDING_PAGE_URL=config.LANDING_PAGE_URL,
+        BRAND_NAME=config.BRAND_NAME,
         YEAR=arrow.now().year,
         **kwargs,
     )
@@ -1212,7 +1213,7 @@ def spf_pass(
                     user,
                     config.ALERT_SPF,
                     mailbox.email,
-                    f"SimpleLogin Alert: attempt to send emails from your alias {alias.email} from unknown IP Address",
+                    f"{config.BRAND_NAME} alert: attempt to send emails from your alias {alias.email} from unknown IP Address",
                     render(
                         "transactional/spf-fail.txt",
                         user=user,

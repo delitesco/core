@@ -11,13 +11,13 @@
 
   {% call text() %}
     To protect against <b>email spoofing</b>, only your mailbox can send emails on behalf of your alias.
-    SimpleLogin also refuses emails that claim to come from your mailbox but fail DMARC.
+    {{ BRAND_NAME }} also refuses emails that claim to come from your mailbox but fail DMARC.
   {% endcall %}
 
   {% call text() %}
     Best,
     <br />
-    SimpleLogin Team.
+    {{ BRAND_NAME }} Team.
   {% endcall %}
 
 {% endblock %}

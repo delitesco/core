@@ -412,7 +412,7 @@ async def _hibp_check(api_key: str, queue: asyncio.Queue):
         LOG.d("Checking HIBP for %s", alias)
 
         request_headers = {
-            "user-agent": "SimpleLogin",
+            "user-agent": config.BRAND_NAME,
             "hibp-api-key": api_key,
         }
         r = requests.get(

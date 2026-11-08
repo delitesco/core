@@ -25,7 +25,7 @@
   {% endcall %}
 
   {% call text() %}
-    To prevent email-spoofing, SimpleLogin enforces the SPF (Sender Policy Framework).
+    To prevent email-spoofing, {{ BRAND_NAME }} enforces the SPF (Sender Policy Framework).
     Emails sent from an IP address that is <b>unknown</b> by your email service are refused by default.
   {% endcall %}
 
@@ -39,5 +39,5 @@
 
   {{ render_text('Thanks,
     <br />
-    SimpleLogin Team.') }}
+    ' ~ BRAND_NAME ~ ' Team.') }}
 {% endblock %}

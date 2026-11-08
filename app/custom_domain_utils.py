@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import List, Optional
 
+from app import config
 from app.constants import JobType
 from app.db import Session
 from app.email_utils import get_email_domain_part
@@ -42,7 +43,7 @@ class CannotUseDomainReason(Enum):
         elif self == CannotUseDomainReason.DomainPartOfUserEmail:
             return "You cannot add a domain that you are currently using for your personal email. Please change your personal email to your real email"
         elif self == CannotUseDomainReason.DomainUserInMailbox:
-            return f"{domain} already used in a SimpleLogin mailbox"
+            return f"{domain} already used in a {config.BRAND_NAME} mailbox"
         else:
             raise Exception("Invalid CannotUseDomainReason")
 

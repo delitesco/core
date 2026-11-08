@@ -348,7 +348,7 @@ def send_change_email(user: User, mailbox: Mailbox, activation: MailboxActivatio
 
     send_email(
         mailbox.new_email,
-        "Confirm mailbox change on SimpleLogin",
+        f"Confirm mailbox change on {config.BRAND_NAME}",
         render(
             "transactional/verify-mailbox-change.txt.jinja2",
             user=user,

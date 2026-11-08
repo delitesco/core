@@ -80,7 +80,7 @@ def check_single_custom_domain(custom_domain: CustomDomain):
                 user,
                 config.AlERT_WRONG_MX_RECORD_CUSTOM_DOMAIN,
                 user.email,
-                f"Please update {custom_domain.domain} DNS on SimpleLogin",
+                f"Please update {custom_domain.domain} DNS on {config.BRAND_NAME}",
                 render(
                     "transactional/custom-domain-dns-issue.txt.jinja2",
                     user=user,

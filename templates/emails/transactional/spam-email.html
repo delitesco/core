@@ -26,6 +26,6 @@
   {{ render_text("Please let us know if you have any question by replying to this email.") }}
   {{ render_text('Thanks,
     <br />
-    SimpleLogin Team.') }}
+    ' ~ BRAND_NAME ~ ' Team.') }}
   {% if disable_alias_link %}{{ raw_url(disable_alias_link) }}{% endif %}
 {% endblock %}
