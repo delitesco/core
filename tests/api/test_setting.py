@@ -14,20 +14,10 @@ def test_get_setting(flask_client):
     assert r.status_code == 200
     assert r.json == {
         "alias_generator": "word",
-        "notification": True,
         "random_alias_default_domain": "sl.lan",
         "sender_format": "AT",
         "random_alias_suffix": "word",
     }
-
-
-def test_update_settings_notification(flask_client):
-    user = login(flask_client)
-    assert user.notification
-
-    r = flask_client.patch("/api/setting", json={"notification": False})
-    assert r.status_code == 200
-    assert not user.notification
 
 
 def test_update_settings_alias_generator(flask_client):

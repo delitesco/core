@@ -15,7 +15,7 @@ def alias_export(flask_client, target_url):
     user2 = create_new_user()
     Session.commit()
 
-    # Remove onboarding aliases
+    # Start from users without aliases
     for alias in Alias.filter_by(user_id=user1.id).all():
         delete_alias(alias, user1)
     for alias in Alias.filter_by(user_id=user2.id).all():

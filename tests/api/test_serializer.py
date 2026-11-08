@@ -160,44 +160,46 @@ def test_get_alias_infos_pinned_alias():
 
 def test_get_alias_infos_with_no_last_email_log():
     user = create_new_user()
+    first_alias_id = Alias.filter_by(user_id=user.id).first().id
     alias_infos = get_alias_infos_with_pagination_v3(user)
     assert len(alias_infos) == 1
     row = alias_infos[0]
-    assert row.alias.id == user.newsletter_alias_id
+    assert row.alias.id == first_alias_id
     assert row.latest_contact is None
     assert row.latest_email_log is None
 
 
 def test_get_alias_infos_with_email_log_no_contact():
     user = create_new_user()
+    first_alias_id = Alias.filter_by(user_id=user.id).first().id
     contact = Contact.create(
         user_id=user.id,
-        alias_id=user.newsletter_alias_id,
+        alias_id=first_alias_id,
         website_email=random_email(),
         reply_email=random_email(),
         flush=True,
     )
     Contact.create(
         user_id=user.id,
-        alias_id=user.newsletter_alias_id,
+        alias_id=first_alias_id,
         website_email=random_email(),
         reply_email=random_email(),
         flush=True,
     )
     EmailLog.create(
         user_id=user.id,
-        alias_id=user.newsletter_alias_id,
+        alias_id=first_alias_id,
         contact_id=contact.id,
         commit=True,
     )
     alias_infos = get_alias_infos_with_pagination_v3(user)
     assert len(alias_infos) == 1
     row = alias_infos[0]
-    assert row.alias.id == user.newsletter_alias_id
+    assert row.alias.id == first_alias_id
     assert row.latest_contact is not None
     assert row.latest_contact.id == contact.id
     assert row.latest_email_log is not None
-    alias = Alias.get(id=user.newsletter_alias_id)
+    alias = Alias.get(id=first_alias_id)
     assert row.latest_email_log.id == alias.last_email_log_id
 
 

@@ -24,7 +24,6 @@ from sqlalchemy.orm import deferred
 from sqlalchemy_utils import ArrowType
 
 from app import config, rate_limiter
-from app.constants import JobType
 from app.db import Session
 from app.errors import (
     AliasInTrashError,
@@ -32,7 +31,6 @@ from app.errors import (
     SubdomainInTrashError,
     CannotCreateContactForReverseAlias,
 )
-from app.handler.unsubscribe_encoder import UnsubscribeAction, UnsubscribeEncoder
 from app.log import LOG
 from app.pw_models import PasswordOracle
 from app.utils import (
@@ -355,10 +353,6 @@ class User(Base, ModelMixin, UserMixin, PasswordOracle):
         default=AliasGeneratorEnum.word.value,
         server_default=str(AliasGeneratorEnum.word.value),
     )
-    notification = sa.Column(
-        sa.Boolean, default=True, nullable=False, server_default="1"
-    )
-
     activated = sa.Column(sa.Boolean, default=False, nullable=False)
 
     # an account can be disabled if having harmful behavior
@@ -417,14 +411,6 @@ class User(Base, ModelMixin, UserMixin, PasswordOracle):
 
     # user can set a more strict max_spam score to block spams more aggressively
     max_spam_score = sa.Column(sa.Integer, nullable=True)
-
-    # newsletter is sent to this address
-    newsletter_alias_id = sa.Column(
-        sa.ForeignKey("alias.id", ondelete="SET NULL"),
-        nullable=True,
-        default=None,
-        index=True,
-    )
 
     # whether to include the sender address in reverse-alias
     include_sender_in_reverse_alias = sa.Column(
@@ -599,41 +585,6 @@ class User(Base, ModelMixin, UserMixin, PasswordOracle):
             action=UserAuditLogAction.CreateUser,
             message=f"Created user {email}",
         )
-
-        # create a first alias mail to show user how to use when they login
-        alias = Alias.create_new(
-            user,
-            prefix="simplelogin-newsletter",
-            mailbox_id=mb.id,
-            note="This is your first alias. It's used to receive SimpleLogin communications "
-            "like new features announcements, newsletters.",
-        )
-        Session.flush()
-
-        user.newsletter_alias_id = alias.id
-        Session.flush()
-
-        if config.DISABLE_ONBOARDING:
-            LOG.d("Disable onboarding emails")
-            return user
-
-        # Schedule onboarding emails
-        Job.create(
-            name=JobType.ONBOARDING_1.value,
-            payload={"user_id": user.id},
-            run_at=arrow.now().shift(days=1),
-        )
-        Job.create(
-            name=JobType.ONBOARDING_2.value,
-            payload={"user_id": user.id},
-            run_at=arrow.now().shift(days=2),
-        )
-        Job.create(
-            name=JobType.ONBOARDING_4.value,
-            payload={"user_id": user.id},
-            run_at=arrow.now().shift(days=3),
-        )
-        Session.flush()
 
         return user
 
@@ -810,38 +761,6 @@ class User(Base, ModelMixin, UserMixin, PasswordOracle):
 
     def two_factor_authentication_enabled(self) -> bool:
         return self.enable_otp or self.fido_enabled()
-
-    def get_communication_email(self) -> (Optional[str], str, bool):
-        """
-        Return
-        - the email that user uses to receive email communication. None if user unsubscribes from newsletter
-        - the unsubscribe URL
-        - whether the unsubscribe method is via sending email (mailto:) or Http POST
-        """
-        if self.notification and self.activated and not self.disabled:
-            if self.newsletter_alias_id:
-                alias = Alias.get(self.newsletter_alias_id)
-                if alias.enabled:
-                    unsub = UnsubscribeEncoder.encode(
-                        UnsubscribeAction.DisableAlias, alias.id
-                    )
-                    return alias.email, unsub.link, unsub.via_email
-                # alias disabled -> user doesn't want to receive newsletter
-                else:
-                    return None, "", False
-            else:
-                # do not handle http POST unsubscribe
-                if config.UNSUBSCRIBER:
-                    # use * as suffix instead of = as for alias unsubscribe
-                    return (
-                        self.email,
-                        UnsubscribeEncoder.encode_mailto(
-                            UnsubscribeAction.UnsubscribeNewsletter, self.id
-                        ),
-                        True,
-                    )
-
-        return None, "", False
 
     def available_sl_domains(
         self, alias_options: Optional[AliasOptions] = None
@@ -2583,34 +2502,6 @@ class ProviderComplaint(Base, ModelMixin):
 
 
 # endregion
-
-
-class Newsletter(Base, ModelMixin):
-    __tablename__ = "newsletter"
-    subject = sa.Column(sa.String(), nullable=False, index=True)
-
-    html = sa.Column(sa.Text)
-    plain_text = sa.Column(sa.Text)
-
-    def __repr__(self):
-        return f"<Newsletter {self.id} {self.subject}>"
-
-
-class NewsletterUser(Base, ModelMixin):
-    """This model keeps track of what newsletter is sent to what user"""
-
-    __tablename__ = "newsletter_user"
-    user_id = sa.Column(sa.ForeignKey(User.id, ondelete="cascade"), nullable=True)
-    newsletter_id = sa.Column(
-        sa.ForeignKey(Newsletter.id, ondelete="cascade"), nullable=True
-    )
-    # not use created_at here as it should only used for auditting purpose
-    sent_at = sa.Column(ArrowType, default=arrow.utcnow, nullable=False)
-
-    user = orm.relationship(User)
-    newsletter = orm.relationship(Newsletter)
-
-    __table_args__ = (sa.Index("ix_newsletter_user_user_id", "user_id"),)
 
 
 class AliasAuditLog(Base, ModelMixin):

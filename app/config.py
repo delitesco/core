@@ -297,10 +297,6 @@ ALERT_WARN_MULTIPLE_SUBSCRIPTIONS = "alert_multiple_subscription"
 
 # <<<<< END ALERT EMAIL >>>>
 
-# Disable onboarding emails
-DISABLE_ONBOARDING = "DISABLE_ONBOARDING" in os.environ
-
-
 # server host
 HOST = socket.gethostname()
 

@@ -2,7 +2,6 @@ import random
 
 from app.alias_delete import delete_alias
 from app.alias_audit_log_utils import emit_alias_audit_log, AliasAuditLogAction
-from app.alias_utils import transfer_alias
 from app.models import Alias, AliasAuditLog, AliasDeleteReason
 from app.utils import random_string
 from tests.utils import create_new_user, random_email
@@ -75,22 +74,3 @@ def test_alias_audit_log_exists_after_alias_deletion():
     assert logs_for_alias[1].action == AliasAuditLogAction.UpdateAlias.value
     assert logs_for_alias[2].action == AliasAuditLogAction.UpdateAlias.value
     assert logs_for_alias[3].action == AliasAuditLogAction.DeleteAlias.value
-
-
-def test_alias_audit_log_for_transfer():
-    original_user = create_new_user()
-    new_user = create_new_user()
-    alias = Alias.create(
-        user_id=original_user.id,
-        email=random_email(),
-        mailbox_id=original_user.default_mailbox_id,
-    )
-    transfer_alias(alias, new_user, [new_user.default_mailbox])
-
-    logs_for_alias = AliasAuditLog.filter_by(alias_id=alias.id).all()
-    assert len(logs_for_alias) == 3
-    assert logs_for_alias[0].action == AliasAuditLogAction.CreateAlias.value
-    assert logs_for_alias[1].action == AliasAuditLogAction.TransferredAlias.value
-    assert logs_for_alias[1].user_id == original_user.id
-    assert logs_for_alias[2].action == AliasAuditLogAction.AcceptTransferAlias.value
-    assert logs_for_alias[2].user_id == new_user.id

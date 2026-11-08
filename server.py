@@ -1,7 +1,6 @@
 import time
 from datetime import timedelta
 
-import click
 import flask_limiter
 from flask import (
     Flask,
@@ -31,11 +30,8 @@ from app.models import (
     User,
     EmailLog,
     Contact,
-    Newsletter,
-    NewsletterUser,
 )
 from app.monitor.base import monitor_bp
-from app.newsletter_utils import send_newsletter_to_user
 from app.redis_services import initialize_redis_services
 from app.request_utils import generate_request_id
 
@@ -241,59 +237,6 @@ def register_custom_commands(app):
         LOG.w("reset db, add fake data")
         fake_data()
         add_sl_domains()
-
-    @app.cli.command("send-newsletter")
-    @click.option("-n", "--newsletter_id", type=int, help="Newsletter ID to be sent")
-    def send_newsletter(newsletter_id):
-        newsletter = Newsletter.get(newsletter_id)
-        if not newsletter:
-            LOG.w(f"no such newsletter {newsletter_id}")
-            return
-
-        nb_success = 0
-        nb_failure = 0
-
-        # user_ids that have received the newsletter
-        user_received_newsletter = Session.query(NewsletterUser.user_id).filter(
-            NewsletterUser.newsletter_id == newsletter_id
-        )
-
-        # only send newsletter to those who haven't received it
-        # not query users directly here as we can run out of memory
-        user_ids = (
-            Session.query(User.id)
-            .order_by(User.id)
-            .filter(User.id.notin_(user_received_newsletter))
-            .all()
-        )
-
-        # user_ids is an array of tuple (user_id,)
-        user_ids = [user_id[0] for user_id in user_ids]
-
-        for user_id in user_ids:
-            user = User.get(user_id)
-            # refetch newsletter
-            newsletter = Newsletter.get(newsletter_id)
-
-            if not user:
-                LOG.i(f"User {user_id} was maybe deleted in the meantime")
-                continue
-
-            comm_email, unsubscribe_link, via_email = user.get_communication_email()
-            if not comm_email:
-                continue
-
-            sent, error_msg = send_newsletter_to_user(newsletter, user)
-            if sent:
-                LOG.d(f"{newsletter} sent to {user}")
-                nb_success += 1
-            else:
-                nb_failure += 1
-
-            # sleep in between to not overwhelm mailbox provider
-            time.sleep(0.2)
-
-        LOG.d(f"Nb success {nb_success}, failures {nb_failure}")
 
 
 def local_main():
