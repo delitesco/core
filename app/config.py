@@ -327,6 +327,8 @@ PROVISIONING_RATE_LIMIT = os.environ.get("PROVISIONING_RATE_LIMIT") or "100/minu
 # MAILBOX_VERIFY_URL?mailbox_id=..&code=.. and the page calls POST /api/mailboxes/<id>/verify.
 # When not set, verification emails only contain the code.
 MAILBOX_VERIFY_URL: Optional[str] = os.environ.get("MAILBOX_VERIFY_URL") or None
+# Verification emails per recipient address, across all users: (max emails, period in seconds)
+MAILBOX_VERIFICATION_EMAIL_LIMITS = [(3, 3600), (10, 86400)]
 # Users have no email of their own: their email is a random address on this domain.
 # Keep it a reserved, non-deliverable domain (.invalid, RFC 2606).
 PROVISIONED_USER_EMAIL_DOMAIN = (

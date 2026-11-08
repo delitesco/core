@@ -6,7 +6,9 @@ from typing import Optional
 import arrow
 from sqlalchemy.exc import IntegrityError
 
-from app import config
+import werkzeug.exceptions
+
+from app import config, rate_limiter
 from app.constants import JobType
 from app.db import Session
 from app.email_utils import (
@@ -45,7 +47,27 @@ class CannotVerifyError(MailboxError):
         self.deleted_activation_code = deleted_activation_code
 
 
+class TooManyVerificationEmails(MailboxError):
+    def __init__(self):
+        super().__init__(
+            "Too many verification emails were sent to this address. Please try again later."
+        )
+
+
 MAX_ACTIVATION_TRIES = 3
+
+
+def check_verification_email_limit(email: str):
+    """Limit verification emails per recipient address, across all users, so the
+    service cannot be used to flood an address with verification emails."""
+    for max_hits, bucket_seconds in config.MAILBOX_VERIFICATION_EMAIL_LIMITS:
+        try:
+            rate_limiter.check_bucket_limit(
+                f"mailbox_verification:{email.lower()}", max_hits, bucket_seconds
+            )
+        except werkzeug.exceptions.TooManyRequests:
+            LOG.i(f"Too many verification emails sent to {email}")
+            raise TooManyVerificationEmails()
 
 
 def create_mailbox(
@@ -63,6 +85,8 @@ def create_mailbox(
         )
         raise OnlyPaidError()
     check_email_for_mailbox(email, user)
+    if not verified and send_email:
+        check_verification_email_limit(email)
     new_mailbox: Mailbox = Mailbox.create(
         email=email, user_id=user.id, verified=verified, commit=True
     )
@@ -356,6 +380,8 @@ def request_mailbox_email_change(
     if new_email == mailbox.email:
         raise MailboxError("Same email")
     check_email_for_mailbox(new_email, user)
+    if not email_ownership_verified and send_email:
+        check_verification_email_limit(new_email)
     if email_ownership_verified:
         mailbox.email = new_email
         mailbox.new_email = None
