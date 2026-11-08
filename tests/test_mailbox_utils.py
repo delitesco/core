@@ -676,3 +676,29 @@ def test_pending_email_change_is_unique_per_user_only():
         mailbox_utils.request_mailbox_email_change(
             first, mb3, target, email_ownership_verified=False, send_email=False
         )
+
+
+def test_first_verified_mailbox_replaces_placeholder_default():
+    placeholder_user = User.create(
+        email=f"{random_string(12)}@{config.PROVISIONED_USER_EMAIL_DOMAIN}",
+        activated=True,
+        flush=True,
+    )
+    placeholder_default = placeholder_user.default_mailbox_id
+    output = mailbox_utils.create_mailbox(
+        placeholder_user, f"mb_{random_string(10)}@gmail.com", send_email=False
+    )
+    mailbox_utils.verify_mailbox_code(
+        placeholder_user, output.mailbox.id, output.activation.code
+    )
+    assert placeholder_user.default_mailbox_id == output.mailbox.id
+    assert placeholder_user.default_mailbox_id != placeholder_default
+
+    # a real default mailbox is kept
+    second = mailbox_utils.create_mailbox(
+        placeholder_user, f"mb_{random_string(10)}@gmail.com", send_email=False
+    )
+    mailbox_utils.verify_mailbox_code(
+        placeholder_user, second.mailbox.id, second.activation.code
+    )
+    assert placeholder_user.default_mailbox_id == output.mailbox.id

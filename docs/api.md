@@ -34,6 +34,15 @@
 - [GET /api/custom_domains](#get-apicustom_domains): Get custom domains.
 - [PATCH /api/custom_domains/:custom_domain_id](#patch-apicustom_domainscustom_domain_id): Update custom domain's information.
 - [GET /api/custom_domains/:custom_domain_id/trash](#get-apicustom_domainscustom_domain_idtrash): Get deleted aliases of a custom domain.
+- [POST /api/custom_domains](#post-apicustom_domains): Add a custom domain.
+- [GET /api/custom_domains/:custom_domain_id/dns](#get-apicustom_domainscustom_domain_iddns): DNS records to set up.
+- [POST /api/custom_domains/:custom_domain_id/dns](#post-apicustom_domainscustom_domain_iddns): Check the DNS records.
+- [DELETE /api/custom_domains/:custom_domain_id](#delete-apicustom_domainscustom_domain_id): Delete a custom domain.
+
+[Directory endpoints](#directory-endpoints)
+- [GET /api/directories](#get-apidirectories), [POST /api/directories](#post-apidirectories),
+  [PATCH /api/directories/:directory_id](#patch-apidirectoriesdirectory_id),
+  [DELETE /api/directories/:directory_id](#delete-apidirectoriesdirectory_id)
 
 [Contact endpoints](#contact-endpoints)
 - [DELETE /api/contacts/:contact_id](#delete-apicontactscontact_id): Delete a contact.
@@ -749,6 +758,51 @@ List of deleted alias.
   ]
 }
 ```
+
+#### POST /api/custom_domains
+
+Add a custom domain. Input: `domain`. Output: 201 with the custom domain (same fields as GET, plus
+`ownership_verified`, `spf_verified`, `dkim_verified`, `dmarc_verified`, `pending_deletion`), or 400 with an error.
+Aliases can only be created on the domain once its ownership is verified; it receives mail once its MX records
+point to this service. `catch_all` (PATCH) creates aliases on the fly for any address of the domain.
+
+#### GET /api/custom_domains/:custom_domain_id/dns
+
+The DNS records to set up, and whether each is verified:
+
+```json
+{
+  "ownership": {"verified": false, "type": "TXT", "host": "example.com", "value": "sl-verification=..."},
+  "mx": {"verified": false, "records": [{"priority": 10, "value": "mx1.example.net."}]},
+  "spf": {"verified": false, "type": "TXT", "host": "example.com", "value": "v=spf1 include:... ~all"},
+  "dkim": {"verified": false, "records": [{"type": "CNAME", "host": "dkim._domainkey.example.com", "value": "..."}]},
+  "dmarc": {"verified": false, "type": "TXT", "host": "_dmarc.example.com", "value": "v=DMARC1; ..."}
+}
+```
+
+#### POST /api/custom_domains/:custom_domain_id/dns
+
+Look the records up now and update what is verified. Input (optional): `check`, one of `ownership`, `mx`, `spf`,
+`dkim`, `dmarc`; all of them when omitted. The other records are only checked once ownership is verified
+(checking one of them before is a 400). Output: the same as GET plus `errors`, `{check: [records found]}` for each
+failed check.
+
+#### DELETE /api/custom_domains/:custom_domain_id
+
+Delete the domain and its aliases (done by the job runner). Output: 200 `{"deleted": true}`.
+
+### Directory endpoints
+
+A directory `name` creates aliases on the fly for `name+anything@` / `name/anything@` on the shared alias domains.
+Names are global, 3 to 32 characters (`a-z 0-9 - _`), and cannot be reused after deletion.
+
+- `GET /api/directories`: `{"directories": [{"id", "name", "disabled", "nb_alias", "creation_timestamp", "mailboxes": [{"id", "email"}]}]}`
+- `POST /api/directories`: `name`, `mailbox_ids` (verified mailboxes, required). 201 with the directory.
+- `PATCH /api/directories/:directory_id`: optional `disabled` (no more aliases created on the fly), `mailbox_ids`.
+- `DELETE /api/directories/:directory_id`: deletes the directory and its aliases.
+
+When a provisioned user verifies its first mailbox, it replaces the placeholder default mailbox, so mail that
+falls back to the default mailbox (random aliases without mailboxes, catch-all) reaches a real mailbox.
 
 ### Contact endpoints
 

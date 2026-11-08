@@ -201,6 +201,17 @@ def clear_activation_codes_for_mailbox(mailbox: Mailbox):
     Session.commit()
 
 
+def _replace_placeholder_default_mailbox(user: User, mailbox: Mailbox):
+    """Provisioned users start with a default mailbox on their placeholder address
+    (.invalid). Mail that falls back to the default mailbox (random aliases without
+    mailbox_ids, catch-all, directories) would be lost there: the first verified real
+    mailbox becomes the default."""
+    default = user.default_mailbox
+    if default is None or get_email_domain_part(default.email).endswith(".invalid"):
+        LOG.i(f"Use {mailbox} as default mailbox of {user}")
+        user.default_mailbox_id = mailbox.id
+
+
 def verify_mailbox_code(user: User, mailbox_id: int, code: str) -> Mailbox:
     mailbox = Mailbox.get(mailbox_id)
     if not mailbox:
@@ -265,6 +276,7 @@ def verify_mailbox_code(user: User, mailbox_id: int, code: str) -> Mailbox:
     elif not mailbox.verified:
         LOG.i(f"User {user} has verified mailbox {mailbox_id}")
         mailbox.verified = True
+        _replace_placeholder_default_mailbox(user, mailbox)
         emit_user_audit_log(
             user=user,
             action=UserAuditLogAction.VerifyMailbox,

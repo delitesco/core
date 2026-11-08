@@ -3,7 +3,7 @@
 import pytest
 
 from app.db import Session
-from app.models import Alias, ApiKey, Contact, CustomDomain, Mailbox
+from app.models import Alias, ApiKey, Contact, CustomDomain, Directory, Mailbox
 from tests.utils import create_new_user, random_token
 
 JUNK_VALUES = ["abc", "12", 12, -5, 1.5, True, None, [], ["x"], [1, "y"], {}, {"a": 1}]
@@ -30,8 +30,10 @@ def setup(flask_client):
         verified=True,
         ownership_verified=True,
     )
+    directory = Directory.create(name=f"dir{random_token(8)}", user_id=user.id)
     Session.commit()
     return {
+        "directory": directory,
         "headers": {"Authentication": api_key.code},
         "alias": alias,
         "mailbox": mailbox,
@@ -91,6 +93,10 @@ def _requests(s):
             ],
         ),
         ("patch", "/api/user_info", ["name"]),
+        ("post", "/api/custom_domains", ["domain"]),
+        ("post", f"/api/custom_domains/{s['domain'].id}/dns", ["check"]),
+        ("post", "/api/directories", ["name", "mailbox_ids"]),
+        ("patch", f"/api/directories/{s['directory'].id}", ["disabled", "mailbox_ids"]),
     ]
 
 

@@ -8,8 +8,16 @@ from app.api.base import (
     parse_int_list,
     require_api_auth,
 )
-from app.custom_domain_utils import set_custom_domain_mailboxes
+from app import config
+from app.constants import DMARC_RECORD
+from app.custom_domain_utils import (
+    create_custom_domain,
+    delete_custom_domain,
+    set_custom_domain_mailboxes,
+)
+from app.custom_domain_validation import CustomDomainValidation
 from app.db import Session
+from app.dns_utils import get_network_dns_client
 from app.extensions import limiter
 from app.log import LOG
 from app.models import CustomDomain, DomainDeletedAlias
@@ -29,6 +37,11 @@ def custom_domain_to_dict(custom_domain: CustomDomain):
         "mailboxes": [
             {"id": mb.id, "email": mb.email} for mb in custom_domain.mailboxes
         ],
+        "ownership_verified": custom_domain.ownership_verified,
+        "spf_verified": custom_domain.spf_verified,
+        "dkim_verified": custom_domain.dkim_verified,
+        "dmarc_verified": custom_domain.dmarc_verified,
+        "pending_deletion": custom_domain.pending_deletion,
     }
 
 
@@ -133,3 +146,162 @@ def update_custom_domain(custom_domain_id):
     # refresh
     custom_domain = CustomDomain.get(custom_domain_id)
     return jsonify(custom_domain=custom_domain_to_dict(custom_domain)), 200
+
+
+def _own_domain(custom_domain_id: int):
+    custom_domain = CustomDomain.get(custom_domain_id)
+    if (
+        not custom_domain
+        or custom_domain.user_id != g.user.id
+        or custom_domain.is_sl_subdomain
+    ):
+        return None
+    return custom_domain
+
+
+@api_bp.route("/custom_domains", methods=["POST"])
+@limiter.limit("10/hour")
+@require_api_auth
+def create_custom_domain_route():
+    """
+    Add a custom domain. It can be used for aliases once its ownership is verified
+    (TXT record) and receives mail once its MX records point to this service; see
+    GET/POST /api/custom_domains/<id>/dns.
+    Input: domain
+    Output: 201 and the custom domain, 400 with an error message
+    """
+    domain = json_body().get("domain")
+    if not isinstance(domain, str) or not domain.strip():
+        return jsonify(error="Invalid domain"), 400
+
+    result = create_custom_domain(g.user, domain)
+    if not result.success:
+        return jsonify(error=result.message), 400
+    Session.commit()
+    return jsonify(custom_domain_to_dict(result.instance)), 201
+
+
+def _dns_state(custom_domain: CustomDomain, validator: CustomDomainValidation) -> dict:
+    ownership = validator.get_ownership_verification_record(custom_domain)
+    return {
+        "ownership": {
+            "verified": custom_domain.ownership_verified,
+            "type": "TXT",
+            "host": custom_domain.domain,
+            "value": ownership.recommended,
+        },
+        "mx": {
+            "verified": custom_domain.verified,
+            "records": [
+                {"priority": priority, "value": records.recommended}
+                for priority, records in sorted(
+                    validator.get_expected_mx_records(custom_domain).items()
+                )
+            ],
+        },
+        "spf": {
+            "verified": custom_domain.spf_verified,
+            "type": "TXT",
+            "host": custom_domain.domain,
+            "value": validator.get_expected_spf_record(custom_domain),
+        },
+        "dkim": {
+            "verified": custom_domain.dkim_verified,
+            "records": [
+                {
+                    "type": "CNAME",
+                    "host": f"{key}.{custom_domain.domain}",
+                    "value": records.recommended,
+                }
+                for key, records in validator.get_dkim_records(custom_domain).items()
+            ],
+        },
+        "dmarc": {
+            "verified": custom_domain.dmarc_verified,
+            "type": "TXT",
+            "host": f"_dmarc.{custom_domain.domain}",
+            "value": DMARC_RECORD,
+        },
+    }
+
+
+@api_bp.route("/custom_domains/<int:custom_domain_id>/dns", methods=["GET"])
+@require_api_auth
+def get_custom_domain_dns(custom_domain_id: int):
+    """DNS records to set up for the domain, with what is verified so far."""
+    custom_domain = _own_domain(custom_domain_id)
+    if not custom_domain:
+        return jsonify(error="Forbidden"), 403
+    validator = CustomDomainValidation(
+        dkim_domain=config.EMAIL_DOMAIN, dns_client=get_network_dns_client()
+    )
+    return jsonify(_dns_state(custom_domain, validator)), 200
+
+
+_DNS_CHECKS = ("ownership", "mx", "spf", "dkim", "dmarc")
+
+
+@api_bp.route("/custom_domains/<int:custom_domain_id>/dns", methods=["POST"])
+@limiter.limit("30/hour")
+@require_api_auth
+def check_custom_domain_dns(custom_domain_id: int):
+    """
+    Look up the domain's DNS records now and update what is verified.
+    Input: check: one of ownership, mx, spf, dkim, dmarc (all of them when omitted).
+        The other records are only checked once ownership is verified.
+    Output: the same as GET, plus "errors": {check: [records found]} for failed checks
+    """
+    custom_domain = _own_domain(custom_domain_id)
+    if not custom_domain:
+        return jsonify(error="Forbidden"), 403
+    check = json_body().get("check")
+    if check is not None and check not in _DNS_CHECKS:
+        return jsonify(error="Invalid check"), 400
+    checks = [check] if check else list(_DNS_CHECKS)
+
+    validator = CustomDomainValidation(
+        dkim_domain=config.EMAIL_DOMAIN, dns_client=get_network_dns_client()
+    )
+    errors = {}
+    if "ownership" in checks:
+        result = validator.validate_domain_ownership(custom_domain)
+        if not result.success:
+            errors["ownership"] = result.errors
+    if custom_domain.ownership_verified:
+        if "mx" in checks:
+            result = validator.validate_mx_records(custom_domain)
+            if not result.success:
+                errors["mx"] = result.errors
+        if "spf" in checks:
+            result = validator.validate_spf_records(custom_domain)
+            if not result.success:
+                errors["spf"] = result.errors
+        if "dkim" in checks:
+            invalid = validator.validate_dkim_records(custom_domain)
+            if invalid:
+                errors["dkim"] = [f"{host}: {value}" for host, value in invalid.items()]
+        if "dmarc" in checks:
+            result = validator.validate_dmarc_records(custom_domain)
+            if not result.success:
+                errors["dmarc"] = result.errors
+    elif check and check != "ownership":
+        return jsonify(error="Verify the domain ownership first"), 400
+
+    Session.commit()
+    return jsonify({**_dns_state(custom_domain, validator), "errors": errors}), 200
+
+
+@api_bp.route("/custom_domains/<int:custom_domain_id>", methods=["DELETE"])
+@require_api_auth
+def delete_custom_domain_route(custom_domain_id: int):
+    """
+    Delete the domain and its aliases (done by the job runner).
+    Output: 200 {"deleted": true}
+    """
+    custom_domain = _own_domain(custom_domain_id)
+    if not custom_domain:
+        return jsonify(error="Forbidden"), 403
+    if not custom_domain.pending_deletion:
+        LOG.i("User %s deletes %s", g.user, custom_domain)
+        delete_custom_domain(custom_domain)
+    return jsonify(deleted=True), 200
