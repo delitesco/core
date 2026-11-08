@@ -188,6 +188,20 @@ def check_if_alias_can_be_auto_created_for_a_directory(
     return directory
 
 
+def owner_of_auto_create_address(address: str) -> Optional[User]:
+    """The user whose custom domain or directory the address belongs to, if any,
+    whether or not an alias would actually be created for it."""
+    custom_domain = CustomDomain.get_by(domain=get_email_domain_part(address))
+    if custom_domain:
+        return custom_domain.user
+    if can_create_directory_for_address(address):
+        for sep in ("/", "+", "#"):
+            if sep in address:
+                directory = Directory.get_by(name=address[: address.find(sep)])
+                return directory.user if directory else None
+    return None
+
+
 def try_auto_create(address: str) -> Optional[Alias]:
     """Try to auto-create the alias using directory or catch-all domain"""
     # VERP for reply phase is {BOUNCE_PREFIX_FOR_REPLY_PHASE}+{email_log.id}+@{alias_domain}

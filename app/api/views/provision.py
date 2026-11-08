@@ -21,7 +21,7 @@ from app.constants import JobType
 from app.db import Session
 from app.extensions import limiter
 from app.log import LOG
-from app.models import Alias, ApiKey, Job, Mailbox, User
+from app.models import AccountState, Alias, ApiKey, Job, Mailbox, User
 from app.user_audit_log_utils import emit_user_audit_log, UserAuditLogAction
 
 PROVISIONING_KEY_HEADER = "X-Provisioning-Key"
@@ -47,6 +47,12 @@ def _service_email() -> str:
     return f"{uuid.uuid4().hex}@{config.PROVISIONED_USER_EMAIL_DOMAIN}"
 
 
+def _parse_state(value):
+    if not isinstance(value, str) or not AccountState.has_name(value):
+        return None
+    return AccountState[value]
+
+
 def _get_active_user(user_id: int):
     user = User.get(user_id)
     if not user or user.disabled or user.delete_on is not None:
@@ -60,14 +66,19 @@ def _get_active_user(user_id: int):
 def provision_create_user():
     """
     Create a user and its API key.
-    Output: 201 {"user_id": int, "api_key": str}. The key is only returned here
-    and by the rotate endpoint.
+    Input (optional): state: active (default), grace or paused
+    Output: 201 {"user_id": int, "api_key": str, "state": str}. The key is only
+    returned here and by the rotate endpoint.
     """
-    user = User.create(email=_service_email(), activated=True)
+    data = json_body()
+    state = _parse_state(data.get("state", AccountState.active.name))
+    if state is None:
+        return jsonify(error="Invalid state"), 400
+    user = User.create(email=_service_email(), activated=True, account_state=state)
     api_key = ApiKey.create(user.id, name="provisioned")
     Session.commit()
     LOG.i("Provisioned user %s", user)
-    return jsonify(user_id=user.id, api_key=api_key.code), 201
+    return jsonify(user_id=user.id, api_key=api_key.code, state=state.name), 201
 
 
 @api_bp.route("/provision/users/<int:user_id>/api_key", methods=["POST"])
@@ -87,6 +98,35 @@ def provision_rotate_api_key(user_id: int):
     Session.commit()
     LOG.i("Rotated API key of %s", user)
     return jsonify(api_key=api_key.code), 200
+
+
+@api_bp.route("/provision/users/<int:user_id>", methods=["PATCH"])
+@limiter.limit(lambda: config.PROVISIONING_RATE_LIMIT)
+@require_provisioning_key
+def provision_update_user(user_id: int):
+    """
+    Set the account state from its subscription.
+    Input: state: active, grace (mail forwarded, no replies, no new aliases) or
+        paused (mail refused with a temporary error, nothing created)
+    Output: 200 {"user_id": int, "state": str}, 404 if the user does not exist or is
+        being deleted
+    """
+    user = _get_active_user(user_id)
+    if not user:
+        return jsonify(error="User not found"), 404
+    state = _parse_state(json_body().get("state"))
+    if state is None:
+        return jsonify(error="Invalid state"), 400
+    if user.account_state != state:
+        emit_user_audit_log(
+            user=user,
+            action=UserAuditLogAction.UpdateUserState,
+            message=f"Account state {user.account_state.name} -> {state.name}",
+        )
+        user.account_state = state
+        Session.commit()
+        LOG.i("%s is now %s", user, state.name)
+    return jsonify(user_id=user.id, state=state.name), 200
 
 
 @api_bp.route("/provision/users/<int:user_id>", methods=["DELETE"])

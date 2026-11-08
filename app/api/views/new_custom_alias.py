@@ -55,9 +55,7 @@ def new_custom_alias_v2():
     if not user.can_create_new_alias():
         LOG.d("user %s cannot create any custom alias", user)
         return (
-            jsonify(
-                error="This account cannot create aliases: it is disabled or scheduled for deletion"
-            ),
+            jsonify(error="This account cannot create new aliases right now"),
             400,
         )
 
@@ -164,9 +162,7 @@ def new_custom_alias_v3():
     if not user.can_create_new_alias():
         LOG.d("user %s cannot create any custom alias", user)
         return (
-            jsonify(
-                error="This account cannot create aliases: it is disabled or scheduled for deletion"
-            ),
+            jsonify(error="This account cannot create new aliases right now"),
             400,
         )
 

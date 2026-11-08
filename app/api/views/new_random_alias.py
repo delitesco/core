@@ -35,9 +35,7 @@ def new_random_alias():
     if not user.can_create_new_alias():
         LOG.d("user %s cannot create new random alias", user)
         return (
-            jsonify(
-                error="This account cannot create aliases: it is disabled or scheduled for deletion"
-            ),
+            jsonify(error="This account cannot create new aliases right now"),
             400,
         )
 

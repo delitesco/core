@@ -11,6 +11,7 @@ class UserAuditLogAction(Enum):
     Upgrade = "upgrade"
     SubscriptionExtended = "subscription_extended"
     SubscriptionCancelled = "subscription_cancelled"
+    UpdateUserState = "update_user_state"
     LinkAccount = "link_account"
     UnlinkAccount = "unlink_account"
 

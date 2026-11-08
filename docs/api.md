@@ -3,6 +3,7 @@
 [Provisioning endpoints](#provisioning-endpoints)
 - [POST /api/provision/users](#post-apiprovisionusers): Create a user and its API key.
 - [POST /api/provision/users/:user_id/api_key](#post-apiprovisionusersuser_idapi_key): Replace a user's API key.
+- [PATCH /api/provision/users/:user_id](#patch-apiprovisionusersuser_id): Set the account state (subscription stage).
 - [DELETE /api/provision/users/:user_id](#delete-apiprovisionusersuser_id): Delete a user.
 - [POST /api/provision/aliases/:alias_id/transfer](#post-apiprovisionaliasesalias_idtransfer): Give an alias to another user.
 
@@ -111,6 +112,23 @@ The API key is only returned here and by the rotate endpoint: store it.
 Revoke every API key of the user and create a new one.
 
 Output: 200 `{"api_key": "a long string"}`, 404 if the user does not exist or is being deleted.
+
+#### PATCH /api/provision/users/:user_id
+
+Set the account state from its subscription. Input: `state`:
+
+- `active`: everything works;
+- `grace`: mail to existing aliases is forwarded, but replies are refused (550, "Replies are disabled for this
+  account") and no alias is created (API, catch-all, directories);
+- `paused`: mail to the user's aliases and replies are refused with a temporary error (421), so senders retry and
+  mail is delivered if the account becomes active again; nothing is created.
+
+Mail to an address that would create an alias on the fly (catch-all, directory) gets a temporary error (421) in
+`grace` and `paused`. `POST /api/provision/users` also accepts `state` (default `active`). The state is shown as
+`account_state` in `GET /api/user_info`, and `can_create` of `GET /api/v5/alias/options` is false outside `active`.
+
+Output: 200 `{"user_id": 42, "state": "grace"}`, 400 for an unknown state, 404 if the user does not exist or is
+being deleted.
 
 #### DELETE /api/provision/users/:user_id
 
