@@ -19,7 +19,6 @@ from app.email_utils import (
     send_email,
     render,
 )
-from app.jobs.export_user_data_job import ExportUserDataJob
 from app.jobs.mark_abuser_job import MarkAbuserJob
 from app.log import LOG
 from app.models import User, Job, Mailbox, JobState
@@ -118,10 +117,6 @@ def process_job(job: Job):
         if delete_job:
             delete_job.run()
 
-    elif job.name == JobType.SEND_USER_REPORT.value:
-        export_job = ExportUserDataJob.create_from_job(job)
-        if export_job:
-            export_job.run()
     elif job.name == JobType.ABUSER_MARK.value:
         mark_abuser_job = MarkAbuserJob.create_from_job(job)
         if mark_abuser_job:

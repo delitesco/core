@@ -4,15 +4,12 @@ from .views import (
     custom_domain,
     new_random_alias,
     user_info,
-    auth,
-    auth_mfa,
     alias,
     mailbox,
     notification,
     setting,
     export,
-    sudo,
-    user,
+    provision,
 )
 
 __all__ = [
@@ -21,13 +18,10 @@ __all__ = [
     "custom_domain",
     "new_random_alias",
     "user_info",
-    "auth",
-    "auth_mfa",
     "alias",
     "mailbox",
     "notification",
     "setting",
     "export",
-    "sudo",
-    "user",
+    "provision",
 ]

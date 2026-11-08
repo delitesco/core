@@ -10,5 +10,4 @@ class JobType(enum.Enum):
     DELETE_ACCOUNT = "delete-account"
     DELETE_MAILBOX = "delete-mailbox"
     DELETE_DOMAIN = "delete-domain"
-    SEND_USER_REPORT = "send-user-report"
     ABUSER_MARK = "abuser-mark"

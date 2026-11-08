@@ -1,19 +1,14 @@
 from flask import request
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
-from flask_login import current_user, LoginManager
 
 from app import config
-
-login_manager = LoginManager()
-login_manager.session_protection = "strong"
 
 
 # We want to rate limit based on:
 # - If the request carries a valid API key: the key's user_id.
 #   All API calls come from the UI backend, so limiting them by IP would make
 #   every user share one bucket.
-# - If the user is logged in with a session: user_id
 # - Otherwise: request source IP
 def __key_func():
     api_code = request.headers.get("Authentication")
@@ -24,8 +19,6 @@ def __key_func():
         api_key = ApiKey.get_by(code=api_code)
         if api_key:
             return f"userid:{api_key.user_id}"
-    if current_user.is_authenticated:
-        return f"userid:{current_user.id}"
     ip_addr = get_remote_address()
     return f"ip:{ip_addr}"
 

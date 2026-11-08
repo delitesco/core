@@ -1,13 +1,11 @@
 import dataclasses
 
-from flask import jsonify, g, request, make_response
+from flask import jsonify, g, request
 
 from app.api.base import api_bp, require_api_auth
-from app.config import SESSION_COOKIE_NAME
 from app.db import Session
 from app.user_stats import get_stats
-from app.models import ApiKey, User
-from app.session import logout_session
+from app.models import User
 
 
 def user_to_dict(user: User) -> dict:
@@ -55,44 +53,6 @@ def update_user_info():
     Session.commit()
 
     return jsonify(user_to_dict(user))
-
-
-@api_bp.route("/api_key", methods=["POST"])
-@require_api_auth
-def create_api_key():
-    """Used to create a new api key
-    Input:
-    - device
-
-    Output:
-    - api_key
-    """
-    data = request.get_json()
-    if not data:
-        return jsonify(error="request body cannot be empty"), 400
-
-    device = data.get("device")
-
-    api_key = ApiKey.create(user_id=g.user.id, name=device)
-    Session.commit()
-
-    return jsonify(api_key=api_key.code), 201
-
-
-@api_bp.route("/logout", methods=["GET"])
-@require_api_auth
-def logout():
-    """
-    Log user out on the web, i.e. remove the cookie
-
-    Output:
-    - 200
-    """
-    logout_session()
-    response = make_response(jsonify(msg="User is logged out"), 200)
-    response.delete_cookie(SESSION_COOKIE_NAME)
-
-    return response
 
 
 @api_bp.route("/stats")

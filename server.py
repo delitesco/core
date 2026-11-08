@@ -1,33 +1,26 @@
 import time
-from datetime import timedelta
 
 import flask_limiter
 from flask import (
     Flask,
     request,
     jsonify,
-    session,
     g,
 )
-from flask_cors import CORS
-from flask_login import current_user
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from app import config
 from app.api.base import api_bp
 from app.config import (
     DB_URI,
-    URL,
     FLASK_SECRET,
-    SESSION_COOKIE_NAME,
     MEM_STORE_URI,
 )
 from app.db import Session
-from app.extensions import login_manager, limiter
+from app.extensions import limiter
 from app.fake_data import fake_data
 from app.log import LOG
 from app.models import (
-    User,
     EmailLog,
     Contact,
 )
@@ -62,11 +55,6 @@ def create_app() -> Flask:
 
     app.secret_key = FLASK_SECRET
 
-    # to avoid conflict with other cookie
-    app.config["SESSION_COOKIE_NAME"] = SESSION_COOKIE_NAME
-    if URL.startswith("https"):
-        app.config["SESSION_COOKIE_SECURE"] = True
-    app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
     if MEM_STORE_URI:
         app.config[flask_limiter.extension.C.STORAGE_URL] = MEM_STORE_URI
         initialize_redis_services(app, MEM_STORE_URI)
@@ -75,21 +63,10 @@ def create_app() -> Flask:
 
     setup_error_page(app)
 
-    init_extensions(app)
     register_blueprints(app)
     setup_request_logging(app)
 
     register_custom_commands(app)
-
-    # enable CORS on /api endpoints
-    CORS(app, resources={r"/api/*": {"origins": "*"}})
-
-    # set session to permanent so user stays signed in after quitting the browser
-    # the cookie is valid for 7 days
-    @app.before_request
-    def make_session_permanent():
-        session.permanent = True
-        app.permanent_session_lifetime = timedelta(days=7)
 
     @app.teardown_appcontext
     def cleanup(resp_or_exc):
@@ -100,18 +77,6 @@ def create_app() -> Flask:
         return "success", 200
 
     return app
-
-
-@login_manager.user_loader
-def load_user(alternative_id):
-    user = User.get_by(alternative_id=alternative_id)
-    if user:
-        if user.disabled:
-            return None
-        if not user.is_active():
-            return None
-
-    return user
 
 
 def register_blueprints(app: Flask):
@@ -150,10 +115,7 @@ def setup_request_logging(app):
 
 
 def get_current_user():
-    try:
-        return g.user
-    except AttributeError:
-        return current_user
+    return g.get("user")
 
 
 def setup_error_page(app):
@@ -195,10 +157,6 @@ def setup_error_page(app):
     def error_handler(e):
         LOG.e(e)
         return _error("Internal error", 500)
-
-
-def init_extensions(app: Flask):
-    login_manager.init_app(app)
 
 
 def register_custom_commands(app):

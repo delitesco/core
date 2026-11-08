@@ -13,16 +13,6 @@ def test_wrong_api_key(flask_client):
     assert r.json == {"error": "Wrong api key"}
 
 
-def test_create_api_key(flask_client):
-    login(flask_client)
-
-    # create api key
-    r = flask_client.post(url_for("api.create_api_key"), json={"device": "Test device"})
-
-    assert r.status_code == 201
-    assert r.json["api_key"]
-
-
 def test_change_name(flask_client):
     user = login(flask_client)
     assert user.name != "new name"
