@@ -4,7 +4,6 @@ from typing import Optional
 
 from aiosmtpd.smtp import Envelope
 
-from app import config
 from app import alias_utils
 from app.db import Session
 from app.email import headers, status
@@ -107,7 +106,6 @@ class UnsubscribeHandler:
             alias, enabled=False, message="Set enabled=False via unsubscribe header"
         )
         Session.commit()
-        enable_alias_url = config.URL + f"/dashboard/?highlight_alias_id={alias.id}"
         for mailbox in alias.mailboxes:
             send_email(
                 mailbox.email,
@@ -116,13 +114,11 @@ class UnsubscribeHandler:
                     "transactional/unsubscribe-disable-alias.txt",
                     user=alias.user,
                     alias=alias.email,
-                    enable_alias_url=enable_alias_url,
                 ),
                 render(
                     "transactional/unsubscribe-disable-alias.html",
                     user=alias.user,
                     alias=alias.email,
-                    enable_alias_url=enable_alias_url,
                 ),
             )
         return status.E202
@@ -145,10 +141,6 @@ class UnsubscribeHandler:
         alias = contact.alias
         contact.block_forward = True
         Session.commit()
-        unblock_contact_url = (
-            config.URL
-            + f"/dashboard/alias_contact_manager/{alias.id}?highlight_contact_id={contact.id}"
-        )
         for mailbox in alias.mailboxes:
             send_email(
                 mailbox.email,
@@ -158,7 +150,6 @@ class UnsubscribeHandler:
                     user=alias.user,
                     alias=alias,
                     contact=contact,
-                    unblock_contact_url=unblock_contact_url,
                 ),
             )
         return status.E202

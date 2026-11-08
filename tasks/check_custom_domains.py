@@ -75,7 +75,6 @@ def check_single_custom_domain(custom_domain: CustomDomain):
 
         # send alert if fail for 5 consecutive days
         if custom_domain.nb_failed_checks > 5:
-            domain_dns_url = f"{config.URL}/dashboard/domains/{custom_domain.id}/dns"
             LOG.w("Alert domain MX check fails %s about %s", user, custom_domain)
             send_email_with_rate_control(
                 user,
@@ -86,7 +85,6 @@ def check_single_custom_domain(custom_domain: CustomDomain):
                     "transactional/custom-domain-dns-issue.txt.jinja2",
                     user=user,
                     custom_domain=custom_domain,
-                    domain_dns_url=domain_dns_url,
                 ),
                 max_nb_alert=1,
                 nb_day=30,

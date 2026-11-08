@@ -25,5 +25,5 @@
   {{ render_text('Thanks,
     <br />
     SimpleLogin Team.') }}
-  {{ raw_url(disable_alias_link) }}
+  {% if disable_alias_link %}{{ raw_url(disable_alias_link) }}{% endif %}
 {% endblock %}

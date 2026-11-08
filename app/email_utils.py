@@ -86,26 +86,6 @@ def render(template_name: str, user: Optional[User], **kwargs) -> str:
     )
 
 
-def send_invalid_totp_login_email(user, totp_type):
-    send_email_with_rate_control(
-        user,
-        config.ALERT_INVALID_TOTP_LOGIN,
-        user.email,
-        "Unsuccessful attempt to login to your SimpleLogin account",
-        render(
-            "transactional/invalid-totp-login.txt",
-            user=user,
-            type=totp_type,
-        ),
-        render(
-            "transactional/invalid-totp-login.html",
-            user=user,
-            type=totp_type,
-        ),
-        1,
-    )
-
-
 def send_test_email_alias(user: User, email: str):
     send_email(
         email,
@@ -198,8 +178,6 @@ def send_email(
     subject,
     plaintext,
     html=None,
-    unsubscribe_link=None,
-    unsubscribe_via_email=False,
     retries=0,  # by default no retry if sending fails
     ignore_smtp_error=False,
     from_name=None,
@@ -239,13 +217,6 @@ def send_email(
 
     if headers.MIME_VERSION not in msg:
         msg[headers.MIME_VERSION] = "1.0"
-
-    if unsubscribe_link:
-        add_or_replace_header(msg, headers.LIST_UNSUBSCRIBE, f"<{unsubscribe_link}>")
-        if not unsubscribe_via_email:
-            add_or_replace_header(
-                msg, headers.LIST_UNSUBSCRIBE_POST, "List-Unsubscribe=One-Click"
-            )
 
     # add DKIM
     email_domain = from_addr[from_addr.find("@") + 1 :]
@@ -1223,7 +1194,6 @@ def spf_pass(
                         user=user,
                         alias=alias.email,
                         ip=ip,
-                        mailbox_url=config.URL + f"/dashboard/mailbox/{mailbox.id}#spf",
                         to_email=contact_email,
                         subject=subject,
                         time=arrow.now(),
@@ -1232,7 +1202,6 @@ def spf_pass(
                         "transactional/spf-fail.html",
                         user=user,
                         ip=ip,
-                        mailbox_url=config.URL + f"/dashboard/mailbox/{mailbox.id}#spf",
                         to_email=contact_email,
                         subject=subject,
                         time=arrow.now(),

@@ -17,7 +17,7 @@ from app.models import Alias, Contact, UnsubscribeBehaviourEnum
 
 class UnsubscribeGenerator:
     def _calculate_header_with_original_behaviour(
-        self, alias: Alias, message: Message, force_web: bool = False
+        self, alias: Alias, message: Message
     ) -> dict[str, str]:
         """
         Generate a header that will encode the original unsub request. To do so
@@ -83,13 +83,13 @@ class UnsubscribeGenerator:
         unsub_link = UnsubscribeEncoder.encode(
             UnsubscribeAction.OriginalUnsubscribeMailto,
             UnsubscribeOriginalData(alias.id, mailto_unsubs[0], mailto_unsubs[1]),
-            force_web=force_web,
         )
+        if not unsub_link:
+            # cannot proxy the mailto: drop it rather than expose the mailbox to the sender
+            LOG.debug("No unsubscriber configured. Deleting the mailto unsub header")
+            return {}
         LOG.debug(f"Adding unsub link {unsub_link.link}")
-        out = {headers.LIST_UNSUBSCRIBE: f"<{unsub_link.link}>"}
-        if not unsub_link.via_email:
-            out[headers.LIST_UNSUBSCRIBE_POST] = "List-Unsubscribe=One-Click"
-        return out
+        return {headers.LIST_UNSUBSCRIBE: f"<{unsub_link.link}>"}
 
     def __replace_unsub_headers(
         self, message, unsub_headers: dict[str, str]
@@ -101,17 +101,12 @@ class UnsubscribeGenerator:
         return message
 
     def _add_unsubscribe_header(
-        self, message: Message, unsub: UnsubscribeData, force_web: bool = False
+        self, message: Message, unsub: UnsubscribeData
     ) -> Message:
-        unsub_link = UnsubscribeEncoder.encode(
-            unsub.action, unsub.data, force_web=force_web
-        )
-
+        unsub_link = UnsubscribeEncoder.encode(unsub.action, unsub.data)
+        if not unsub_link:
+            return message
         add_or_replace_header(message, headers.LIST_UNSUBSCRIBE, f"<{unsub_link.link}>")
-        if not unsub_link.via_email:
-            add_or_replace_header(
-                message, headers.LIST_UNSUBSCRIBE_POST, "List-Unsubscribe=One-Click"
-            )
         return message
 
     def add_header_to_message(
@@ -120,22 +115,22 @@ class UnsubscribeGenerator:
         """
         Add List-Unsubscribe header based on the user preference.
         """
-        force_web = False
-        if alias.user_id in config.USERS_WITH_HTTP_UNSUBSCRIBE:
-            force_web = True
         unsub_behaviour = alias.user.unsub_behaviour
         original_unsub_proxied = self._calculate_header_with_original_behaviour(
-            alias, message, force_web=force_web
+            alias, message
         )
         message = self.__preserve_original_headers(message, original_unsub_proxied)
         if unsub_behaviour == UnsubscribeBehaviourEnum.PreserveOriginal:
             return self.__replace_unsub_headers(message, original_unsub_proxied)
-        elif unsub_behaviour == UnsubscribeBehaviourEnum.DisableAlias:
+        if unsub_behaviour == UnsubscribeBehaviourEnum.DisableAlias:
             unsub = UnsubscribeData(UnsubscribeAction.DisableAlias, alias.id)
-            return self._add_unsubscribe_header(message, unsub, force_web=force_web)
         else:
             unsub = UnsubscribeData(UnsubscribeAction.DisableContact, contact.id)
-            return self._add_unsubscribe_header(message, unsub, force_web=force_web)
+        if UnsubscribeEncoder.encode(unsub.action, unsub.data) is None:
+            # No UNSUBSCRIBER to handle our own link: fall back to the sender's
+            # links, without any mailto: that would reveal the mailbox address.
+            return self.__replace_unsub_headers(message, original_unsub_proxied)
+        return self._add_unsubscribe_header(message, unsub)
 
     def __preserve_original_headers(
         self, message: Message, original_unsub_proxied: dict[str, str]

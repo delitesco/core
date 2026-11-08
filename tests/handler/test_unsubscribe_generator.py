@@ -46,14 +46,14 @@ def generate_unsub_block_contact_data() -> Iterable:
         contact.id,
         False,
         "<https://lol.com>, <mailto:somewhere@not.net>",
-        f"<{config.URL}/dashboard/block_contact/{contact.id}>",
+        "<https://lol.com>",
     )
     yield (
         alias.id,
         contact.id,
         False,
         None,
-        f"<{config.URL}/dashboard/block_contact/{contact.id}>",
+        None,
     )
 
 
@@ -106,14 +106,14 @@ def generate_unsub_disable_alias_data() -> Iterable:
         contact.id,
         False,
         "<https://lol.com>, <mailto:somewhere@not.net>",
-        f"<{config.URL}/dashboard/unsubscribe/{alias.id}>",
+        "<https://lol.com>",
     )
     yield (
         alias.id,
         contact.id,
         False,
         None,
-        f"<{config.URL}/dashboard/unsubscribe/{alias.id}>",
+        None,
     )
 
 
@@ -181,7 +181,7 @@ def generate_unsub_preserve_original_data() -> Iterable:
         contact.id,
         False,
         "<mailto:test@test.com?subject=hello>",
-        f"<{config.URL}/dashboard/unsubscribe/encoded?data={unsub_data}>",
+        None,
     )
     yield (alias.id, contact.id, True, None, None)
     yield (alias.id, contact.id, False, None, None)

@@ -60,7 +60,6 @@ from app.alias_utils import (
 )
 from app.config import (
     EMAIL_DOMAIN,
-    URL,
     UNSUBSCRIBER,
     LOAD_PGP_EMAIL_HANDLER,
     ENFORCE_SPF,
@@ -147,6 +146,7 @@ from app.handler.spamd_result import (
     SpamdResult,
     SPFCheckResult,
 )
+from app.handler.unsubscribe_encoder import UnsubscribeAction, unsubscribe_action_link
 from app.handler.unsubscribe_generator import UnsubscribeGenerator
 from app.handler.unsubscribe_handler import UnsubscribeHandler
 from app.log import LOG, set_message_id
@@ -682,7 +682,6 @@ def handle_forward(envelope, msg: Message, rcpt_to: str) -> List[Tuple[bool, str
                 )
                 mailbox.verified = False
                 Session.commit()
-                mailbox_url = f"{URL}/dashboard/mailbox/{mailbox.id}/"
                 send_email_with_rate_control(
                     user,
                     ALERT_MAILBOX_IS_ALIAS,
@@ -692,14 +691,12 @@ def handle_forward(envelope, msg: Message, rcpt_to: str) -> List[Tuple[bool, str
                         "transactional/mailbox-invalid.txt.jinja2",
                         user=mailbox.user,
                         mailbox=mailbox,
-                        mailbox_url=mailbox_url,
                         alias=alias,
                     ),
                     render(
                         "transactional/mailbox-invalid.html",
                         user=mailbox.user,
                         mailbox=mailbox,
-                        mailbox_url=mailbox_url,
                         alias=alias,
                     ),
                     max_nb_alert=1,
@@ -742,7 +739,6 @@ def forward_email_to_mailbox(
             alias,
             mailbox,
         )
-        mailbox_url = f"{URL}/dashboard/mailbox/{mailbox.id}/"
         send_email_with_rate_control(
             user,
             ALERT_MAILBOX_IS_ALIAS,
@@ -752,14 +748,12 @@ def forward_email_to_mailbox(
                 "transactional/mailbox-invalid.txt.jinja2",
                 user=mailbox.user,
                 mailbox=mailbox,
-                mailbox_url=mailbox_url,
                 alias=alias,
             ),
             render(
                 "transactional/mailbox-invalid.html",
                 user=mailbox.user,
                 mailbox=mailbox,
-                mailbox_url=mailbox_url,
                 alias=alias,
             ),
             max_nb_alert=1,
@@ -1420,9 +1414,6 @@ def handle_unknown_mailbox(
         contact,
     )
 
-    authorize_address_link = (
-        f"{URL}/dashboard/mailbox/{alias.mailbox_id}/#authorized-address"
-    )
     mailbox_emails = [mailbox.email for mailbox in alias.mailboxes]
     send_email_with_rate_control(
         user,
@@ -1434,7 +1425,6 @@ def handle_unknown_mailbox(
             user=user,
             alias=alias,
             sender=envelope.mail_from,
-            authorize_address_link=authorize_address_link,
             mailbox_emails=mailbox_emails,
         ),
         render(
@@ -1442,7 +1432,6 @@ def handle_unknown_mailbox(
             user=user,
             alias=alias,
             sender=envelope.mail_from,
-            authorize_address_link=authorize_address_link,
             mailbox_emails=mailbox_emails,
         ),
     )
@@ -1560,8 +1549,12 @@ def handle_bounce_forward_phase(msg: Message, email_log: EmailLog):
             contact,
             alias,
         )
-        disable_alias_link = f"{URL}/dashboard/unsubscribe/{alias.id}"
-        block_sender_link = f"{URL}/dashboard/alias_contact_manager/{alias.id}?highlight_contact_id={contact.id}"
+        disable_alias_link = unsubscribe_action_link(
+            UnsubscribeAction.DisableAlias, alias.id
+        )
+        block_sender_link = unsubscribe_action_link(
+            UnsubscribeAction.DisableContact, contact.id
+        )
 
         Notification.create(
             user_id=user.id,
@@ -1730,7 +1723,9 @@ def handle_spam(
 
     LOG.d("Create spam email %s", refused_email)
 
-    disable_alias_link = f"{URL}/dashboard/unsubscribe/{alias.id}"
+    disable_alias_link = unsubscribe_action_link(
+        UnsubscribeAction.DisableAlias, alias.id
+    )
 
     if is_reply:
         LOG.d(

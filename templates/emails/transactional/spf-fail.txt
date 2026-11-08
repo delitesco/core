@@ -11,7 +11,7 @@ We have recorded an attempt to send the following email from your alias {{ alias
 To prevent email-spoofing, SimpleLogin enforces the SPF (Sender Policy Framework).
 Emails sent from an IP address that is unknown by your email service are refused by default.
 
-However you can turn off this option by going to {{mailbox_url}}.
+However you can turn off this option in the mailbox settings of the app.
 
 Please only turn this protection off this if you know what you're doing :).
 {% endblock %}

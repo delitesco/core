@@ -18,15 +18,13 @@
   {% endcall %}
 
   {% call text() %}
-    If {{ sender }} can indeed send emails from your alias, you can add it to the allow list:
+    If {{ sender }} can indeed send emails from your alias, you can add it to the allow list of the mailbox in the app.
   {% endcall %}
 
-  {{ render_button("Allow " + sender, authorize_address_link) }}
   {% call text() %}
     Best,
     <br />
     SimpleLogin Team.
   {% endcall %}
 
-  {{ raw_url(authorize_address_link) }}
 {% endblock %}

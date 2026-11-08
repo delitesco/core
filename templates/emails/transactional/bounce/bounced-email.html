@@ -26,9 +26,9 @@
       <li>
         If this email is indeed spam, it means your alias {{ alias.email }} is now in the hands of a spammer.
         You can either
-        <a href="{{ disable_alias_link }}">disable the alias</a>
+        {% if disable_alias_link %}<a href="{{ disable_alias_link }}">disable the alias</a>{% else %}disable the alias{% endif %}
         or
-        <a href="{{ block_sender_link }}">block the sender</a>
+        {% if block_sender_link %}<a href="{{ block_sender_link }}">block the sender</a>{% else %}block the sender{% endif %}
         if they send too many spam emails.
       </li>
     </ol>
