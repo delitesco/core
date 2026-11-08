@@ -5,9 +5,13 @@ Hi
 
 You recently requested to change mailbox {{mailbox_email}} to {{mailbox_new_email}}
 
+{% if link %}
 To confirm, please click on this link:
 
 {{link}}
+{% else %}
+Please enter {{ code }} as your verification code for this mailbox
+{% endif %}
 
-This link will only be valid during the next 15 minutes.
+This will only be valid during the next 15 minutes.
 {% endblock %}

@@ -25,6 +25,7 @@
 
 [Mailbox endpoints](#mailbox-endpoints)
 - [POST /api/mailboxes](#post-apimailboxes): Create a new mailbox.
+- [POST /api/mailboxes/:mailbox_id/verify](#post-apimailboxesmailbox_idverify): Confirm a mailbox or a mailbox email change.
 - [DELETE /api/mailboxes/:mailbox_id](#delete-apimailboxesmailbox_id): Delete a mailbox.
 - [PUT /api/mailboxes/:mailbox_id](#put-apimailboxesmailbox_id): Update a mailbox.
 
@@ -587,6 +588,23 @@ Output:
     - verified: boolean.
     - default: whether is the default mailbox. User cannot delete the default mailbox
 - 400 with error message otherwise. The error message can be displayed to user.
+
+#### POST /api/mailboxes/:mailbox_id/verify
+
+Confirm a new mailbox, or a pending change of its address (PUT with `email`), with the code sent to the
+mailbox. When `MAILBOX_VERIFY_URL` is set, the verification email links to
+`MAILBOX_VERIFY_URL?mailbox_id=<id>&code=<code>`; that page calls this endpoint. Otherwise the email only
+contains the code. Codes expire after 15 minutes and after 3 wrong attempts.
+
+Input:
+
+- `Authentication` header that contains the api key
+- code: in body
+
+Output:
+
+- 200 with the mailbox (same fields as above)
+- 400 with an error message if the code is wrong, expired or the mailbox is not the user's
 
 #### DELETE /api/mailboxes/:mailbox_id
 

@@ -21,27 +21,9 @@ def test_legacy_unsub_subject(expected_subject, expected_deco):
     assert info == expected_deco
 
 
-legacy_url_test_data = [
-    (
-        f"{config.URL}/dashboard/unsubscribe/3",
-        UnsubscribeData(UnsubscribeAction.DisableAlias, 3),
-    ),
-    (
-        f"{config.URL}/dashboard/block_contact/5",
-        UnsubscribeData(UnsubscribeAction.DisableContact, 5),
-    ),
-]
-
-
-@pytest.mark.parametrize("expected_url, unsub_data", legacy_url_test_data)
-def test_encode_decode_unsub_subject(expected_url, unsub_data):
-    url = UnsubscribeEncoder.encode_url(unsub_data.action, unsub_data.data)
-    assert expected_url == url
-
-
 legacy_mail_or_link_test_data = [
     (
-        f"{config.URL}/dashboard/unsubscribe/3",
+        None,
         False,
         UnsubscribeData(UnsubscribeAction.DisableAlias, 3),
     ),
@@ -51,7 +33,7 @@ legacy_mail_or_link_test_data = [
         UnsubscribeData(UnsubscribeAction.DisableAlias, 9),
     ),
     (
-        f"{config.URL}/dashboard/block_contact/8",
+        None,
         False,
         UnsubscribeData(UnsubscribeAction.DisableContact, 8),
     ),
@@ -66,7 +48,7 @@ legacy_mail_or_link_test_data = [
         UnsubscribeData(UnsubscribeAction.UnsubscribeNewsletter, 83),
     ),
     (
-        f"{config.URL}/dashboard/unsubscribe/encoded?data=un.WzQsIFswLCAxLCAiYUBiLmMiLCAic3ViamVjdCJdXQ.aU3T5XNzJIG4LDm6-pqJk4vxxJxpgVYzc9MEFQ",
+        None,
         False,
         UnsubscribeData(
             UnsubscribeAction.OriginalUnsubscribeMailto,
@@ -93,6 +75,10 @@ def test_encode_legacy_link(expected_link, via_mail, unsub_data):
     else:
         config.UNSUBSCRIBER = None
     link_info = UnsubscribeEncoder.encode(unsub_data.action, unsub_data.data)
+    if expected_link is None:
+        # no web unsubscribe: without UNSUBSCRIBER there is no link at all
+        assert link_info is None
+        return
     assert via_mail == link_info.via_email
     assert expected_link == link_info.link
 

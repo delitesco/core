@@ -13,12 +13,10 @@
   {% endcall %}
 
   {% call text() %}
-    If this is a mistake, you can re-enable the alias on the dashboard.
+    If this is a mistake, you can re-enable the alias in the app.
   {% endcall %}
 
-  {{ render_button("Enable Alias", enable_alias_url) }}
   {{ render_text('Thanks,
     <br />
     SimpleLogin Team.') }}
-  {{ raw_url(enable_alias_url) }}
 {% endblock %}

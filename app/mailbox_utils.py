@@ -1,6 +1,6 @@
+from urllib.parse import urlencode
 import dataclasses
 import secrets
-from enum import Enum
 from typing import Optional
 
 import arrow
@@ -287,14 +287,7 @@ def send_verification_email(
         f"Sending mailbox verification email to {mailbox.email} with send link={send_link}"
     )
 
-    if send_link:
-        verification_url = (
-            config.URL
-            + "/dashboard/mailbox_verify"
-            + f"?mailbox_id={mailbox.id}&code={activation.code}"
-        )
-    else:
-        verification_url = None
+    verification_url = _verification_link(mailbox, activation) if send_link else None
 
     send_email(
         mailbox.email,
@@ -316,8 +309,21 @@ def send_verification_email(
     )
 
 
+def _verification_link(
+    mailbox: Mailbox, activation: MailboxActivation
+) -> Optional[str]:
+    """Link to the page of the frontend that confirms the code through
+    POST /api/mailboxes/<id>/verify. None when MAILBOX_VERIFY_URL is not set:
+    the email then only contains the code."""
+    if not config.MAILBOX_VERIFY_URL:
+        return None
+    query = urlencode({"mailbox_id": mailbox.id, "code": activation.code})
+    separator = "&" if "?" in config.MAILBOX_VERIFY_URL else "?"
+    return f"{config.MAILBOX_VERIFY_URL}{separator}{query}"
+
+
 def send_change_email(user: User, mailbox: Mailbox, activation: MailboxActivation):
-    verification_url = f"{config.URL}/dashboard/mailbox/confirm_change?mailbox_id={mailbox.id}&code={activation.code}"
+    verification_url = _verification_link(mailbox, activation)
 
     send_email(
         mailbox.new_email,
@@ -326,6 +332,7 @@ def send_change_email(user: User, mailbox: Mailbox, activation: MailboxActivatio
             "transactional/verify-mailbox-change.txt.jinja2",
             user=user,
             link=verification_url,
+            code=activation.code,
             mailbox_email=mailbox.email,
             mailbox_new_email=mailbox.new_email,
         ),
@@ -333,6 +340,7 @@ def send_change_email(user: User, mailbox: Mailbox, activation: MailboxActivatio
             "transactional/verify-mailbox-change.html",
             user=user,
             link=verification_url,
+            code=activation.code,
             mailbox_email=mailbox.email,
             mailbox_new_email=mailbox.new_email,
         ),
@@ -387,57 +395,6 @@ def request_mailbox_email_change(
         activation=activation,
     )
     return output
-
-
-class MailboxEmailChangeError(Enum):
-    InvalidId = 1
-    EmailAlreadyUsed = 2
-
-
-@dataclasses.dataclass
-class MailboxEmailChangeResult:
-    error: Optional[MailboxEmailChangeError]
-    message: str
-    message_category: str
-
-
-def perform_mailbox_email_change(mailbox_id: int) -> MailboxEmailChangeResult:
-    mailbox: Optional[Mailbox] = Mailbox.get(mailbox_id)
-
-    # new_email can be None if user cancels change in the meantime
-    if mailbox and mailbox.new_email:
-        user = mailbox.user
-        if Mailbox.get_by(email=mailbox.new_email, user_id=user.id):
-            return MailboxEmailChangeResult(
-                error=MailboxEmailChangeError.EmailAlreadyUsed,
-                message=f"{mailbox.new_email} is already used",
-                message_category="error",
-            )
-
-        emit_user_audit_log(
-            user=user,
-            action=UserAuditLogAction.UpdateMailbox,
-            message=f"Change mailbox email for mailbox {mailbox_id} (old={mailbox.email} | new={mailbox.new_email})",
-        )
-        mailbox.email = mailbox.new_email
-        mailbox.new_email = None
-
-        # mark mailbox as verified if the change request is sent from an unverified mailbox
-        mailbox.verified = True
-        Session.commit()
-
-        LOG.d("Mailbox change %s is verified", mailbox)
-        return MailboxEmailChangeResult(
-            error=None,
-            message=f"The {mailbox.email} is updated",
-            message_category="success",
-        )
-    else:
-        return MailboxEmailChangeResult(
-            error=MailboxEmailChangeError.InvalidId,
-            message="Invalid link",
-            message_category="error",
-        )
 
 
 def cancel_email_change(mailbox_id: int, user: User):

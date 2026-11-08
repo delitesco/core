@@ -1595,9 +1595,6 @@ class CustomDomain(Base, ModelMixin):
 
         return count_custom_domain_aliases(self)
 
-    def get_trash_url(self):
-        return config.URL + f"/dashboard/domains/{self.id}/trash"
-
     @classmethod
     def create(cls, **kwargs):
         domain = kwargs.get("domain")

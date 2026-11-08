@@ -44,11 +44,16 @@ class UnsubscribeEncoder:
     def encode(
         action: UnsubscribeAction,
         data: Union[int, UnsubscribeOriginalData],
-        force_web: bool = False,
-    ) -> UnsubscribeLink:
-        if config.UNSUBSCRIBER and not force_web:
-            return UnsubscribeLink(UnsubscribeEncoder.encode_mailto(action, data), True)
-        return UnsubscribeLink(UnsubscribeEncoder.encode_url(action, data), False)
+    ) -> Optional[UnsubscribeLink]:
+        """Signed mailto: link to the UNSUBSCRIBER address.
+
+        There is no web page to unsubscribe from: without UNSUBSCRIBER there is no link.
+        The mail handler only acts on these emails when they come from a mailbox (or an
+        authorized address) of the alias owner.
+        """
+        if not config.UNSUBSCRIBER:
+            return None
+        return UnsubscribeLink(UnsubscribeEncoder.encode_mailto(action, data), True)
 
     @classmethod
     def encode_subject(
@@ -83,21 +88,6 @@ class UnsubscribeEncoder:
     ) -> str:
         subject = UnsubscribeEncoder.encode_subject(action, data)
         return f"mailto:{config.UNSUBSCRIBER}?subject={subject}"
-
-    @staticmethod
-    def encode_url(
-        action: UnsubscribeAction, data: Union[int, UnsubscribeOriginalData]
-    ) -> str:
-        if action == UnsubscribeAction.DisableAlias:
-            return f"{config.URL}/dashboard/unsubscribe/{data}"
-        if action == UnsubscribeAction.DisableContact:
-            return f"{config.URL}/dashboard/block_contact/{data}"
-        if action in (
-            UnsubscribeAction.UnsubscribeNewsletter,
-            UnsubscribeAction.OriginalUnsubscribeMailto,
-        ):
-            encoded = UnsubscribeEncoder.encode_subject(action, data)
-            return f"{config.URL}/dashboard/unsubscribe/encoded?data={encoded}"
 
     @staticmethod
     def _get_signer() -> itsdangerous.Signer:
@@ -148,3 +138,11 @@ class UnsubscribeEncoder:
                 action_data[1], action_data[2], action_data[3]
             )
         return UnsubscribeData(action, action_data)
+
+
+def unsubscribe_action_link(
+    action: UnsubscribeAction, data: Union[int, UnsubscribeOriginalData]
+) -> Optional[str]:
+    """mailto: link that performs `action` when sent from the alias owner's mailbox."""
+    link = UnsubscribeEncoder.encode(action, data)
+    return link.link if link else None

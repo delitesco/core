@@ -52,6 +52,35 @@ def create_mailbox():
     )
 
 
+@api_bp.route("/mailboxes/<int:mailbox_id>/verify", methods=["POST"])
+@limiter.limit("10/minute")
+@require_api_auth
+def verify_mailbox(mailbox_id):
+    """
+    Confirm a new mailbox, or a pending mailbox email change, with the code from the
+    verification email (the code is also in the link to MAILBOX_VERIFY_URL).
+    Codes expire after 15 minutes and after 3 wrong attempts.
+    Input:
+        code: in body
+    Output:
+        200 and the mailbox dict, 400 if the code is wrong or expired
+    """
+    user = g.user
+    data = request.get_json(silent=True) or {}
+    code = data.get("code")
+    if not isinstance(code, str) or not code:
+        return jsonify(error="Invalid code"), 400
+
+    try:
+        mailbox = mailbox_utils.verify_mailbox_code(user, mailbox_id, code)
+    except mailbox_utils.MailboxError as e:
+        Session.commit()
+        return jsonify(error=e.msg), 400
+
+    Session.commit()
+    return jsonify(mailbox_to_dict(mailbox)), 200
+
+
 @api_bp.route("/mailboxes/<int:mailbox_id>", methods=["DELETE"])
 @limiter.limit("100/hour")
 @require_api_auth

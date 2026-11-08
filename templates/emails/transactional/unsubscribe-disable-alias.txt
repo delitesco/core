@@ -9,9 +9,7 @@ It has been disabled thanks to the "One-click unsubscribe” provided by your ma
 
 When you click on this button on a forwarded email, the alias will be disabled automatically.
 
-If this is a mistake, you can re-enable the alias on the dashboard via
-
-{{ enable_alias_url }}
+If this is a mistake, you can re-enable the alias in the app.
 
 Please let us know if you have any question.
 {% endblock %}

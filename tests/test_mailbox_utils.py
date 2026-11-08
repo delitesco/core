@@ -11,7 +11,6 @@ from app.constants import JobType
 from app.db import Session
 from app.mail_sender import mail_sender
 from app.mailbox_utils import (
-    MailboxEmailChangeError,
     get_mailbox_for_reply_phase,
     request_mailbox_email_change,
     count_mailbox_aliases,
@@ -21,11 +20,9 @@ from app.models import (
     MailboxActivation,
     User,
     Job,
-    UserAuditLog,
     Alias,
     AuthorizedAddress,
 )
-from app.user_audit_log_utils import UserAuditLogAction
 from app.utils import random_string, canonicalize_email
 from tests.utils import create_new_user, random_email
 
@@ -75,7 +72,7 @@ def test_create_mailbox():
     assert 1 == len(mail_sender.get_stored_emails())
     mail_sent = mail_sender.get_stored_emails()[0]
     mail_contents = str(mail_sent.msg)
-    assert mail_contents.find(config.URL) > 0
+    assert mail_contents.find(config.MAILBOX_VERIFY_URL) > 0
     assert mail_contents.find(activation.code) > 0
     assert mail_sent.envelope_to == email
 
@@ -119,7 +116,7 @@ def test_create_mailbox_with_digits():
     mail_sent = mail_sender.get_stored_emails()[0]
     mail_contents = str(mail_sent.msg)
     assert mail_contents.find(output.activation.code) > 0
-    assert mail_contents.find(config.URL) == -1
+    assert mail_contents.find(config.MAILBOX_VERIFY_URL) == -1
     assert mail_sent.envelope_to == email
 
 
@@ -155,7 +152,7 @@ def test_send_verification_email():
     mail_sent = mail_sender.get_stored_emails()[0]
     mail_contents = str(mail_sent.msg)
     assert mail_contents.find(activation.code) > 0
-    assert mail_contents.find(config.URL) == -1
+    assert mail_contents.find(config.MAILBOX_VERIFY_URL) == -1
     assert mail_sent.envelope_to == email
 
 
@@ -172,7 +169,7 @@ def test_send_verification_email_with_link():
     mail_sent = mail_sender.get_stored_emails()[0]
     mail_contents = str(mail_sent.msg)
     assert mail_contents.find(activation.code) > 0
-    assert mail_contents.find(config.URL) > -1
+    assert mail_contents.find(config.MAILBOX_VERIFY_URL) > -1
     assert mail_sent.envelope_to == email
 
 
@@ -373,81 +370,6 @@ def test_verify_ok_for_mailbox_email_change():
 
 
 # perform_mailbox_email_change
-def test_perform_mailbox_email_change_invalid_id():
-    res = mailbox_utils.perform_mailbox_email_change(99999)
-    assert res.error == MailboxEmailChangeError.InvalidId
-    assert res.message_category == "error"
-
-
-def test_perform_mailbox_email_change_valid_id_not_new_email():
-    user = create_new_user()
-    mb = Mailbox.create(
-        user_id=user.id,
-        email=random_email(),
-        new_email=None,
-        verified=True,
-        commit=True,
-    )
-    res = mailbox_utils.perform_mailbox_email_change(mb.id)
-    assert res.error == MailboxEmailChangeError.InvalidId
-    assert res.message_category == "error"
-    audit_log_entries = UserAuditLog.filter_by(
-        user_id=user.id, action=UserAuditLogAction.UpdateMailbox.value
-    ).count()
-    assert audit_log_entries == 0
-
-
-def test_perform_mailbox_email_change_valid_id_email_already_used():
-    user = create_new_user()
-    new_email = random_email()
-    # Create mailbox with that email
-    Mailbox.create(
-        user_id=user.id,
-        email=new_email,
-        verified=True,
-    )
-    mb_to_change = Mailbox.create(
-        user_id=user.id,
-        email=random_email(),
-        new_email=new_email,
-        verified=True,
-        commit=True,
-    )
-    res = mailbox_utils.perform_mailbox_email_change(mb_to_change.id)
-    assert res.error == MailboxEmailChangeError.EmailAlreadyUsed
-    assert res.message_category == "error"
-    audit_log_entries = UserAuditLog.filter_by(
-        user_id=user.id, action=UserAuditLogAction.UpdateMailbox.value
-    ).count()
-    assert audit_log_entries == 0
-
-
-def test_perform_mailbox_email_change_success():
-    user = create_new_user()
-    new_email = random_email()
-    mb = Mailbox.create(
-        user_id=user.id,
-        email=random_email(),
-        new_email=new_email,
-        verified=True,
-        commit=True,
-    )
-    res = mailbox_utils.perform_mailbox_email_change(mb.id)
-    assert res.error is None
-    assert res.message_category == "success"
-
-    db_mailbox = Mailbox.get_by(id=mb.id)
-    assert db_mailbox is not None
-    assert db_mailbox.verified is True
-    assert db_mailbox.email == new_email
-    assert db_mailbox.new_email is None
-
-    audit_log_entries = UserAuditLog.filter_by(
-        user_id=user.id, action=UserAuditLogAction.UpdateMailbox.value
-    ).count()
-    assert audit_log_entries == 1
-
-
 def test_get_mailbox_from_mail_from(flask_client):
     user = create_new_user()
     alias = Alias.create_new_random(user)
@@ -535,7 +457,7 @@ def test_change_mailbox_address(flask_client):
     assert 1 == len(mail_sender.get_stored_emails())
     mail_sent = mail_sender.get_stored_emails()[0]
     mail_contents = str(mail_sent.msg)
-    assert mail_contents.find(config.URL) > 0
+    assert mail_contents.find(config.MAILBOX_VERIFY_URL) > 0
     assert mail_contents.find(out.activation.code) > 0
     assert mail_sent.envelope_to == mail2
 
@@ -570,7 +492,7 @@ def test_change_mailbox_address_with_code(flask_client):
     assert 1 == len(mail_sender.get_stored_emails())
     mail_sent = mail_sender.get_stored_emails()[0]
     mail_contents = str(mail_sent.msg)
-    assert mail_contents.find(config.URL) > 0
+    assert mail_contents.find(config.MAILBOX_VERIFY_URL) > 0
     assert mail_contents.find(out.activation.code) > 0
     assert mail_sent.envelope_to == mail2
 
@@ -700,3 +622,31 @@ def test_count_mailbox_aliases(flask_client):
     assert count_mailbox_aliases(mbx1) == 3
     assert count_mailbox_aliases(mbx2) == 3
     assert count_mailbox_aliases(mbx3) == 0
+
+
+@mail_sender.store_emails_test_decorator
+def test_verification_email_link_points_to_frontend():
+    email = random_email()
+    output = mailbox_utils.create_mailbox(create_new_user(), email)
+    mail_contents = str(mail_sender.get_stored_emails()[0].msg)
+    assert (
+        f"{config.MAILBOX_VERIFY_URL}?mailbox_id={output.mailbox.id}&code={output.activation.code}"
+        in mail_contents.replace("&amp;", "&")
+    )
+    assert "/dashboard/" not in mail_contents
+
+
+@mail_sender.store_emails_test_decorator
+def test_verification_email_without_frontend_url_has_only_the_code():
+    previous = config.MAILBOX_VERIFY_URL
+    config.MAILBOX_VERIFY_URL = None
+    try:
+        email = random_email()
+        output = mailbox_utils.create_mailbox(
+            create_new_user(), email, use_digit_codes=True
+        )
+        mail_contents = str(mail_sender.get_stored_emails()[0].msg)
+        assert output.activation.code in mail_contents
+        assert "mailbox_id=" not in mail_contents
+    finally:
+        config.MAILBOX_VERIFY_URL = previous

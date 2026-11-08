@@ -4,11 +4,16 @@
 
   {{ render_text("Hi") }}
   {{ render_text("You recently requested to change mailbox <b>"+ mailbox_email +"</b> to <b>" + mailbox_new_email + "</b>.") }}
-  {{ render_text("To confirm, please click on the button below.") }}
-  {{ render_button("Confirm mailbox change", link) }}
+  {% if link %}
+
+    {{ render_text("To confirm, please click on the button below.") }}
+    {{ render_button("Confirm mailbox change", link) }}
+  {% else %}
+    {{ render_text("Please enter <b>"+code+"</b> as your verification code") }}
+  {% endif %}
   {{ render_text("This email will only be valid for the next 15 minutes.") }}
   {{ render_text('Thanks,
     <br />
     SimpleLogin Team.') }}
-  {{ raw_url(link) }}
+  {% if link %}{{ raw_url(link) }}{% endif %}
 {% endblock %}

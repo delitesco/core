@@ -9,7 +9,7 @@ In most of the cases, the email will be refused by your email provider.
 
 Your alias {{alias}} is probably in the hands of a spammer now. In this case, you should disable or delete the alias immediately.
 
-{{disable_alias_link}}
+{% if disable_alias_link %}{{disable_alias_link}}{% endif %}
 
 Please let us know if you have any question by replying to this email.
 

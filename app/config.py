@@ -170,8 +170,6 @@ DISABLE_ALIAS_SUFFIX = "DISABLE_ALIAS_SUFFIX" in os.environ
 
 # the email address that receives all unsubscription request
 UNSUBSCRIBER = os.environ.get("UNSUBSCRIBER")
-USERS_WITH_HTTP_UNSUBSCRIBE = get_env_csv("USERS_WITH_HTTP_UNSUBSCRIBE", "")
-
 # due to a typo, both UNSUBSCRIBER and OLD_UNSUBSCRIBER are supported
 OLD_UNSUBSCRIBER = os.environ.get("OLD_UNSUBSCRIBER")
 
@@ -267,8 +265,6 @@ ALERT_TO_NOREPLY = "to_noreply"
 
 ALERT_SPF = "spf"
 
-ALERT_INVALID_TOTP_LOGIN = "invalid_totp_login"
-
 # when a mailbox is also an alias
 # happens when user adds a mailbox with their domain
 # then later adds this domain into SimpleLogin
@@ -327,6 +323,10 @@ ALIAS_LIMIT = os.environ.get("ALIAS_LIMIT") or "100/day;50/hour;5/minute"
 # to create one user, with its own API key, per account. Disabled when not set.
 PROVISIONING_API_KEY: Optional[str] = os.environ.get("PROVISIONING_API_KEY") or None
 PROVISIONING_RATE_LIMIT = os.environ.get("PROVISIONING_RATE_LIMIT") or "100/minute"
+# Page of the frontend that confirms a mailbox: verification emails link to
+# MAILBOX_VERIFY_URL?mailbox_id=..&code=.. and the page calls POST /api/mailboxes/<id>/verify.
+# When not set, verification emails only contain the code.
+MAILBOX_VERIFY_URL: Optional[str] = os.environ.get("MAILBOX_VERIFY_URL") or None
 # Users have no email of their own: their email is a random address on this domain.
 # Keep it a reserved, non-deliverable domain (.invalid, RFC 2606).
 PROVISIONED_USER_EMAIL_DOMAIN = (

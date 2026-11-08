@@ -15,5 +15,5 @@
   {{ render_text('Thanks,
     <br />
     SimpleLogin Team.') }}
-  {{ raw_url(link) }}
+  {% if link %}{{ raw_url(link) }}{% endif %}
 {% endblock %}
