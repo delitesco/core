@@ -38,7 +38,7 @@ def test_auth_endpoints_are_gone(flask_client):
 
 
 @mail_sender.store_emails_test_decorator
-def test_emails_to_invalid_domain_are_not_sent():
+def test_emails_to_invalid_domain_are_not_sent(flask_client):
     send_email("someone@users.invalid", "subject", "body")
     assert len(mail_sender.get_stored_emails()) == 0
     send_email("someone@mailbox.lan", "subject", "body")

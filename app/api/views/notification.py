@@ -24,7 +24,8 @@ def get_notifications():
         - message
         - title
         - read
-        - created_at
+        - created_at: human readable, e.g. "2 hours ago"
+        - created_at_timestamp: unix timestamp
     """
     user = g.user
     try:
@@ -52,6 +53,7 @@ def get_notifications():
                     "title": notification.title,
                     "read": notification.read,
                     "created_at": notification.created_at.humanize(),
+                    "created_at_timestamp": notification.created_at.timestamp,
                 }
                 for notification in notifications[:PAGE_LIMIT]
             ],

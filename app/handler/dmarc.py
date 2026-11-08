@@ -8,7 +8,6 @@ from aiosmtpd.smtp import Envelope
 from app import config, file_storage
 from app.config import (
     DMARC_CHECK_ENABLED,
-    ALERT_QUARANTINE_DMARC,
     ALERT_DMARC_FAILED_REPLY_PHASE,
 )
 from app.email import headers, status
@@ -97,27 +96,6 @@ More info on https://simplelogin.io/docs/getting-started/anti-phishing/
                 "notification/message-quarantine.html", alias=alias
             ),
             commit=True,
-        )
-        user = alias.user
-        send_email_with_rate_control(
-            user,
-            ALERT_QUARANTINE_DMARC,
-            user.email,
-            f"An email sent to {alias.email} has been quarantined",
-            render(
-                "transactional/message-quarantine-dmarc.txt.jinja2",
-                user=user,
-                from_header=from_header,
-                alias=alias,
-            ),
-            render(
-                "transactional/message-quarantine-dmarc.html",
-                user=user,
-                from_header=from_header,
-                alias=alias,
-            ),
-            max_nb_alert=10,
-            ignore_smtp_error=True,
         )
         return msg, status.E215
 

@@ -64,7 +64,6 @@ from app.config import (
     LOAD_PGP_EMAIL_HANDLER,
     ENFORCE_SPF,
     ALERT_REVERSE_ALIAS_UNKNOWN_MAILBOX,
-    ALERT_BOUNCE_EMAIL,
     ALERT_SPAM_EMAIL,
     SPAMASSASSIN_HOST,
     MAX_SPAM_SCORE,
@@ -1522,26 +1521,6 @@ def handle_bounce_forward_phase(msg: Message, email_log: EmailLog):
 
         Session.commit()
 
-        send_email_with_rate_control(
-            user,
-            ALERT_BOUNCE_EMAIL,
-            user.email,
-            f"Alias {alias.email} has been disabled due to multiple bounces",
-            render(
-                "transactional/bounce/automatic-disable-alias.txt",
-                user=alias.user,
-                alias=alias,
-                mailbox_email=mailbox.email,
-            ),
-            render(
-                "transactional/bounce/automatic-disable-alias.html",
-                user=alias.user,
-                alias=alias,
-                mailbox_email=mailbox.email,
-            ),
-            max_nb_alert=10,
-            ignore_smtp_error=True,
-        )
     else:
         LOG.d(
             "Inform user %s about a bounce from contact %s to alias %s",
@@ -1568,32 +1547,6 @@ def handle_bounce_forward_phase(msg: Message, email_log: EmailLog):
                 block_sender_link=block_sender_link,
             ),
             commit=True,
-        )
-        send_email_with_rate_control(
-            user,
-            ALERT_BOUNCE_EMAIL,
-            user.email,
-            f"An email sent to {alias.email} cannot be delivered to your mailbox",
-            render(
-                "transactional/bounce/bounced-email.txt.jinja2",
-                user=alias.user,
-                alias=alias,
-                website_email=contact.website_email,
-                disable_alias_link=disable_alias_link,
-                block_sender_link=block_sender_link,
-                mailbox_email=mailbox.email,
-            ),
-            render(
-                "transactional/bounce/bounced-email.html",
-                user=alias.user,
-                alias=alias,
-                website_email=contact.website_email,
-                disable_alias_link=disable_alias_link,
-                mailbox_email=mailbox.email,
-            ),
-            max_nb_alert=10,
-            # smtp error can happen if user mailbox is unreachable, that might explain the bounce
-            ignore_smtp_error=True,
         )
 
 
