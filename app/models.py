@@ -1484,7 +1484,8 @@ class Alias(Base, ModelMixin):
     @classmethod
     def create(cls, **kw):
         commit = kw.pop("commit", False)
-        flush = kw.pop("flush", False)
+        # always flushed: the creation audit log needs the alias id
+        kw.pop("flush", False)
 
         new_alias = cls(**kw)
         user = User.get(new_alias.user_id)
@@ -1517,13 +1518,11 @@ class Alias(Base, ModelMixin):
             custom_domain = CustomDomain.get(kw["custom_domain_id"])
 
         Session.add(new_alias)
-        DailyMetric.get_or_create_today_metric().nb_alias += 1
+        # the audit log below needs new_alias.id
+        Session.flush()
 
         if commit:
             Session.commit()
-
-        if flush:
-            Session.flush()
 
         # Internal import to avoid global import cycles
         from app.alias_audit_log_utils import AliasAuditLogAction, emit_alias_audit_log
@@ -2885,25 +2884,6 @@ class SLDomain(Base, ModelMixin):
         return f"<SLDomain {self.id} {self.domain} {'Premium' if self.premium_only else 'Free'}>"
 
 
-class Monitoring(Base, ModelMixin):
-    """
-    Store different host information over the time in order to
-    - alert issues in (almost) real time
-    - analyze data trending
-    """
-
-    __tablename__ = "monitoring"
-
-    host = sa.Column(sa.String(256), nullable=False)
-
-    # Postfix stats
-    incoming_queue = sa.Column(sa.Integer, nullable=False)
-    active_queue = sa.Column(sa.Integer, nullable=False)
-    deferred_queue = sa.Column(sa.Integer, nullable=False)
-
-    __table_args__ = (Index("ix_monitoring_created_at", "created_at"),)
-
-
 class BatchImport(Base, ModelMixin):
     __tablename__ = "batch_import"
     user_id = sa.Column(sa.ForeignKey(User.id, ondelete="cascade"), nullable=False)
@@ -2946,85 +2926,6 @@ class AuthorizedAddress(Base, ModelMixin):
 
     def __repr__(self):
         return f"<AuthorizedAddress {self.id} {self.email} {self.mailbox_id}>"
-
-
-class Metric2(Base, ModelMixin):
-    """
-    For storing different metrics like number of users, etc
-    Store each metric as a column as opposed to having different rows as in Metric
-    """
-
-    __tablename__ = "metric2"
-    date = sa.Column(ArrowType, default=arrow.utcnow, nullable=False)
-
-    nb_user = sa.Column(sa.Float, nullable=True)
-    nb_activated_user = sa.Column(sa.Float, nullable=True)
-    nb_proton_user = sa.Column(sa.Float, nullable=True)
-
-    nb_premium = sa.Column(sa.Float, nullable=True)
-    nb_apple_premium = sa.Column(sa.Float, nullable=True)
-    nb_cancelled_premium = sa.Column(sa.Float, nullable=True)
-    nb_manual_premium = sa.Column(sa.Float, nullable=True)
-    nb_coinbase_premium = sa.Column(sa.Float, nullable=True)
-    nb_proton_premium = sa.Column(sa.Float, nullable=True)
-
-    # nb users who have been referred
-    nb_referred_user = sa.Column(sa.Float, nullable=True)
-    nb_referred_user_paid = sa.Column(sa.Float, nullable=True)
-
-    nb_alias = sa.Column(sa.Float, nullable=True)
-
-    # Obsolete as only for the last 14 days
-    nb_forward = sa.Column(sa.Float, nullable=True)
-    nb_block = sa.Column(sa.Float, nullable=True)
-    nb_reply = sa.Column(sa.Float, nullable=True)
-    nb_bounced = sa.Column(sa.Float, nullable=True)
-    nb_spam = sa.Column(sa.Float, nullable=True)
-
-    # should be used instead
-    nb_forward_last_24h = sa.Column(sa.Float, nullable=True)
-    nb_block_last_24h = sa.Column(sa.Float, nullable=True)
-    nb_reply_last_24h = sa.Column(sa.Float, nullable=True)
-    nb_bounced_last_24h = sa.Column(sa.Float, nullable=True)
-    # includes bounces for both forwarding and transactional email
-    nb_total_bounced_last_24h = sa.Column(sa.Float, nullable=True)
-
-    nb_verified_custom_domain = sa.Column(sa.Float, nullable=True)
-    nb_subdomain = sa.Column(sa.Float, nullable=True)
-    nb_directory = sa.Column(sa.Float, nullable=True)
-
-    nb_deleted_directory = sa.Column(sa.Float, nullable=True)
-    nb_deleted_subdomain = sa.Column(sa.Float, nullable=True)
-
-    nb_app = sa.Column(sa.Float, nullable=True)
-
-
-class DailyMetric(Base, ModelMixin):
-    """
-    For storing daily event-based metrics.
-    The difference between DailyEventMetric and Metric2 is Metric2 stores the total
-    whereas DailyEventMetric is reset for a new day
-    """
-
-    __tablename__ = "daily_metric"
-    date = sa.Column(sa.Date, nullable=False, unique=True)
-
-    # users who sign up via web without using "Login with Proton"
-    nb_new_web_non_proton_user = sa.Column(
-        sa.Integer, nullable=False, server_default="0", default=0
-    )
-
-    nb_alias = sa.Column(sa.Integer, nullable=False, server_default="0", default=0)
-
-    @staticmethod
-    def get_or_create_today_metric() -> DailyMetric:
-        today = arrow.utcnow().date()
-        daily_metric = DailyMetric.get_by(date=today)
-        if not daily_metric:
-            daily_metric = DailyMetric.create(
-                date=today, nb_new_web_non_proton_user=0, nb_alias=0
-            )
-        return daily_metric
 
 
 class Bounce(Base, ModelMixin):

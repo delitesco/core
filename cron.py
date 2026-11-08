@@ -1,11 +1,11 @@
 import argparse
 import asyncio
 import urllib.parse
-from typing import List, Tuple
+from typing import List
 
 import arrow
 import requests
-from sqlalchemy import func, desc, or_, and_
+from sqlalchemy import func, or_, and_
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.exc import ObjectDeletedError
@@ -35,20 +35,15 @@ from app.models import (
     RefusedEmail,
     AppleSubscription,
     Mailbox,
-    Monitoring,
     Contact,
     CoinbaseSubscription,
     TransactionalEmail,
     Bounce,
-    Metric2,
     SLDomain,
     DeletedAlias,
     DomainDeletedAlias,
     Hibp,
     HibpNotifiedAlias,
-    Directory,
-    DeletedDirectory,
-    DeletedSubdomain,
 )
 from app.pgp_utils import load_public_key_and_check, PGPException
 from app.user_audit_log_utils import emit_user_audit_log, UserAuditLogAction
@@ -85,7 +80,6 @@ def notify_trial_end():
 def delete_logs():
     """delete everything that are considered logs"""
     delete_refused_emails()
-    delete_old_monitoring()
 
     for t_email in TransactionalEmail.filter(
         TransactionalEmail.created_at < arrow.now().shift(days=-7)
@@ -300,306 +294,6 @@ def poll_apple_subscription():
             verify_receipt(apple_sub.receipt_data, user, config.APPLE_API_SECRET)
 
     LOG.d("Finish poll_apple_subscription")
-
-
-def compute_metric2() -> Metric2:
-    now = arrow.now()
-    _24h_ago = now.shift(days=-1)
-
-    nb_referred_user_paid = 0
-    for user in (
-        User.filter(User.referral_id.isnot(None))
-        .yield_per(500)
-        .enable_eagerloads(False)
-    ):
-        if user.is_paid():
-            nb_referred_user_paid += 1
-
-    return Metric2.create(
-        date=now,
-        # user stats
-        nb_user=User.count(),
-        nb_activated_user=User.filter_by(activated=True).count(),
-        # subscription stats
-        nb_premium=Subscription.filter(Subscription.cancelled.is_(False)).count(),
-        nb_cancelled_premium=Subscription.filter(
-            Subscription.cancelled.is_(True)
-        ).count(),
-        # todo: filter by expires_date > now
-        nb_apple_premium=AppleSubscription.count(),
-        nb_manual_premium=ManualSubscription.filter(
-            ManualSubscription.end_at > now,
-            ManualSubscription.is_giveaway.is_(False),
-        ).count(),
-        nb_coinbase_premium=CoinbaseSubscription.filter(
-            CoinbaseSubscription.end_at > now
-        ).count(),
-        # referral stats
-        nb_referred_user=User.filter(User.referral_id.isnot(None)).count(),
-        nb_referred_user_paid=nb_referred_user_paid,
-        nb_alias=Alias.count(),
-        # email log stats
-        nb_forward_last_24h=EmailLog.filter(EmailLog.created_at > _24h_ago)
-        .filter_by(bounced=False, is_spam=False, is_reply=False, blocked=False)
-        .count(),
-        nb_bounced_last_24h=EmailLog.filter(EmailLog.created_at > _24h_ago)
-        .filter_by(bounced=True)
-        .count(),
-        nb_total_bounced_last_24h=Bounce.filter(Bounce.created_at > _24h_ago).count(),
-        nb_reply_last_24h=EmailLog.filter(EmailLog.created_at > _24h_ago)
-        .filter_by(is_reply=True)
-        .count(),
-        nb_block_last_24h=EmailLog.filter(EmailLog.created_at > _24h_ago)
-        .filter_by(blocked=True)
-        .count(),
-        # other stats
-        nb_verified_custom_domain=CustomDomain.filter_by(verified=True).count(),
-        nb_subdomain=CustomDomain.filter_by(is_sl_subdomain=True).count(),
-        nb_directory=Directory.count(),
-        nb_deleted_directory=DeletedDirectory.count(),
-        nb_deleted_subdomain=DeletedSubdomain.count(),
-        commit=True,
-    )
-
-
-def increase_percent(old, new) -> str:
-    if old == 0:
-        return "N/A"
-
-    if not old or not new:
-        return "N/A"
-
-    increase = (new - old) / old * 100
-    return f"{increase:.1f}%. Delta: {new - old}"
-
-
-def bounce_report() -> List[Tuple[str, int]]:
-    """return the accounts that have most bounces, e.g.
-    (email1, 30)
-    (email2, 20)
-
-    Produce this query
-
-    ```
-    SELECT
-        count(*) AS c,
-        users.email
-    FROM
-        email_log,
-        users
-    WHERE
-        email_log.user_id = users.id
-        AND email_log.created_at > '2021-3-20'
-        and email_log.bounced = true
-    GROUP BY
-        users.email
-    ORDER BY
-        c DESC;
-    ```
-
-    """
-    min_dt = arrow.now().shift(days=-1)
-    query = (
-        Session.query(User.email, func.count(EmailLog.id).label("count"))
-        .join(EmailLog, EmailLog.user_id == User.id)
-        .filter(EmailLog.bounced, EmailLog.created_at > min_dt)
-        .group_by(User.email)
-        .having(func.count(EmailLog.id) > 5)
-        .order_by(desc("count"))
-    )
-
-    res = []
-    for email, count in query:
-        res.append((email, count))
-
-    return res
-
-
-def all_bounce_report() -> str:
-    """
-    Return a report for all mailboxes that have most bounces. Using this query to get mailboxes that have bounces.
-    For each mailbox in the list, return the first bounce info.
-
-    ```
-    SELECT
-        email,
-        count(*) AS nb_bounce
-    FROM
-        bounce
-    WHERE
-        created_at > '2021-10-16'
-    GROUP BY
-        email
-    ORDER BY
-        nb_bounce DESC
-    ```
-
-    """
-    res = ""
-    min_dt = arrow.now().shift(days=-1)
-    query = (
-        Session.query(Bounce.email, func.count(Bounce.id).label("nb_bounce"))
-        .filter(Bounce.created_at > min_dt)
-        .group_by(Bounce.email)
-        # not return mailboxes that have too little bounces
-        .having(func.count(Bounce.id) > 3)
-        .order_by(desc("nb_bounce"))
-    )
-
-    for email, count in query:
-        res += f"{email}: {count} bounces. "
-        most_recent: Bounce = (
-            Bounce.filter(Bounce.email == email)
-            .order_by(Bounce.created_at.desc())
-            .first()
-        )
-        # most_recent.info can be very verbose
-        res += f"Most recent cause: \n{most_recent.info[:1000] if most_recent.info else 'N/A'}"
-        res += "\n----\n"
-
-    return res
-
-
-def alias_creation_report() -> List[Tuple[str, int]]:
-    """return the accounts that have created most aliases in the last 7 days, e.g.
-    (email1, 2021-3-21, 30)
-    (email2, 2021-3-20, 20)
-
-    Produce this query
-
-    ```
-    SELECT
-        count(*) AS c,
-        users.email,
-        date(alias.created_at) AS d
-    FROM
-        alias,
-        users
-    WHERE
-        alias.user_id = users.id
-        AND alias.created_at > '2021-3-22'
-    GROUP BY
-        users.email,
-        d
-    HAVING
-        count(*) > 50
-    ORDER BY
-        c DESC;
-    ```
-
-    """
-    min_dt = arrow.now().shift(days=-7)
-    query = (
-        Session.query(
-            User.email,
-            func.count(Alias.id).label("count"),
-            func.date(Alias.created_at).label("date"),
-        )
-        .join(Alias, Alias.user_id == User.id)
-        .filter(Alias.created_at > min_dt)
-        .group_by(User.email, "date")
-        .having(func.count(Alias.id) > 50)
-        .order_by(desc("count"))
-    )
-
-    res = []
-    for email, count, date in query:
-        res.append((email, count, date))
-
-    return res
-
-
-def stats():
-    """send admin stats everyday"""
-    if not config.ADMIN_EMAIL:
-        LOG.w("ADMIN_EMAIL not set, nothing to do")
-        return
-
-    stats_today = compute_metric2()
-    stats_yesterday = (
-        Metric2.filter(Metric2.date < stats_today.date)
-        .order_by(Metric2.date.desc())
-        .first()
-    )
-
-    today = arrow.now().format()
-
-    growth_stats = f"""
-Growth Stats for {today}
-
-nb_user: {stats_today.nb_user} - {increase_percent(stats_yesterday.nb_user, stats_today.nb_user)}
-nb_premium: {stats_today.nb_premium} - {increase_percent(stats_yesterday.nb_premium, stats_today.nb_premium)}
-nb_cancelled_premium: {stats_today.nb_cancelled_premium} - {increase_percent(stats_yesterday.nb_cancelled_premium, stats_today.nb_cancelled_premium)}
-nb_apple_premium: {stats_today.nb_apple_premium} - {increase_percent(stats_yesterday.nb_apple_premium, stats_today.nb_apple_premium)}
-nb_manual_premium: {stats_today.nb_manual_premium} - {increase_percent(stats_yesterday.nb_manual_premium, stats_today.nb_manual_premium)}
-nb_coinbase_premium: {stats_today.nb_coinbase_premium} - {increase_percent(stats_yesterday.nb_coinbase_premium, stats_today.nb_coinbase_premium)}
-nb_alias: {stats_today.nb_alias} - {increase_percent(stats_yesterday.nb_alias, stats_today.nb_alias)}
-
-nb_forward_last_24h: {stats_today.nb_forward_last_24h} - {increase_percent(stats_yesterday.nb_forward_last_24h, stats_today.nb_forward_last_24h)}
-nb_reply_last_24h: {stats_today.nb_reply_last_24h} - {increase_percent(stats_yesterday.nb_reply_last_24h, stats_today.nb_reply_last_24h)}
-nb_block_last_24h: {stats_today.nb_block_last_24h} - {increase_percent(stats_yesterday.nb_block_last_24h, stats_today.nb_block_last_24h)}
-nb_bounced_last_24h: {stats_today.nb_bounced_last_24h} - {increase_percent(stats_yesterday.nb_bounced_last_24h, stats_today.nb_bounced_last_24h)}
-
-nb_custom_domain: {stats_today.nb_verified_custom_domain} - {increase_percent(stats_yesterday.nb_verified_custom_domain, stats_today.nb_verified_custom_domain)}
-nb_subdomain: {stats_today.nb_subdomain} - {increase_percent(stats_yesterday.nb_subdomain, stats_today.nb_subdomain)}
-nb_directory: {stats_today.nb_directory} - {increase_percent(stats_yesterday.nb_directory, stats_today.nb_directory)}
-nb_deleted_directory: {stats_today.nb_deleted_directory} - {increase_percent(stats_yesterday.nb_deleted_directory, stats_today.nb_deleted_directory)}
-nb_deleted_subdomain: {stats_today.nb_deleted_subdomain} - {increase_percent(stats_yesterday.nb_deleted_subdomain, stats_today.nb_deleted_subdomain)}
-
-nb_referred_user: {stats_today.nb_referred_user} - {increase_percent(stats_yesterday.nb_referred_user, stats_today.nb_referred_user)}
-nb_referred_user_upgrade: {stats_today.nb_referred_user_paid} - {increase_percent(stats_yesterday.nb_referred_user_paid, stats_today.nb_referred_user_paid)}
-    """
-
-    LOG.d("growth_stats email: %s", growth_stats)
-
-    send_email(
-        config.ADMIN_EMAIL,
-        subject=f"SimpleLogin Growth Stats for {today}",
-        plaintext=growth_stats,
-        retries=3,
-    )
-
-    monitoring_report = f"""
-Monitoring Stats for {today}
-
-nb_alias: {stats_today.nb_alias} - {increase_percent(stats_yesterday.nb_alias, stats_today.nb_alias)}
-
-nb_forward_last_24h: {stats_today.nb_forward_last_24h} - {increase_percent(stats_yesterday.nb_forward_last_24h, stats_today.nb_forward_last_24h)}
-nb_reply_last_24h: {stats_today.nb_reply_last_24h} - {increase_percent(stats_yesterday.nb_reply_last_24h, stats_today.nb_reply_last_24h)}
-nb_block_last_24h: {stats_today.nb_block_last_24h} - {increase_percent(stats_yesterday.nb_block_last_24h, stats_today.nb_block_last_24h)}
-nb_bounced_last_24h: {stats_today.nb_bounced_last_24h} - {increase_percent(stats_yesterday.nb_bounced_last_24h, stats_today.nb_bounced_last_24h)}
-nb_total_bounced_last_24h: {stats_today.nb_total_bounced_last_24h} - {increase_percent(stats_yesterday.nb_total_bounced_last_24h, stats_today.nb_total_bounced_last_24h)}
-
-    """
-
-    monitoring_report += "\n====================================\n"
-    monitoring_report += """
-# Account bounce report:
-"""
-
-    for email, bounces in bounce_report():
-        monitoring_report += f"{email}: {bounces}\n"
-
-    monitoring_report += """\n
-# Alias creation report:
-"""
-
-    for email, nb_alias, date in alias_creation_report():
-        monitoring_report += f"{email}, {date}: {nb_alias}\n"
-
-    monitoring_report += """\n
-# Full bounce detail report:
-"""
-    monitoring_report += all_bounce_report()
-
-    LOG.d("monitoring_report email: %s", monitoring_report)
-
-    send_email(
-        config.MONITORING_EMAIL,
-        subject=f"SimpleLogin Monitoring Report for {today}",
-        plaintext=monitoring_report,
-        retries=3,
-    )
 
 
 def migrate_domain_trash():
@@ -869,16 +563,6 @@ def check_mailbox_valid_pgp_keys():
                 ),
                 retries=3,
             )
-
-
-def delete_old_monitoring():
-    """
-    Delete old monitoring records
-    """
-    max_time = arrow.now().shift(days=-30)
-    nb_row = Monitoring.filter(Monitoring.created_at < max_time).delete()
-    Session.commit()
-    LOG.d("delete monitoring records older than %s, nb row %s", max_time, nb_row)
 
 
 async def _hibp_check(api_key: str, queue: asyncio.Queue):
@@ -1176,10 +860,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     # wrap in an app context to benefit from app setup like database cleanup, sentry integration, etc
     with create_light_app().app_context():
-        if args.job == "stats":
-            LOG.d("Compute growth and daily monitoring stats")
-            stats()
-        elif args.job == "notify_trial_end":
+        if args.job == "notify_trial_end":
             LOG.d("Notify users with trial ending soon")
             notify_trial_end()
         elif args.job == "notify_manual_subscription_end":
@@ -1200,9 +881,6 @@ if __name__ == "__main__":
         elif args.job == "sanity_check":
             LOG.d("Check data consistency")
             sanity_check()
-        elif args.job == "delete_old_monitoring":
-            LOG.d("Delete old monitoring records")
-            delete_old_monitoring()
         elif args.job == "check_custom_domain":
             LOG.d("Check custom domain")
             check_all_custom_domains()

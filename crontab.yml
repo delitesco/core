@@ -1,16 +1,4 @@
 jobs:
-  - name: SimpleLogin growth stats
-    command: python /code/cron.py -j stats
-    shell: /bin/bash
-    schedule: "0 0 * * *"
-    captureStderr: true
-
-  - name: SimpleLogin Delete Old Monitoring records
-    command: python /code/cron.py -j delete_old_monitoring
-    shell: /bin/bash
-    schedule: "15 1 * * *"
-    captureStderr: true
-
   - name: SimpleLogin Custom Domain check
     command: python /code/cron.py -j check_custom_domain
     shell: /bin/bash
