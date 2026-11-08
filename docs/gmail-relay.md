@@ -170,7 +170,7 @@ FLASK_SECRET=SomeThing_Secret
 
 GNUPGHOME=/sl/pgp
 
-LOCAL_FILE_UPLOAD=1
+UPLOAD_DIR=/sl/upload
 
 # Postfix 587 TLS
 POSTFIX_PORT=587

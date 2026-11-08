@@ -1,48 +1,60 @@
+# delitesco-core
 
+Mail backend for delitesco email aliases: a hard fork of
+[SimpleLogin](https://github.com/simple-login/app) v4.70.0 (MIT) reduced to the parts that deliver mail.
 
-[SimpleLogin](https://simplelogin.io) | Protect your online identity with email alias
----
-<p>
-<a href="https://chrome.google.com/webstore/detail/dphilobhebphkdjbpfohgikllaljmgbn">
-    <img src="https://img.shields.io/chrome-web-store/rating/dphilobhebphkdjbpfohgikllaljmgbn?label=Chrome%20Extension">
-</a>
+It keeps the mail handler (forward, reply, bounces, DMARC/SPF, spam), aliases, mailboxes, reverse-alias
+contacts, PGP, DKIM, custom domains, the alias/mailbox HTTP API and the cleanup jobs. It has no web UI,
+no logins or passwords, no billing and no third-party telemetry.
 
-<a href="https://addons.mozilla.org/firefox/addon/simplelogin/">
-<img src="https://img.shields.io/amo/rating/simplelogin?label=Firefox%20Add-On&logo=SimpleLogin">
-</a>
+## How it is used
 
-<a href="./LICENSE">
-<img src="https://img.shields.io/github/license/simple-login/app">
-</a>
+A separate backend owns accounts, login and billing, and talks to this service over HTTP:
 
-<a href="https://twitter.com/simplelogin">
-<img src="https://img.shields.io/twitter/follow/simplelogin?style=social">
-</a>
+- for every account it creates a user here with `POST /api/provision/users`, authenticated by
+  `PROVISIONING_API_KEY` (header `X-Provisioning-Key`), and stores the returned API key;
+- every other call uses that user's API key in the `Authentication` header, so each account only sees
+  its own aliases, mailboxes and contacts;
+- mailbox verification emails link to `MAILBOX_VERIFY_URL`, a page of that backend which calls
+  `POST /api/mailboxes/<id>/verify`;
+- actions in notification emails (disable alias, block sender, unsubscribe) are signed `mailto:` links to
+  `UNSUBSCRIBER`; there are no web links.
 
-</p>
+Users have no email of their own: their email is a placeholder on `PROVISIONED_USER_EMAIL_DOMAIN`
+(default `users.invalid`), and no email is sent to it.
 
-<p align="center">
-    <a href="https://simplelogin.io">
-        <img src="./docs/hero.png" height="600px">
-    </a>
-</p>
+See [docs/api.md](docs/api.md) for the API.
 
----
+Required in production, besides the mail server setup below:
 
-Your email address is your **online identity**. When you use the same email address everywhere, you can be easily tracked.
-More information on https://simplelogin.io
+- `MEM_STORE_URI` pointing to Redis: rate limits, the per-user alias creation lock and the per-address limit on
+  verification emails are only enforced with it;
+- `GNUPGHOME` on a persistent volume (mailbox PGP keys), `UPLOAD_DIR` on a persistent volume not served over HTTP;
+- `PROVISIONING_API_KEY` (long random string), `MAILBOX_VERIFY_URL`, `UNSUBSCRIBER`;
+- the API port reachable only by the backend in front of this service (or behind TLS), port 25 open for mail.
 
-This README contains instructions on how to self host SimpleLogin.
+## Development
 
-Once you have your own SimpleLogin instance running, you can change the `API URL` in SimpleLogin's Chrome/Firefox extension, Android/iOS app to your server.
+Tests need Postgres and Redis (see `tests/test.env`):
 
-SimpleLogin roadmap is at https://github.com/simple-login/app/projects/1 and our forum at https://github.com/simple-login/app/discussions, feel free to submit new ideas or vote on features.
+```bash
+docker run -d -e POSTGRES_DB=test -e POSTGRES_USER=test -e POSTGRES_PASSWORD=test -p 15432:5432 postgres:17-alpine
+docker run -d -p 6379:6379 redis:6-alpine
+uv sync
+CONFIG=tests/test.env uv run alembic upgrade head
+uv run pytest
+```
+
+## Self hosting
+
+The mail server setup below is the upstream SimpleLogin guide, adapted: there is no web app to expose
+publicly, only the API for the backend in front of it.
 
 ### Prerequisites
 
-- a Linux server (either a VM or dedicated server). This doc shows the setup for Ubuntu 18.04 LTS but the steps could be adapted for other popular Linux distributions. As most of components run as Docker container and Docker can be a bit heavy, having at least 2 GB of RAM is recommended. The server needs to have the port 25 (email), 80, 443 (for the webapp), 22 (so you can ssh into it) open.
+- a Linux server (either a VM or dedicated server). This doc shows the setup for Ubuntu 18.04 LTS but the steps could be adapted for other popular Linux distributions. As most of components run as Docker container and Docker can be a bit heavy, having at least 2 GB of RAM is recommended. The server needs to have the port 25 (email) and 22 (so you can ssh into it) open; the API port should only be reachable by the backend in front of this service.
 
-- a domain that you can config the DNS. It could be a sub-domain. In the rest of the doc, let's say it's `mydomain.com` for the email and `app.mydomain.com` for SimpleLogin webapp. Please make sure to replace these values by your domain name whenever they appear in the doc. A trick we use is to download this README file on your computer and replace all `mydomain.com` occurrences by your domain.
+- a domain that you can config the DNS. It could be a sub-domain. In the rest of the doc, let's say it's `mydomain.com` for the email and `app.mydomain.com` for this server. Please make sure to replace these values by your domain name whenever they appear in the doc. A trick we use is to download this README file on your computer and replace all `mydomain.com` occurrences by your domain.
 
 Except for the DNS setup that is usually done on your domain registrar interface, all the below steps are to be done on your server. The commands are to run with `bash` (or any bash-compatible shell like `zsh`) being the shell. If you use other shells like `fish`, please make sure to adapt the commands.
 
@@ -375,7 +387,7 @@ Finally, restart Postfix
 sudo systemctl restart postfix
 ```
 
-### Run SimpleLogin Docker containers
+### Run the Docker containers
 
 To run SimpleLogin, you need a config file at `$(pwd)/simplelogin.env`. Below is an example that you can use right away, make sure to
 
@@ -384,10 +396,10 @@ To run SimpleLogin, you need a config file at `$(pwd)/simplelogin.env`. Below is
 - update 'myuser' and 'mypassword' with your database credentials used in previous step.
 
 All possible parameters can be found in [config example](example.env). Some are optional and are commented out by default.
-Some have "dummy" values, fill them up if you want to enable these features (Paddle, AWS, etc).
+Set `PROVISIONING_API_KEY`, `MAILBOX_VERIFY_URL` and `UNSUBSCRIBER` for the backend in front of this service.
 
 ```.env
-# WebApp URL
+# URL of this service (used in emails for the logo only)
 URL=http://app.mydomain.com
 
 # domain used to create alias
@@ -413,19 +425,23 @@ FLASK_SECRET=put_something_secret_here
 
 GNUPGHOME=/sl/pgp
 
-LOCAL_FILE_UPLOAD=1
+# refused/quarantined emails, must not be served over HTTP
+UPLOAD_DIR=/sl/upload
+
+PROVISIONING_API_KEY=put_another_long_secret_here
+MAILBOX_VERIFY_URL=https://mydomain.com/mailbox/verify
+UNSUBSCRIBER=unsubscribe@mydomain.com
 
 POSTFIX_SERVER=10.0.0.1
 ```
 
 
-Before running the webapp, you need to prepare the database by running the migration:
+Before running the API, you need to prepare the database by running the migration:
 
 ```bash
 docker run --rm \
     --name sl-migration \
     -v $(pwd)/sl:/sl \
-    -v $(pwd)/sl/upload:/code/static/upload \
     -v $(pwd)/dkim.key:/dkim.key \
     -v $(pwd)/dkim.pub.key:/dkim.pub.key \
     -v $(pwd)/simplelogin.env:/code/.env \
@@ -448,13 +464,12 @@ docker run --rm \
     simplelogin/app:3.4.0 python init_app.py
 ```
 
-Now, it's time to run the `webapp` container!
+Now run the API container. Only the backend in front of it should be able to reach it.
 
 ```bash
 docker run -d \
     --name sl-app \
     -v $(pwd)/sl:/sl \
-    -v $(pwd)/sl/upload:/code/static/upload \
     -v $(pwd)/simplelogin.env:/code/.env \
     -v $(pwd)/dkim.key:/dkim.key \
     -v $(pwd)/dkim.pub.key:/dkim.pub.key \
@@ -470,7 +485,6 @@ Next run the `email handler`
 docker run -d \
     --name sl-email \
     -v $(pwd)/sl:/sl \
-    -v $(pwd)/sl/upload:/code/static/upload \
     -v $(pwd)/simplelogin.env:/code/.env \
     -v $(pwd)/dkim.key:/dkim.key \
     -v $(pwd)/dkim.pub.key:/dkim.pub.key \
@@ -486,7 +500,6 @@ And finally the `job runner`
 docker run -d \
     --name sl-job-runner \
     -v $(pwd)/sl:/sl \
-    -v $(pwd)/sl/upload:/code/static/upload \
     -v $(pwd)/simplelogin.env:/code/.env \
     -v $(pwd)/dkim.key:/dkim.key \
     -v $(pwd)/dkim.pub.key:/dkim.pub.key \
@@ -495,80 +508,21 @@ docker run -d \
     simplelogin/app:3.4.0 python job_runner.py
 ```
 
-### Nginx
-
-Install Nginx and make sure to replace `mydomain.com` by your domain
-
-```bash
-sudo apt-get install -y nginx
-```
-
-Then, create `/etc/nginx/sites-enabled/simplelogin` with the following lines:
-
-```nginx
-server {
-    server_name  app.mydomain.com;
-
-    location / {
-        proxy_pass              http://localhost:7777;
-    	proxy_set_header        Host $host;
-    }
-}
-```
-
-Note: If `/etc/nginx/sites-enabled/default` exists, delete it or certbot will fail due to the conflict. The `simplelogin` file should be the only file in `sites-enabled`.
-
-Reload Nginx with the command below
-
-```bash
-sudo systemctl reload nginx
-```
-
-At this step, you should also setup the SSL for Nginx. [Here's our guide how](./docs/ssl.md).
-
-### Enjoy!
-
-If all the above steps are successful, open http://app.mydomain.com/ and create your first account!
-
-By default, new accounts are not premium so don't have unlimited alias. To make your account premium,
-please go to the database, table "users" and set "lifetime" column to "1" or "TRUE":
-
-```
-docker exec -it sl-db psql -U myuser simplelogin
-UPDATE users SET lifetime = TRUE;
-exit
-```
-
-Once you've created all your desired login accounts, add these lines to `/simplelogin.env` to disable further registrations:
-
-```.env
-DISABLE_REGISTRATION=1
-DISABLE_ONBOARDING=true
-```
-
-Then restart the web app to apply: `docker restart sl-app`
-
-### Donations Welcome
-
-You don't have to pay anything to SimpleLogin to use all its features.
-If you like the project, you can make a donation on our Open Collective page at https://opencollective.com/simplelogin
-
 ### Misc
 
-The above self-hosting instructions correspond to a freshly Ubuntu server and doesn't cover all possible server configuration.
+The above instructions correspond to a fresh Ubuntu server and don't cover all possible server configurations.
 Below are pointers to different topics:
 
 - [Troubleshooting](docs/troubleshooting.md)
 - [Enable SSL](docs/ssl.md)
 - [UFW - uncomplicated firewall](docs/ufw.md)
 - [SES - Amazon Simple Email Service](docs/ses.md)
-- [Upgrade existing SimpleLogin installation](docs/upgrade.md)
 - [Enforce SPF](docs/enforce-spf.md)
 - [Postfix TLS](docs/postfix-tls.md)
 
-## ❤️ Contributors
+## Upstream contributors
 
-Thanks go to these wonderful people:
+This fork builds on the work of the SimpleLogin team and contributors:
 
 <table>
   <tr>
