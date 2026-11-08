@@ -1,0 +1,53 @@
+# Postfix for delitesco-core, rendered by entrypoint.sh from the environment.
+smtpd_banner = $myhostname ESMTP
+biff = no
+append_dot_mydomain = no
+readme_directory = no
+compatibility_level = 2
+maillog_file = /dev/stdout
+# the server has no IPv6 PTR / SPF setup; IPv6 delivery would be rejected by big providers
+inet_protocols = ipv4
+
+smtpd_tls_cert_file = ${TLS_CERT}
+smtpd_tls_key_file = ${TLS_KEY}
+smtpd_tls_security_level = may
+smtp_tls_security_level = may
+smtp_tls_CAfile = /etc/ssl/certs/ca-certificates.crt
+
+alias_maps = hash:/etc/aliases
+# The delitesco containers send their outgoing mail through this Postfix. The network
+# gateway is excluded: connections through published ports can come from it, and
+# trusting it would make this an open relay.
+mynetworks = 127.0.0.0/8 [::1]/128 !${DOCKER_GATEWAY} ${DOCKER_SUBNET}
+
+mydestination =
+myhostname = ${APP_HOSTNAME}
+mydomain = ${DOMAIN}
+myorigin = ${DOMAIN}
+
+# mail for the alias domain and verified custom domains goes to the email handler
+relay_domains = pgsql:/etc/postfix/pgsql-relay-domains.cf
+transport_maps = pgsql:/etc/postfix/pgsql-transport-maps.cf
+
+smtpd_delay_reject = yes
+smtpd_helo_required = yes
+smtpd_helo_restrictions =
+    permit_mynetworks,
+    reject_non_fqdn_helo_hostname,
+    reject_invalid_helo_hostname,
+    permit
+
+smtpd_sender_restrictions =
+    permit_mynetworks,
+    reject_non_fqdn_sender,
+    reject_unknown_sender_domain,
+    permit
+
+smtpd_recipient_restrictions =
+    reject_unauth_pipelining,
+    reject_non_fqdn_recipient,
+    reject_unknown_recipient_domain,
+    permit_mynetworks,
+    reject_unauth_destination,
+    ${RBL_CHECKS}
+    permit

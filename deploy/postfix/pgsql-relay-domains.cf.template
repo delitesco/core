@@ -1,0 +1,8 @@
+hosts = ${POSTGRES_HOST}
+user = ${POSTGRES_USER}
+password = ${POSTGRES_PASSWORD}
+dbname = ${POSTGRES_DB}
+
+query = SELECT domain FROM custom_domain WHERE domain='%s' AND verified=true
+    UNION SELECT domain FROM public_domain WHERE domain='%s'
+    UNION SELECT '%s' WHERE '%s' = '${DOMAIN}' LIMIT 1
