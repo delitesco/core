@@ -36,8 +36,6 @@ def setup_module():
     global user
     config.SKIP_MX_LOOKUP_ON_CHECK = True
     user = create_new_user()
-    user.trial_end = None
-    user.lifetime = True
     Session.commit()
 
 
@@ -45,30 +43,17 @@ def teardown_module():
     config.SKIP_MX_LOOKUP_ON_CHECK = False
 
 
-def test_free_user_cannot_add_mailbox():
-    user.lifetime = False
-    email = random_email()
-    try:
-        with pytest.raises(mailbox_utils.OnlyPaidError):
-            mailbox_utils.create_mailbox(user, email)
-    finally:
-        user.lifetime = True
-
-
 def test_invalid_email():
-    user.lifetime = True
     with pytest.raises(mailbox_utils.MailboxError):
         mailbox_utils.create_mailbox(user, "invalid")
 
 
 def test_already_used():
-    user.lifetime = True
     with pytest.raises(mailbox_utils.MailboxError):
         mailbox_utils.create_mailbox(user, user.email)
 
 
 def test_already_used_with_different_case():
-    user.lifetime = True
     email = random_email()
     mailbox_utils.create_mailbox(user, email)
     with pytest.raises(mailbox_utils.MailboxError):

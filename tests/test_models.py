@@ -4,7 +4,7 @@ from uuid import UUID
 import arrow
 import pytest
 
-from app.config import EMAIL_DOMAIN, MAX_NB_EMAIL_FREE_PLAN, NOREPLY
+from app.config import EMAIL_DOMAIN, NOREPLY
 from app.db import Session
 from app.email_utils import parse_full_address, generate_reply_email
 from app.models import (
@@ -14,9 +14,6 @@ from app.models import (
     Mailbox,
     SenderFormatEnum,
     EnumE,
-    Subscription,
-    PlanEnum,
-    PADDLE_SUBSCRIPTION_GRACE_DAYS,
 )
 from tests.utils import login, create_new_user, random_token
 
@@ -38,26 +35,6 @@ def test_profile_picture_url(flask_client):
     assert (
         user.profile_picture_url() == f"http://{EMAIL_DOMAIN}/static/default-avatar.png"
     )
-
-
-def test_suggested_emails_for_user_who_cannot_create_new_alias(flask_client):
-    # make sure user is not in trial
-    user = create_new_user()
-    user.trial_end = None
-
-    # make sure user runs out of quota to create new email
-    for _ in range(MAX_NB_EMAIL_FREE_PLAN):
-        Alias.create_new(user=user, prefix="test")
-    Session.commit()
-
-    suggested_email, other_emails = user.suggested_emails(website_name="test")
-
-    # the suggested email is chosen from existing Alias
-    assert Alias.get_by(email=suggested_email)
-
-    # all other emails are generated emails
-    for email in other_emails:
-        assert Alias.get_by(email=email)
 
 
 def test_alias_create_random(flask_client):
@@ -273,27 +250,6 @@ def test_can_create_new_alias_disabled_user():
 
     user.disabled = True
     assert not user.can_create_new_alias()
-
-
-def test_user_get_subscription_grace_period(flask_client):
-    user = create_new_user()
-    sub = Subscription.create(
-        user_id=user.id,
-        cancel_url="https://checkout.paddle.com/subscription/cancel?user=1234",
-        update_url="https://checkout.paddle.com/subscription/update?user=1234",
-        subscription_id=str(random.random()),
-        event_time=arrow.now(),
-        next_bill_date=arrow.now().shift(days=-PADDLE_SUBSCRIPTION_GRACE_DAYS).date(),
-        plan=PlanEnum.monthly,
-        commit=True,
-    )
-
-    assert user.get_paddle_subscription() is not None
-
-    sub.next_bill_date = (
-        arrow.now().shift(days=-(PADDLE_SUBSCRIPTION_GRACE_DAYS + 1)).date()
-    )
-    assert user.get_paddle_subscription() is None
 
 
 def test_create_contact_for_noreply(flask_client):

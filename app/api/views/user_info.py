@@ -20,8 +20,6 @@ def user_to_dict(user: User) -> dict:
         "name": user.name or "",
         "is_premium": user.is_premium(),
         "email": user.email,
-        "in_trial": user.in_trial(),
-        "max_alias_free_plan": user.max_alias_for_free_account(),
         "can_create_reverse_alias": user.can_create_contacts(),
     }
 
@@ -43,7 +41,6 @@ def user_info():
     - name
     - is_premium
     - email
-    - in_trial
     - max_alias_free
     - can_create_reverse_alias
     """

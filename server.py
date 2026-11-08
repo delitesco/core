@@ -36,8 +36,6 @@ from app.models import (
 )
 from app.monitor.base import monitor_bp
 from app.newsletter_utils import send_newsletter_to_user
-from app.payments.coinbase import setup_coinbase_commerce
-from app.payments.paddle import setup_paddle_callback
 from app.redis_services import initialize_redis_services
 from app.request_utils import generate_request_id
 
@@ -85,8 +83,6 @@ def create_app() -> Flask:
     register_blueprints(app)
     setup_request_logging(app)
 
-    setup_paddle_callback(app)
-    setup_coinbase_commerce(app)
     register_custom_commands(app)
 
     # enable CORS on /api endpoints

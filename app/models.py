@@ -7,7 +7,7 @@ import hmac
 import os
 import random
 import uuid
-from typing import List, Tuple, Optional, Union
+from typing import List, Tuple, Optional
 
 import arrow
 import sqlalchemy as sa
@@ -17,12 +17,11 @@ from flanker.addresslib import address
 from flask import url_for
 from flask_login import UserMixin
 from jinja2 import FileSystemLoader, Environment
-from sqlalchemy import orm, or_
+from sqlalchemy import orm
 from sqlalchemy import text, desc, CheckConstraint, Index, Column
 from sqlalchemy.dialects.postgresql import TSVECTOR
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import deferred
-from sqlalchemy.sql import and_
 from sqlalchemy_utils import ArrowType
 
 from app import config, rate_limiter
@@ -47,7 +46,6 @@ from app.utils import (
 
 Base = declarative_base()
 
-PADDLE_SUBSCRIPTION_GRACE_DAYS = 14
 _PARTNER_SUBSCRIPTION_GRACE_DAYS = 14
 
 
@@ -190,11 +188,6 @@ class EnumE(enum.Enum):
                 return item.value
 
         return None
-
-
-class PlanEnum(EnumE):
-    monthly = 2
-    yearly = 3
 
 
 # Specify the format for sender address
@@ -384,9 +377,7 @@ class AbuserAuditLog(Base, ModelMixin):
 class User(Base, ModelMixin, UserMixin, PasswordOracle):
     __tablename__ = "users"
 
-    FLAG_FREE_DISABLE_CREATE_CONTACTS = 1 << 0
-    # 1 << 1 and 1 << 3 were partner flags; keep them unused
-    FLAG_FREE_OLD_ALIAS_LIMIT = 1 << 2
+    # bits 0-3 of `flags` held free-plan and partner flags; keep them unused
 
     email = sa.Column(sa.String(256), unique=True, nullable=False)
 
@@ -432,22 +423,6 @@ class User(Base, ModelMixin, UserMixin, PasswordOracle):
         default=None,
     )
 
-    # some users could have lifetime premium
-    lifetime = sa.Column(sa.Boolean, default=False, nullable=False, server_default="0")
-    paid_lifetime = sa.Column(
-        sa.Boolean, default=False, nullable=False, server_default="0"
-    )
-    lifetime_coupon_id = sa.Column(
-        sa.ForeignKey("lifetime_coupon.id", ondelete="SET NULL"),
-        nullable=True,
-        default=None,
-    )
-
-    # user can use all premium features until this date
-    trial_end = sa.Column(
-        ArrowType, default=lambda: arrow.now().shift(days=7, hours=1), nullable=True
-    )
-
     # the mailbox used when create random alias
     # this field is nullable but in practice, it's always set
     # it cannot be set to non-nullable though
@@ -470,15 +445,6 @@ class User(Base, ModelMixin, UserMixin, PasswordOracle):
     replace_reverse_alias = sa.Column(
         sa.Boolean, default=False, nullable=False, server_default="0"
     )
-
-    referral_id = sa.Column(
-        sa.ForeignKey("referral.id", ondelete="SET NULL"),
-        nullable=True,
-        default=None,
-        index=True,
-    )
-
-    referral = orm.relationship("Referral", foreign_keys=[referral_id])
 
     # whether intro has been shown to user
     intro_shown = sa.Column(
@@ -582,7 +548,7 @@ class User(Base, ModelMixin, UserMixin, PasswordOracle):
     # bitwise flags. Allow for future expansion
     flags = sa.Column(
         sa.BigInteger,
-        default=FLAG_FREE_DISABLE_CREATE_CONTACTS,
+        default=0,
         server_default="0",
         nullable=False,
     )
@@ -607,9 +573,6 @@ class User(Base, ModelMixin, UserMixin, PasswordOracle):
     )
 
     __table_args__ = (
-        sa.Index(
-            "ix_users_activated_trial_end_lifetime", activated, trial_end, lifetime
-        ),
         sa.Index("ix_users_delete_on", delete_on),
         sa.Index("ix_users_default_mailbox_id", default_mailbox_id),
         sa.Index(
@@ -731,155 +694,18 @@ class User(Base, ModelMixin, UserMixin, PasswordOracle):
 
         return res
 
-    def get_active_subscription(
-        self
-    ) -> Optional[
-        Union[
-            Subscription | AppleSubscription | ManualSubscription | CoinbaseSubscription
-        ]
-    ]:
-        sub: Subscription = self.get_paddle_subscription()
-        if sub:
-            return sub
-
-        apple_sub: AppleSubscription = AppleSubscription.get_by(user_id=self.id)
-        if apple_sub and apple_sub.is_valid():
-            return apple_sub
-
-        manual_sub: ManualSubscription = ManualSubscription.get_by(user_id=self.id)
-        if manual_sub and manual_sub.is_active():
-            return manual_sub
-
-        coinbase_subscription: CoinbaseSubscription = CoinbaseSubscription.get_by(
-            user_id=self.id
-        )
-        if coinbase_subscription and coinbase_subscription.is_active():
-            return coinbase_subscription
-
-        return None
-
-    def get_active_subscription_end(self) -> Optional[arrow.Arrow]:
-        sub = self.get_active_subscription()
-        if isinstance(sub, Subscription):
-            return arrow.get(sub.next_bill_date)
-        if isinstance(sub, AppleSubscription):
-            return sub.expires_date
-        if isinstance(sub, ManualSubscription):
-            return sub.end_at
-        if isinstance(sub, CoinbaseSubscription):
-            return sub.end_at
-        return None
-
-    # region Billing
-    def lifetime_or_active_subscription(self) -> bool:
-        """True if user has lifetime licence or active subscription"""
-        if self.lifetime:
-            return True
-
-        return self.get_active_subscription() is not None
-
-    def is_paid(self) -> bool:
-        """same as _lifetime_or_active_subscription but not include free manual subscription"""
-        sub = self.get_active_subscription()
-        if sub is None:
-            return False
-
-        if isinstance(sub, ManualSubscription) and sub.is_giveaway:
-            return False
-
-        return True
-
     def is_active(self) -> bool:
         if self.delete_on is None:
             return True
         return self.delete_on < arrow.now()
 
-    def in_trial(self):
-        """return True if user does not have lifetime licence or an active subscription AND is in trial period"""
-        if self.lifetime_or_active_subscription():
-            return False
-
-        if self.trial_end and arrow.now() < self.trial_end:
-            return True
-
-        return False
-
-    def should_show_upgrade_button(self):
-        if self.lifetime_or_active_subscription():
-            return False
-
-        return True
-
     def is_premium(self) -> bool:
-        """
-        user is premium if they:
-        - have a lifetime deal or
-        - in trial period or
-        - active subscription
-        """
-        if self.lifetime_or_active_subscription():
-            return True
-
-        if self.trial_end and arrow.now() < self.trial_end:
-            return True
-
-        return False
-
-    @property
-    def upgrade_channel(self) -> str:
-        """Used on admin dashboard"""
-        # user can have multiple subscription channel
-        channels = []
-        if self.lifetime:
-            channels.append("Lifetime")
-
-        sub: Subscription = self.get_paddle_subscription()
-        if sub:
-            if sub.cancelled:
-                channels.append(
-                    f"""Cancelled Paddle Subscription <a href="https://vendors.paddle.com/subscriptions/customers/manage/{sub.subscription_id}">{sub.subscription_id}</a> {sub.plan_name()} ends at {sub.next_bill_date}"""
-                )
-            else:
-                channels.append(
-                    f"""Active Paddle Subscription <a href="https://vendors.paddle.com/subscriptions/customers/manage/{sub.subscription_id}">{sub.subscription_id}</a> {sub.plan_name()}, renews at {sub.next_bill_date}"""
-                )
-
-        apple_sub: AppleSubscription = AppleSubscription.get_by(user_id=self.id)
-        if apple_sub and apple_sub.is_valid():
-            channels.append(f"Apple Subscription {apple_sub.expires_date.humanize()}")
-
-        manual_sub: ManualSubscription = ManualSubscription.get_by(user_id=self.id)
-        if manual_sub and manual_sub.is_active():
-            mode = "Giveaway" if manual_sub.is_giveaway else "Paid"
-            channels.append(
-                f"Manual Subscription {manual_sub.comment} {mode} {manual_sub.end_at.humanize()}"
-            )
-
-        coinbase_subscription: CoinbaseSubscription = CoinbaseSubscription.get_by(
-            user_id=self.id
-        )
-        if coinbase_subscription and coinbase_subscription.is_active():
-            channels.append(
-                f"Coinbase Subscription ends {coinbase_subscription.end_at.humanize()}"
-            )
-
-        return ".\n".join(channels)
-
-    # endregion
-
-    def max_alias_for_free_account(self) -> int:
-        if (
-            self.FLAG_FREE_OLD_ALIAS_LIMIT
-            == self.flags & self.FLAG_FREE_OLD_ALIAS_LIMIT
-        ):
-            return config.MAX_NB_EMAIL_OLD_FREE_PLAN
-        else:
-            return config.MAX_NB_EMAIL_FREE_PLAN
+        """Every account is premium: billing is handled by the backend in front of this service."""
+        return True
 
     def can_create_new_alias(self) -> bool:
         """
-        Whether user can create a new alias. User can't create a new alias if
-        - has more than user.max_alias_for_free_account() aliases in the free plan, *even in the free trial*
+        Whether user can create a new alias: the account must be active and not disabled.
         """
         return self.can_create_num_aliases(1)
 
@@ -890,15 +716,7 @@ class User(Base, ModelMixin, UserMixin, PasswordOracle):
         if self.disabled:
             return False
 
-        if self.lifetime_or_active_subscription():
-            return True
-        else:
-            active_alias_count = Alias.filter_by(
-                user_id=self.id, delete_on=None
-            ).count()
-            return (
-                active_alias_count + num_aliases
-            ) <= self.max_alias_for_free_account()
+        return True
 
     def can_send_or_receive(self) -> bool:
         if self.disabled:
@@ -946,27 +764,6 @@ class User(Base, ModelMixin, UserMixin, PasswordOracle):
             return ""
         names = self.name.split(" ")
         return "".join([n[0].upper() for n in names if n])
-
-    def get_paddle_subscription(self) -> Optional["Subscription"]:
-        """return *active* Paddle subscription
-        Return None if the subscription is already expired
-        TODO: support user unsubscribe and re-subscribe
-        """
-        sub = Subscription.get_by(user_id=self.id)
-
-        if sub:
-            # grace period is 14 days
-            # sub is active until the next billing_date + PADDLE_SUBSCRIPTION_GRACE_DAYS
-            if (
-                sub.next_bill_date
-                >= arrow.now().shift(days=-PADDLE_SUBSCRIPTION_GRACE_DAYS).date()
-            ):
-                return sub
-            # past subscription, user is considered not having a subscription = free plan
-            else:
-                return None
-        else:
-            return sub
 
     def verified_custom_domains(self) -> List["CustomDomain"]:
         return (
@@ -1109,22 +906,18 @@ class User(Base, ModelMixin, UserMixin, PasswordOracle):
     ) -> list["SLDomain"]:
         if alias_options is None:
             alias_options = AliasOptions()
-        top_conds = [SLDomain.hidden == False]  # noqa: E712
-        or_conds = []  # noqa:E711
-        if self.default_alias_public_domain_id is not None:
-            default_domain_conds = [SLDomain.id == self.default_alias_public_domain_id]
-            if not self.is_premium():
-                default_domain_conds.append(
-                    SLDomain.premium_only == False  # noqa: E712
-                )
-            or_conds.append(and_(*default_domain_conds).self_group())
+        # every account is premium, so premium_only domains are always allowed
         if alias_options.show_sl_domains:
-            sl_conds = []
-            if not self.is_premium():
-                sl_conds.append(SLDomain.premium_only == False)  # noqa: E712
-            or_conds.append(and_(*sl_conds).self_group())
-        top_conds.append(or_(*or_conds))
-        query = Session.query(SLDomain).filter(*top_conds).order_by(SLDomain.order)
+            visible = sa.true()
+        elif self.default_alias_public_domain_id is not None:
+            visible = SLDomain.id == self.default_alias_public_domain_id
+        else:
+            return []
+        query = (
+            Session.query(SLDomain)
+            .filter(SLDomain.hidden == False, visible)  # noqa: E712
+            .order_by(SLDomain.order)
+        )
         return query.all()
 
     def available_alias_domains(
@@ -1164,11 +957,7 @@ class User(Base, ModelMixin, UserMixin, PasswordOracle):
         return random_words(1)
 
     def can_create_contacts(self) -> bool:
-        if self.is_premium():
-            return True
-        if self.flags & User.FLAG_FREE_DISABLE_CREATE_CONTACTS == 0:
-            return True
-        return not config.DISABLE_CREATE_CONTACTS_FOR_FREE_USERS
+        return True
 
     def __repr__(self):
         return f"<User {self.id} {self.name} {self.email}>"
@@ -1923,122 +1712,7 @@ class EmailLog(Base, ModelMixin):
         return f"<EmailLog {self.id}>"
 
 
-class Subscription(Base, ModelMixin):
-    """Paddle subscription"""
-
-    __tablename__ = "subscription"
-
-    # Come from Paddle
-    cancel_url = sa.Column(sa.String(1024), nullable=False)
-    update_url = sa.Column(sa.String(1024), nullable=False)
-    subscription_id = sa.Column(sa.String(1024), nullable=False, unique=True)
-    event_time = sa.Column(ArrowType, nullable=False)
-    next_bill_date = sa.Column(sa.Date, nullable=False)
-
-    cancelled = sa.Column(sa.Boolean, nullable=False, default=False)
-
-    plan = sa.Column(sa.Enum(PlanEnum), nullable=False)
-
-    user_id = sa.Column(
-        sa.ForeignKey(User.id, ondelete="cascade"), nullable=False, unique=True
-    )
-
-    user = orm.relationship(User)
-
-    def plan_name(self):
-        if self.plan == PlanEnum.monthly:
-            return "Monthly"
-        else:
-            return "Yearly"
-
-    def __repr__(self):
-        return f"<Subscription {self.plan} {self.next_bill_date}>"
-
-
-class ManualSubscription(Base, ModelMixin):
-    """
-    For users who use other forms of payment and therefore not pass by Paddle
-    """
-
-    __tablename__ = "manual_subscription"
-
-    user_id = sa.Column(
-        sa.ForeignKey(User.id, ondelete="cascade"), nullable=False, unique=True
-    )
-
-    # an reminder is sent several days before the subscription ends
-    end_at = sa.Column(ArrowType, nullable=False)
-
-    # for storing note about this subscription
-    comment = sa.Column(sa.Text, nullable=True)
-
-    # manual subscription are also used for Premium giveaways
-    is_giveaway = sa.Column(
-        sa.Boolean, default=False, nullable=False, server_default="0"
-    )
-
-    user = orm.relationship(User)
-
-    def is_active(self):
-        return self.end_at > arrow.now()
-
-
-class CoinbaseSubscription(Base, ModelMixin):
-    """
-    For subscriptions using Coinbase Commerce
-    """
-
-    __tablename__ = "coinbase_subscription"
-
-    user_id = sa.Column(
-        sa.ForeignKey(User.id, ondelete="cascade"), nullable=False, unique=True
-    )
-
-    # an reminder is sent several days before the subscription ends
-    end_at = sa.Column(ArrowType, nullable=False)
-
-    # the Coinbase code
-    code = sa.Column(sa.String(64), nullable=True)
-
-    user = orm.relationship(User)
-
-    def is_active(self):
-        return self.end_at > arrow.now()
-
-
 # https://help.apple.com/app-store-connect/#/dev58bda3212
-_APPLE_GRACE_PERIOD_DAYS = 16
-
-
-class AppleSubscription(Base, ModelMixin):
-    """
-    For users who have subscribed via Apple in-app payment
-    """
-
-    __tablename__ = "apple_subscription"
-
-    user_id = sa.Column(
-        sa.ForeignKey(User.id, ondelete="cascade"), nullable=False, unique=True
-    )
-
-    expires_date = sa.Column(ArrowType, nullable=False)
-
-    # to avoid using "Restore Purchase" on another account
-    original_transaction_id = sa.Column(sa.String(256), nullable=False, unique=True)
-    receipt_data = sa.Column(sa.Text(), nullable=False)
-
-    plan = sa.Column(sa.Enum(PlanEnum), nullable=False)
-
-    # to know what subscription user has bought
-    # e.g. io.simplelogin.ios_app.subscription.premium.monthly
-    product_id = sa.Column(sa.String(256), nullable=True)
-
-    user = orm.relationship(User)
-
-    def is_valid(self):
-        return self.expires_date > arrow.now().shift(days=-_APPLE_GRACE_PERIOD_DAYS)
-
-
 class DeletedAlias(Base, ModelMixin):
     """Store all deleted alias to make sure they are NOT reused"""
 
@@ -2342,44 +2016,6 @@ class DomainDeletedAlias(Base, ModelMixin):
         return f"<DomainDeletedAlias {self.id} {self.email}>"
 
 
-class LifetimeCoupon(Base, ModelMixin):
-    __tablename__ = "lifetime_coupon"
-
-    code = sa.Column(sa.String(128), nullable=False, unique=True)
-    nb_used = sa.Column(sa.Integer, nullable=False)
-    paid = sa.Column(sa.Boolean, default=False, server_default="0", nullable=False)
-    comment = sa.Column(sa.Text, nullable=True)
-
-
-class Coupon(Base, ModelMixin):
-    __tablename__ = "coupon"
-
-    code = sa.Column(sa.String(128), nullable=False, unique=True)
-
-    # by default a coupon is for 1 year
-    nb_year = sa.Column(sa.Integer, nullable=False, server_default="1", default=1)
-
-    # whether the coupon has been used
-    used = sa.Column(sa.Boolean, default=False, server_default="0", nullable=False)
-
-    # the user who uses the code
-    # non-null when the coupon is used
-    used_by_user_id = sa.Column(
-        sa.ForeignKey(User.id, ondelete="cascade"), nullable=True
-    )
-
-    is_giveaway = sa.Column(
-        sa.Boolean, default=False, nullable=False, server_default="0"
-    )
-
-    comment = sa.Column(sa.Text, nullable=True)
-
-    # a coupon can have an expiration
-    expires_date = sa.Column(ArrowType, nullable=True)
-
-    __table_args__ = (sa.Index("ix_coupon_used_by_user_id", "used_by_user_id"),)
-
-
 class Directory(Base, ModelMixin):
     __tablename__ = "directory"
     user_id = sa.Column(sa.ForeignKey(User.id, ondelete="cascade"), nullable=False)
@@ -2637,40 +2273,6 @@ class RefusedEmail(Base, ModelMixin):
 
     def __repr__(self):
         return f"<Refused Email {self.id} {self.path} {self.delete_at}>"
-
-
-class Referral(Base, ModelMixin):
-    """Referral code so user can invite others"""
-
-    __tablename__ = "referral"
-
-    user_id = sa.Column(sa.ForeignKey(User.id, ondelete="cascade"), nullable=False)
-    name = sa.Column(sa.String(512), nullable=True, default=None)
-
-    code = sa.Column(sa.String(128), unique=True, nullable=False)
-
-    user = orm.relationship(User, foreign_keys=[user_id], backref="referrals")
-
-    __table_args__ = (sa.Index("ix_referral_user_id", "user_id"),)
-
-    @property
-    def nb_user(self) -> int:
-        return User.filter_by(referral_id=self.id, activated=True).count()
-
-    @property
-    def nb_paid_user(self) -> int:
-        res = 0
-        for user in User.filter_by(referral_id=self.id, activated=True):
-            if user.is_paid():
-                res += 1
-
-        return res
-
-    def link(self):
-        return f"{config.LANDING_PAGE_URL}?slref={self.code}"
-
-    def __repr__(self):
-        return f"<Referral {self.code}>"
 
 
 class SentAlert(Base, ModelMixin):
@@ -2961,28 +2563,6 @@ class TransactionalEmail(Base, ModelMixin):
         if commit:
             Session.commit()
         return r
-
-
-class Payout(Base, ModelMixin):
-    """Referral payouts"""
-
-    __tablename__ = "payout"
-    user_id = sa.Column(sa.ForeignKey("users.id", ondelete="cascade"), nullable=False)
-
-    # in USD
-    amount = sa.Column(sa.Float, nullable=False)
-
-    # BTC, PayPal, etc
-    payment_method = sa.Column(sa.String(256), nullable=False)
-
-    # number of upgraded user included in this payout
-    number_upgraded_account = sa.Column(sa.Integer, nullable=False)
-
-    comment = sa.Column(sa.Text)
-
-    user = orm.relationship(User)
-
-    __table_args__ = (sa.Index("ix_payout_user_id", "user_id"),)
 
 
 class IgnoredEmail(Base, ModelMixin):

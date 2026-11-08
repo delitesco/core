@@ -2,16 +2,8 @@ import arrow
 
 import cron
 from app.db import Session
-from app.models import CoinbaseSubscription, User
+from app.models import User
 from tests.utils import create_new_user
-
-
-def test_notify_manual_sub_end(flask_client):
-    user = create_new_user()
-    CoinbaseSubscription.create(
-        user_id=user.id, end_at=arrow.now().shift(days=13, hours=2), commit=True
-    )
-    cron.notify_manual_sub_end()
 
 
 def test_cleanup_users():

@@ -45,30 +45,6 @@ jobs:
     schedule: "30 5 * * *"
     captureStderr: true
 
-  - name: SimpleLogin Poll Apple Subscriptions
-    command: python /code/cron.py -j poll_apple_subscription
-    shell: /bin/bash
-    schedule: "15 6 * * *"
-    captureStderr: true
-
-  - name: SimpleLogin Notify Trial Ends
-    command: python /code/cron.py -j notify_trial_end
-    shell: /bin/bash
-    schedule: "15 8 * * *"
-    captureStderr: true
-
-  - name: SimpleLogin Notify Manual Subscription Ends
-    command: python /code/cron.py -j notify_manual_subscription_end
-    shell: /bin/bash
-    schedule: "15 9 * * *"
-    captureStderr: true
-
-  - name: SimpleLogin Notify Premium Ends
-    command: python /code/cron.py -j notify_premium_end
-    shell: /bin/bash
-    schedule: "15 10 * * *"
-    captureStderr: true
-
   - name: SimpleLogin delete users scheduled to be deleted
     command: python /code/cron.py -j delete_scheduled_users
     shell: /bin/bash

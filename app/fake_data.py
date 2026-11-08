@@ -1,6 +1,5 @@
 import os
 
-import arrow
 
 from app import s3
 from app.config import ROOT_DIR, get_abs_path, FIRST_ALIAS_DOMAIN
@@ -13,20 +12,12 @@ from app.models import (
     RefusedEmail,
     Contact,
     EmailLog,
-    LifetimeCoupon,
-    Coupon,
-    Subscription,
-    PlanEnum,
-    CoinbaseSubscription,
     ApiKey,
     Mailbox,
     AliasMailbox,
     CustomDomain,
     Directory,
-    Referral,
-    Payout,
     Notification,
-    ManualSubscription,
     SLDomain,
     Hibp,
     AliasHibp,
@@ -49,7 +40,6 @@ def fake_data():
         intro_shown=True,
         fido_uuid=None,
     )
-    user.trial_end = None
     Session.commit()
 
     # add a profile picture
@@ -94,25 +84,6 @@ def fake_data():
         refused_email_id=refused_email.id,
         bounced=True,
         commit=True,
-    )
-
-    LifetimeCoupon.create(code="lifetime-coupon", nb_used=10, commit=True)
-    Coupon.create(code="coupon", commit=True)
-
-    # Create a subscription for user
-    Subscription.create(
-        user_id=user.id,
-        cancel_url="https://checkout.paddle.com/subscription/cancel?user=1234",
-        update_url="https://checkout.paddle.com/subscription/update?user=1234",
-        subscription_id="123",
-        event_time=arrow.now(),
-        next_bill_date=arrow.now().shift(days=10).date(),
-        plan=PlanEnum.monthly,
-        commit=True,
-    )
-
-    CoinbaseSubscription.create(
-        user_id=user.id, end_at=arrow.now().shift(days=10), commit=True
     )
 
     api_key = ApiKey.create(user_id=user.id, name="Chrome")
@@ -195,19 +166,6 @@ def fake_data():
     Directory.create(user_id=user.id, name="xyzt")
     Session.commit()
 
-    referral = Referral.create(user_id=user.id, code="Website", name="First referral")
-    Referral.create(user_id=user.id, code="Podcast", name="First referral")
-    Payout.create(
-        user_id=user.id, amount=1000, number_upgraded_account=100, payment_method="BTC"
-    )
-    Payout.create(
-        user_id=user.id,
-        amount=5000,
-        number_upgraded_account=200,
-        payment_method="PayPal",
-    )
-    Session.commit()
-
     for i in range(6):
         Notification.create(user_id=user.id, message=f"""Hey hey <b>{i}</b> """ * 10)
     Session.commit()
@@ -216,17 +174,9 @@ def fake_data():
         email="winston@continental.com",
         password="password",
         activated=True,
-        referral_id=referral.id,
     )
     Mailbox.create(user_id=user2.id, email="winston2@high.table", verified=True)
     Session.commit()
-
-    ManualSubscription.create(
-        user_id=user2.id,
-        end_at=arrow.now().shift(years=1, days=1),
-        comment="Local manual",
-        commit=True,
-    )
 
     SLDomain.create(domain="premium.com", premium_only=True, commit=True)
 

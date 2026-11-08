@@ -1,43 +1,7 @@
 from flask import url_for
 
-from app import config
-from app.db import Session
 from app.models import User
-from tests.api.utils import get_new_user_and_api_key
 from tests.utils import login
-
-
-def test_user_in_trial(flask_client):
-    user, api_key = get_new_user_and_api_key()
-
-    r = flask_client.get(
-        url_for("api.user_info"), headers={"Authentication": api_key.code}
-    )
-
-    assert r.status_code == 200
-    assert r.json == {
-        "is_premium": True,
-        "name": "Test User",
-        "email": user.email,
-        "in_trial": True,
-        "profile_picture_url": None,
-        "max_alias_free_plan": config.MAX_NB_EMAIL_FREE_PLAN,
-        "can_create_reverse_alias": True,
-    }
-
-
-def test_cannot_create_reverse_alias(flask_client):
-    user, api_key = get_new_user_and_api_key()
-    user.trial_end = None
-    Session.flush()
-    config.DISABLE_CREATE_CONTACTS_FOR_FREE_USERS = True
-
-    r = flask_client.get(
-        url_for("api.user_info"), headers={"Authentication": api_key.code}
-    )
-
-    assert r.status_code == 200
-    assert not r.json["can_create_reverse_alias"]
 
 
 def test_wrong_api_key(flask_client):

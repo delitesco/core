@@ -3,7 +3,7 @@ import uuid
 from flask import url_for
 
 from app import config
-from app.config import EMAIL_DOMAIN, MAX_NB_EMAIL_FREE_PLAN
+from app.config import EMAIL_DOMAIN
 from app.db import Session
 from app.models import Alias, CustomDomain, AliasUsedOn
 from tests.utils import fix_rate_limit_after_request, login, random_domain
@@ -102,24 +102,18 @@ def test_custom_mode(flask_client):
     assert ge.note == "test note"
 
 
-def test_out_of_quota(flask_client):
+def test_no_alias_quota(flask_client):
+    """There is no free plan: alias creation is not limited by a quota."""
     user = login(flask_client)
-    user.trial_end = None
-    Session.commit()
-
-    # create MAX_NB_EMAIL_FREE_PLAN random alias to run out of quota
-    for _ in range(MAX_NB_EMAIL_FREE_PLAN):
+    for _ in range(10):
         Alias.create_new(user, prefix="test1")
+    Session.commit()
 
     r = flask_client.post(
         url_for("api.new_random_alias", hostname="www.test.com"),
     )
 
-    assert r.status_code == 400
-    assert (
-        r.json["error"] == "You have reached the limitation of a free account with "
-        "the maximum of 3 aliases, please upgrade your plan to create more aliases"
-    )
+    assert r.status_code == 201
 
 
 def test_too_many_requests(flask_client):

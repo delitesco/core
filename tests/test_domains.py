@@ -20,36 +20,34 @@ def teardown_module():
 
 
 def test_get_sl_domains():
+    # every account is premium: premium_only domains are included, hidden ones are not
     user = create_new_user()
     domains = user.get_sl_domains()
-    # Premium
-    assert len(domains) == 2
-    assert domains[0].domain == "premium"
-    assert domains[1].domain == "free"
-    assert [d.domain for d in domains] == user.available_sl_domains()
-    # Free
-    user.trial_end = None
-    Session.flush()
-    domains = user.get_sl_domains()
-    assert len(domains) == 1
-    assert domains[0].domain == "free"
+    assert [d.domain for d in domains] == ["premium", "free"]
     assert [d.domain for d in domains] == user.available_sl_domains()
 
 
-def test_premium_default_domain_is_not_shown_to_free_user():
+def test_default_domain_does_not_hide_other_domains():
     user = create_new_user()
-    user.trial_end = None
-    user.default_alias_public_domain_id = (
-        SLDomain.filter_by(premium_only=True).first().id
-    )
+    user.default_alias_public_domain_id = SLDomain.get_by(domain="free").id
     Session.flush()
     domains = user.get_sl_domains(alias_options=AliasOptions(show_sl_domains=True))
+    assert [d.domain for d in domains] == ["premium", "free"]
+
+
+def test_only_default_domain_when_sl_domains_are_not_shown():
+    user = create_new_user()
+    user.default_alias_public_domain_id = SLDomain.get_by(domain="free").id
+    Session.flush()
+    domains = user.get_sl_domains(alias_options=AliasOptions(show_sl_domains=False))
     assert [d.domain for d in domains] == ["free"]
 
 
 def test_hidden_default_domain_is_not_shown():
     user = create_new_user()
-    user.default_alias_public_domain_id = SLDomain.filter_by(hidden=True).first().id
+    user.default_alias_public_domain_id = SLDomain.get_by(domain="hidden").id
     Session.flush()
     domains = user.get_sl_domains()
     assert "hidden" not in [d.domain for d in domains]
+    domains = user.get_sl_domains(alias_options=AliasOptions(show_sl_domains=False))
+    assert domains == []
