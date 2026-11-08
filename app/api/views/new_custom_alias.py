@@ -5,7 +5,13 @@ from flask import jsonify, request
 from app import parallel_limiter
 from app.alias_suffix import check_suffix_signature, verify_prefix_suffix
 from app.alias_utils import check_alias_prefix
-from app.api.base import api_bp, require_api_auth
+from app.api.base import (
+    api_bp,
+    is_optional_str,
+    json_body,
+    parse_int_list,
+    require_api_auth,
+)
 from app.api.serializer import (
     serialize_alias_info_v2,
     get_alias_info_v2,
@@ -57,7 +63,7 @@ def new_custom_alias_v2():
 
     hostname = request.args.get("hostname")
 
-    data = request.get_json()
+    data = json_body()
     if not data:
         LOG.i(f"User {user} tried to create an alias with empty data")
         return jsonify(error="request body cannot be empty"), 400
@@ -76,6 +82,8 @@ def new_custom_alias_v2():
     signed_suffix = signed_suffix.strip()
 
     note = data.get("note")
+    if not is_optional_str(note) or not is_optional_str(data.get("name")):
+        return jsonify(error="Invalid note or name"), 400
     alias_prefix = convert_to_id(alias_prefix)
 
     try:
@@ -164,14 +172,15 @@ def new_custom_alias_v3():
 
     hostname = request.args.get("hostname")
 
-    data = request.get_json()
+    raw_data = request.get_json(silent=True)
+    if raw_data is not None and not isinstance(raw_data, dict):
+        LOG.i(f"User {user} tried to create an alias with invalid format")
+        return jsonify(error="request body does not follow the required format"), 400
+
+    data = json_body()
     if not data:
         LOG.i(f"User {user} tried to create an alias with empty data")
         return jsonify(error="request body cannot be empty"), 400
-
-    if not isinstance(data, dict):
-        LOG.i(f"User {user} tried to create an alias with invalid format")
-        return jsonify(error="request body does not follow the required format"), 400
 
     alias_prefix_data = data.get("alias_prefix", "") or ""
 
@@ -190,6 +199,8 @@ def new_custom_alias_v3():
 
     mailbox_ids = data.get("mailbox_ids")
     note = data.get("note")
+    if not is_optional_str(note) or not is_optional_str(data.get("name")):
+        return jsonify(error="Invalid note or name"), 400
     name = data.get("name")
     if name:
         name = name.replace("\n", "")
@@ -203,8 +214,10 @@ def new_custom_alias_v3():
     if not isinstance(mailbox_ids, list):
         LOG.i(f"User {user} tried to create an alias with invalid mailbox array")
         return jsonify(error="mailbox_ids must be an array of id"), 400
+    if parse_int_list(mailbox_ids) is None:
+        return jsonify(error="mailbox_ids must be an array of id"), 400
     mailboxes = []
-    for mailbox_id in mailbox_ids:
+    for mailbox_id in parse_int_list(mailbox_ids):
         mailbox = Mailbox.get(mailbox_id)
         if not mailbox or mailbox.user_id != user.id or not mailbox.verified:
             LOG.i(f"User {user} tried to create an alias with invalid mailbox")

@@ -2,10 +2,9 @@ from smtplib import SMTPRecipientsRefused
 
 from flask import g
 from flask import jsonify
-from flask import request
 
 from app import mailbox_utils
-from app.api.base import api_bp, require_api_auth
+from app.api.base import api_bp, json_body, parse_int, require_api_auth
 from app.db import Session
 from app.extensions import limiter
 from app.models import Mailbox
@@ -35,8 +34,8 @@ def create_mailbox():
         the new mailbox dict
     """
     user = g.user
-    email = request.get_json().get("email")
-    if not email:
+    email = json_body().get("email")
+    if not email or not isinstance(email, str):
         return jsonify(error="Invalid email"), 400
 
     mailbox_email = sanitize_email(email)
@@ -68,7 +67,7 @@ def verify_mailbox(mailbox_id):
         200 and the mailbox dict, 400 if the code is wrong or expired
     """
     user = g.user
-    data = request.get_json(silent=True) or {}
+    data = json_body()
     code = data.get("code")
     if not isinstance(code, str) or not code:
         return jsonify(error="Invalid code"), 400
@@ -99,12 +98,14 @@ def delete_mailbox(mailbox_id):
 
     """
     user = g.user
-    data = request.get_json() or {}
-    transfer_mailbox_id = data.get("transfer_aliases_to")
-    if transfer_mailbox_id and int(transfer_mailbox_id) >= 0:
-        transfer_mailbox_id = int(transfer_mailbox_id)
-    else:
-        transfer_mailbox_id = None
+    data = json_body()
+    transfer_mailbox_id = None
+    if data.get("transfer_aliases_to") is not None:
+        transfer_mailbox_id = parse_int(data.get("transfer_aliases_to"))
+        if transfer_mailbox_id is None:
+            return jsonify(error="Invalid transfer_aliases_to"), 400
+        if transfer_mailbox_id <= 0:
+            transfer_mailbox_id = None
 
     try:
         mailbox_utils.delete_mailbox(user, mailbox_id, transfer_mailbox_id)
@@ -135,10 +136,12 @@ def update_mailbox(mailbox_id):
     if not mailbox or mailbox.user_id != user.id:
         return jsonify(error="Forbidden"), 403
 
-    data = request.get_json() or {}
+    data = json_body()
     changed = False
     if "default" in data:
         is_default = data.get("default")
+        if not isinstance(is_default, bool):
+            return jsonify(error="Invalid default"), 400
         if is_default:
             if not mailbox.verified:
                 return (
@@ -151,6 +154,8 @@ def update_mailbox(mailbox_id):
             changed = True
 
     if "email" in data:
+        if not isinstance(data.get("email"), str):
+            return jsonify(error="Invalid email"), 400
         new_email = sanitize_email(data.get("email"))
         try:
             mailbox_utils.request_mailbox_email_change(user, mailbox, new_email)
@@ -166,6 +171,8 @@ def update_mailbox(mailbox_id):
 
     if "cancel_email_change" in data:
         cancel_email_change = data.get("cancel_email_change")
+        if not isinstance(cancel_email_change, bool):
+            return jsonify(error="Invalid cancel_email_change"), 400
         if cancel_email_change:
             mailbox_utils.cancel_email_change(mailbox.id, user)
             changed = True

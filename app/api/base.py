@@ -1,5 +1,5 @@
 from functools import wraps
-from typing import Tuple, Optional
+from typing import List, Tuple, Optional
 
 import arrow
 from flask import Blueprint, request, jsonify, g
@@ -8,6 +8,39 @@ from app.db import Session
 from app.models import ApiKey
 
 api_bp = Blueprint(name="api", import_name=__name__, url_prefix="/api")
+
+
+def json_body() -> dict:
+    """The JSON object of the request body, or {} when the body is missing, is not
+    JSON, or is not an object (e.g. a list)."""
+    data = request.get_json(silent=True)
+    return data if isinstance(data, dict) else {}
+
+
+def parse_int(value) -> Optional[int]:
+    """An int from a JSON value (int or numeric string), None if it is anything else."""
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value
+    if isinstance(value, str):
+        try:
+            return int(value)
+        except ValueError:
+            return None
+    return None
+
+
+def is_optional_str(value) -> bool:
+    return value is None or isinstance(value, str)
+
+
+def parse_int_list(value) -> Optional[List[int]]:
+    """A list of ints from a JSON list, None if it is not a list of ints."""
+    if not isinstance(value, list):
+        return None
+    ints = [parse_int(item) for item in value]
+    return None if any(i is None for i in ints) else ints
 
 
 def authorize_request() -> Optional[Tuple[str, int]]:

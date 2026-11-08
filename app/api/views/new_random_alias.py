@@ -4,7 +4,7 @@ from flask import jsonify, request
 
 from app import parallel_limiter
 from app.alias_suffix import get_alias_suffixes
-from app.api.base import api_bp, require_api_auth
+from app.api.base import api_bp, is_optional_str, json_body, require_api_auth
 from app.api.serializer import (
     get_alias_info_v2,
     serialize_alias_info_v2,
@@ -42,9 +42,11 @@ def new_random_alias():
         )
 
     note = None
-    data = request.get_json(silent=True)
+    data = json_body()
     if data:
         note = data.get("note")
+        if not is_optional_str(note):
+            return jsonify(error="Invalid note"), 400
 
     alias = None
 
