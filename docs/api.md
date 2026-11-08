@@ -632,6 +632,13 @@ Input:
 - (optional) `default`: boolean. Set a mailbox as default mailbox.
 - (optional) `email`: email address. Change a mailbox email address.
 - (optional) `cancel_email_change`: boolean. Cancel mailbox email change.
+- (optional) `pgp_public_key`: armored PGP public key used to encrypt forwarded emails; `null` or `""` removes it.
+- (optional) `disable_pgp`: boolean. Keep the key but stop encrypting.
+- (optional) `generic_subject`: string of at most 78 characters that replaces the subject of forwarded emails
+  (hides it from the mailbox provider); `null` turns it off.
+
+Mailbox objects returned by the API also contain `new_email` (pending address change waiting for
+`POST /api/mailboxes/:mailbox_id/verify`, or `null`), `pgp_fingerprint`, `disable_pgp` and `generic_subject`.
 
 Output:
 
@@ -841,10 +848,11 @@ Update user setting. All input fields are optional.
 Input:
 
 - alias_generator (string): `uuid` or `word`
-- notification (boolean): `true` or `false`
 - random_alias_default_domain (string): one of the domains returned by `GET /api/setting/domains`
 - sender_format (string): possible values are `AT`, `A`, `NAME_ONLY`, `AT_ONLY`, `NO_NAME`
 - random_alias_suffix (string): possible values are `word`, `random_string`
+- unsubscribe_behaviour (string): what the "Unsubscribe" button of the mail client does on forwarded emails:
+  `disable_alias`, `block_contact` (block the sender) or `preserve_original` (the sender's own unsubscribe link)
 
 Output: same as `GET /api/setting`
 

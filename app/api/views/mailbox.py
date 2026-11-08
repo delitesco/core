@@ -4,7 +4,15 @@ from flask import g
 from flask import jsonify
 
 from app import mailbox_utils
-from app.api.base import api_bp, json_body, parse_int, require_api_auth
+from app.api.base import (
+    api_bp,
+    is_optional_str,
+    json_body,
+    parse_int,
+    require_api_auth,
+)
+from app.pgp_utils import PGPException, load_public_key_and_check
+from app.user_audit_log_utils import UserAuditLogAction, emit_user_audit_log
 from app.db import Session
 from app.extensions import limiter
 from app.models import Mailbox
@@ -19,6 +27,11 @@ def mailbox_to_dict(mailbox: Mailbox):
         "default": mailbox.user.default_mailbox_id == mailbox.id,
         "creation_timestamp": mailbox.created_at.timestamp,
         "nb_alias": mailbox.nb_alias(),
+        # pending address change, waiting for POST /api/mailboxes/<id>/verify
+        "new_email": mailbox.new_email,
+        "pgp_fingerprint": mailbox.pgp_finger_print,
+        "disable_pgp": mailbox.disable_pgp,
+        "generic_subject": mailbox.generic_subject,
     }
 
 
@@ -168,6 +181,43 @@ def update_mailbox(mailbox_id):
         else:
             mailbox.new_email = new_email
             changed = True
+
+    if "pgp_public_key" in data:
+        public_key = data.get("pgp_public_key")
+        if public_key is None or public_key == "":
+            mailbox.pgp_public_key = None
+            mailbox.pgp_finger_print = None
+            mailbox.disable_pgp = False
+            audit_message = f"Remove PGP key from mailbox {mailbox.id}"
+        else:
+            if not isinstance(public_key, str) or len(public_key) > 100_000:
+                return jsonify(error="Invalid pgp_public_key"), 400
+            try:
+                fingerprint = load_public_key_and_check(public_key)
+            except PGPException:
+                return jsonify(error="Cannot add the public key, please verify it"), 400
+            mailbox.pgp_public_key = public_key
+            mailbox.pgp_finger_print = fingerprint
+            audit_message = f"Add PGP key {fingerprint} to mailbox {mailbox.id}"
+        emit_user_audit_log(
+            user=user, action=UserAuditLogAction.UpdateMailbox, message=audit_message
+        )
+        changed = True
+
+    if "disable_pgp" in data:
+        if not isinstance(data.get("disable_pgp"), bool):
+            return jsonify(error="Invalid disable_pgp"), 400
+        mailbox.disable_pgp = data.get("disable_pgp")
+        changed = True
+
+    if "generic_subject" in data:
+        generic_subject = data.get("generic_subject") or None
+        if not is_optional_str(generic_subject) or (
+            generic_subject and len(generic_subject) > 78
+        ):
+            return jsonify(error="Invalid generic_subject"), 400
+        mailbox.generic_subject = generic_subject
+        changed = True
 
     if "cancel_email_change" in data:
         cancel_email_change = data.get("cancel_email_change")

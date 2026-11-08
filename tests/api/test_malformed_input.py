@@ -64,7 +64,14 @@ def _requests(s):
         (
             "put",
             f"/api/mailboxes/{s['mailbox'].id}",
-            ["default", "email", "cancel_email_change"],
+            [
+                "default",
+                "email",
+                "cancel_email_change",
+                "pgp_public_key",
+                "disable_pgp",
+                "generic_subject",
+            ],
         ),
         ("delete", f"/api/mailboxes/{s['mailbox'].id}", ["transfer_aliases_to"]),
         ("post", f"/api/mailboxes/{s['mailbox'].id}/verify", ["code"]),
