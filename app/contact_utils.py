@@ -52,7 +52,6 @@ def create_contact(
     mail_from: Optional[str] = None,
     allow_empty_email: bool = False,
     automatic_created: bool = False,
-    from_partner: bool = False,
 ) -> ContactCreateResult:
     # If user cannot create contacts, they still need to be created when receiving an email for an alias
     if not automatic_created and not alias.user.can_create_contacts():
@@ -95,7 +94,6 @@ def create_contact(
     reply_email = generate_reply_email(email, alias)
     alias_id = alias.id
     try:
-        flags = Contact.FLAG_PARTNER_CREATED if from_partner else 0
         is_invalid_email = email == ""
         contact = Contact.create(
             user_id=alias.user_id,
@@ -105,7 +103,6 @@ def create_contact(
             reply_email=reply_email,
             mail_from=mail_from,
             automatic_created=automatic_created,
-            flags=flags,
             invalid_email=is_invalid_email,
             commit=True,
         )

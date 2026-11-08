@@ -7,7 +7,6 @@ from app.contact_utils import create_contact, ContactCreateError
 from app.db import Session
 from app.models import (
     Alias,
-    Contact,
     User,
 )
 from tests.utils import create_new_user, random_email, random_token
@@ -22,22 +21,17 @@ def teardown_module(module):
 
 
 def create_provider():
-    # name auto_created from_partner
-    yield ["name", "a@b.c", True, True]
-    yield [None, None, True, True]
-    yield [None, None, False, True]
-    yield [None, None, True, False]
-    yield [None, None, False, False]
+    # name mail_from auto_created
+    yield ["name", "a@b.c", True]
+    yield [None, None, True]
+    yield [None, None, False]
 
 
-@pytest.mark.parametrize(
-    "name, mail_from, automatic_created, from_partner", create_provider()
-)
+@pytest.mark.parametrize("name, mail_from, automatic_created", create_provider())
 def test_create_contact(
     name: Optional[str],
     mail_from: Optional[str],
     automatic_created: bool,
-    from_partner: bool,
 ):
     user = create_new_user()
     alias = Alias.create_new_random(user)
@@ -49,7 +43,6 @@ def test_create_contact(
         name=name,
         mail_from=mail_from,
         automatic_created=automatic_created,
-        from_partner=from_partner,
     )
     assert contact_result.error is None
     contact = contact_result.contact
@@ -60,8 +53,7 @@ def test_create_contact(
     assert contact.mail_from == mail_from
     assert contact.automatic_created == automatic_created
     assert not contact.invalid_email
-    expected_flags = Contact.FLAG_PARTNER_CREATED if from_partner else 0
-    assert contact.flags == expected_flags
+    assert contact.flags == 0
 
 
 def test_create_contact_email_email_not_allowed():

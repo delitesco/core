@@ -5,8 +5,6 @@ from app.alias_audit_log_utils import emit_alias_audit_log, AliasAuditLogAction
 from app.config import ALIAS_TRASH_DAYS
 from app.db import Session
 from app.errors import CannotCreateAliasQuotaExceeded
-from app.events.event_dispatcher import EventDispatcher
-from app.events.generated.event_pb2 import EventContent, AliasDeleted, AliasCreated
 from app.log import LOG
 from app.models import (
     Alias,
@@ -19,18 +17,11 @@ from app.models import (
 
 
 def __delete_alias(alias: Alias, user: User, commit: bool):
-    alias_id = alias.id
-    alias_email = alias.email
-
     emit_alias_audit_log(
         alias, AliasAuditLogAction.DeleteAlias, "Alias deleted by user action"
     )
     Alias.filter(Alias.id == alias.id).delete()
 
-    EventDispatcher.send_event(
-        user,
-        EventContent(alias_deleted=AliasDeleted(id=alias_id, email=alias_email)),
-    )
     if commit:
         Session.commit()
 
@@ -121,16 +112,10 @@ def move_alias_to_trash(
     alias.delete_reason = reason
     alias.enabled = False
 
-    alias_id = alias.id
-    alias_email = alias.email
     emit_alias_audit_log(
         alias, AliasAuditLogAction.TrashAlias, "Alias moved to trash by user action"
     )
 
-    EventDispatcher.send_event(
-        user,
-        EventContent(alias_deleted=AliasDeleted(id=alias_id, email=alias_email)),
-    )
     if commit:
         Session.commit()
 
@@ -148,18 +133,6 @@ def __perform_alias_restore(user: User, alias: Alias) -> None:
         action=AliasAuditLogAction.RestoreAlias,
         message=f"Restored alias {alias.id} from trash",
         user_id=alias.user_id,
-    )
-    EventDispatcher.send_event(
-        user,
-        EventContent(
-            alias_created=AliasCreated(
-                id=alias.id,
-                email=alias.email,
-                note=alias.note,
-                enabled=alias.enabled,
-                created_at=int(alias.created_at.timestamp),
-            )
-        ),
     )
     Session.commit()
 

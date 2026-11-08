@@ -28,14 +28,6 @@ from app.email_utils import (
     sl_formataddr,
 )
 from app.errors import AliasInTrashError
-from app.events.event_dispatcher import EventDispatcher
-from app.events.generated.event_pb2 import (
-    AliasDeleted,
-    AliasStatusChanged,
-    EventContent,
-    AliasCreated,
-    AliasNoteChanged,
-)
 from app.log import LOG
 from app.models import (
     Alias,
@@ -465,33 +457,12 @@ def transfer_alias(alias: Alias, new_user: User, new_mailboxes: [Mailbox]):
         message=f"Lost ownership of alias due to alias transfer confirmed. New owner is {new_user.id}",
         user_id=old_user.id,
     )
-    EventDispatcher.send_event(
-        old_user,
-        EventContent(
-            alias_deleted=AliasDeleted(
-                id=alias.id,
-                email=alias.email,
-            )
-        ),
-    )
 
     emit_alias_audit_log(
         alias=alias,
         action=AliasAuditLogAction.AcceptTransferAlias,
         message=f"Accepted alias transfer from user {old_user.id}",
         user_id=new_user.id,
-    )
-    EventDispatcher.send_event(
-        new_user,
-        EventContent(
-            alias_created=AliasCreated(
-                id=alias.id,
-                email=alias.email,
-                note=alias.note,
-                enabled=alias.enabled,
-                created_at=int(alias.created_at.timestamp),
-            )
-        ),
     )
 
     Session.commit()
@@ -503,13 +474,6 @@ def change_alias_status(
     LOG.i(f"Changing alias {alias} enabled to {enabled}")
     alias.enabled = enabled
 
-    event = AliasStatusChanged(
-        id=alias.id,
-        email=alias.email,
-        enabled=enabled,
-        created_at=int(alias.created_at.timestamp),
-    )
-    EventDispatcher.send_event(alias.user, EventContent(alias_status_change=event))
     audit_log_message = f"Set alias status to {enabled}"
     if message is not None:
         audit_log_message += f". {message}"
@@ -525,13 +489,6 @@ def change_alias_note(alias: Alias, note: str, commit: bool = False):
     LOG.i(f"Changing alias {alias} note.")
 
     alias.note = note
-    event = AliasNoteChanged(
-        id=alias.id,
-        email=alias.email,
-        note=note,
-    )
-
-    EventDispatcher.send_event(alias.user, EventContent(alias_note_changed=event))
 
     if commit:
         Session.commit()

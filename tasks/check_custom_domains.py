@@ -60,8 +60,6 @@ def check_single_custom_domain(custom_domain: CustomDomain):
     mx_domains = get_mx_domains(custom_domain.domain)
     validator = CustomDomainValidation(
         dkim_domain=config.EMAIL_DOMAIN,
-        partner_domains=config.PARTNER_DNS_CUSTOM_DOMAINS,
-        partner_domains_validation_prefixes=config.PARTNER_CUSTOM_DOMAIN_VALIDATION_PREFIXES,
     )
     expected_custom_domains = validator.get_expected_mx_records(custom_domain)
     if not is_mx_equivalent(mx_domains, expected_custom_domains):

@@ -9,7 +9,6 @@ from requests import RequestException
 
 from app.api.base import api_bp, require_api_auth
 from app.config import APPLE_API_SECRET, MACAPP_APPLE_API_SECRET
-from app.subscription_webhook import execute_subscription_webhook
 from app.db import Session
 from app.log import LOG
 from app.models import PlanEnum, AppleSubscription
@@ -56,7 +55,6 @@ def apple_process_payment():
 
     apple_sub = verify_receipt(receipt_data, user, password)
     if apple_sub:
-        execute_subscription_webhook(user)
         return jsonify(ok=True), 200
 
     return jsonify(error="Processing failed"), 400
@@ -293,7 +291,6 @@ def apple_update_notification():
             apple_sub.plan = plan
             apple_sub.product_id = transaction["product_id"]
             Session.commit()
-            execute_subscription_webhook(user)
             return jsonify(ok=True), 200
         else:
             LOG.w(
@@ -570,7 +567,6 @@ def verify_receipt(receipt_data, user, password) -> Optional[AppleSubscription]:
             product_id=latest_transaction["product_id"],
         )
 
-    execute_subscription_webhook(user)
     Session.commit()
 
     return apple_sub

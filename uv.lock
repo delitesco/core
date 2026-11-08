@@ -1034,15 +1034,6 @@ wheels = [
 ]
 
 [[package]]
-name = "oauthlib"
-version = "3.1.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/fc/c7/829c73c64d3749da7811c06319458e47f3461944da9d98bb4df1cb1598c2/oauthlib-3.1.0.tar.gz", hash = "sha256:bee41cc35fcca6e988463cacc3bcb8a96224f470ca547e697b604cc697b2f889", size = 155362, upload-time = "2019-08-06T14:50:42.995Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/05/57/ce2e7a8fa7c0afb54a0581b14a65b56e62b5759dbc98e80627142b8a3704/oauthlib-3.1.0-py2.py3-none-any.whl", hash = "sha256:df884cd6cbe20e32633f1db1072e9356f53638e4361bef4e8b03c9127c9328ea", size = 147368, upload-time = "2019-08-06T14:50:40.718Z" },
-]
-
-[[package]]
 name = "packaging"
 version = "24.2"
 source = { registry = "https://pypi.org/simple" }
@@ -1220,20 +1211,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/42/78/9432542a35d944abeca9e02927a0de38cd7a298466d8ffa171536e2381c3/propcache-0.3.0-cp313-cp313t-win32.whl", hash = "sha256:0c3e893c4464ebd751b44ae76c12c5f5c1e4f6cbd6fbf67e3783cd93ad221863", size = 42252, upload-time = "2025-02-20T19:02:44.447Z" },
     { url = "https://files.pythonhosted.org/packages/6f/45/960365f4f8978f48ebb56b1127adf33a49f2e69ecd46ac1f46d6cf78a79d/propcache-0.3.0-cp313-cp313t-win_amd64.whl", hash = "sha256:75e872573220d1ee2305b35c9813626e620768248425f58798413e9c39741f46", size = 46425, upload-time = "2025-02-20T19:02:48.071Z" },
     { url = "https://files.pythonhosted.org/packages/b5/35/6c4c6fc8774a9e3629cd750dc24a7a4fb090a25ccd5c3246d127b70f9e22/propcache-0.3.0-py3-none-any.whl", hash = "sha256:67dda3c7325691c2081510e92c561f465ba61b975f481735aefdfc845d2cd043", size = 12101, upload-time = "2025-02-20T19:03:27.202Z" },
-]
-
-[[package]]
-name = "protobuf"
-version = "5.27.1"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/20/5f/00d891817d4031bbf4e846a99834bf949a76714c10a726833aa184176772/protobuf-5.27.1.tar.gz", hash = "sha256:df5e5b8e39b7d1c25b186ffdf9f44f40f810bbcc9d2b71d9d3156fee5a9adf15", size = 401656, upload-time = "2024-06-06T15:40:11.034Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/3d/7d/2fb2eb5d1e4bf503818f5c950140e21e9601a71c0dae27ea11300a05b5c5/protobuf-5.27.1-cp310-abi3-win32.whl", hash = "sha256:3adc15ec0ff35c5b2d0992f9345b04a540c1e73bfee3ff1643db43cc1d734333", size = 405837, upload-time = "2024-06-06T15:39:46.673Z" },
-    { url = "https://files.pythonhosted.org/packages/6a/8b/8a1141b09d36840ef7ee3d98482649bd9517926d3d941adfe81e00397044/protobuf-5.27.1-cp310-abi3-win_amd64.whl", hash = "sha256:25236b69ab4ce1bec413fd4b68a15ef8141794427e0b4dc173e9d5d9dffc3bcd", size = 426934, upload-time = "2024-06-06T15:39:49.559Z" },
-    { url = "https://files.pythonhosted.org/packages/1b/14/737d9d432893e75ae1fdaca96e97e8a9b0250c3769a459f44cb419eeaa5e/protobuf-5.27.1-cp38-abi3-macosx_10_9_universal2.whl", hash = "sha256:4e38fc29d7df32e01a41cf118b5a968b1efd46b9c41ff515234e794011c78b17", size = 412285, upload-time = "2024-06-06T15:39:51.654Z" },
-    { url = "https://files.pythonhosted.org/packages/28/8b/b4a2c34922a4fc289ea1533331a4ad45ce539b69151bcc464f6e9ecab426/protobuf-5.27.1-cp38-abi3-manylinux2014_aarch64.whl", hash = "sha256:917ed03c3eb8a2d51c3496359f5b53b4e4b7e40edfbdd3d3f34336e0eef6825a", size = 307129, upload-time = "2024-06-06T15:39:53.881Z" },
-    { url = "https://files.pythonhosted.org/packages/3d/50/85a4f42e14eebfc9091e8e38e77ba4874d52fae08984c97725ba3265a1e1/protobuf-5.27.1-cp38-abi3-manylinux2014_x86_64.whl", hash = "sha256:ee52874a9e69a30271649be88ecbe69d374232e8fd0b4e4b0aaaa87f429f1631", size = 309244, upload-time = "2024-06-06T15:39:55.977Z" },
-    { url = "https://files.pythonhosted.org/packages/e3/ca/30e07cd0e2a12538ca864d055c6624ceea757aa79d9fab8ce38f5515fae6/protobuf-5.27.1-py3-none-any.whl", hash = "sha256:4ac7249a1530a2ed50e24201d6630125ced04b30619262f06224616e0030b6cf", size = 164798, upload-time = "2024-06-06T15:40:09.149Z" },
 ]
 
 [[package]]
@@ -1549,19 +1526,6 @@ wheels = [
 ]
 
 [[package]]
-name = "requests-oauthlib"
-version = "1.3.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "oauthlib" },
-    { name = "requests" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/23/eb/68fc8fa86e0f5789832f275c8289257d8dc44dbe93fce7ff819112b9df8f/requests-oauthlib-1.3.0.tar.gz", hash = "sha256:b4261601a71fd721a8bd6d7aa1cc1d6a8a93b4a9f5e96626f8e4d91e8beeaa6a", size = 88157, upload-time = "2019-11-06T14:41:43.158Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/a3/12/b92740d845ab62ea4edf04d2f4164d82532b5a0b03836d4d4e71c6f3d379/requests_oauthlib-1.3.0-py2.py3-none-any.whl", hash = "sha256:7f71572defaecd16372f9006f33c2ec8c077c3cfa6f5911a9a90202beb513f3d", size = 23560, upload-time = "2019-11-06T14:41:48.125Z" },
-]
-
-[[package]]
 name = "ruamel-yaml"
 version = "0.17.4"
 source = { registry = "https://pypi.org/simple" }
@@ -1664,7 +1628,6 @@ dependencies = [
     { name = "memory-profiler" },
     { name = "pgpy" },
     { name = "phpserialize" },
-    { name = "protobuf" },
     { name = "psycopg2-binary" },
     { name = "pycryptodome" },
     { name = "pyopenssl" },
@@ -1675,7 +1638,6 @@ dependencies = [
     { name = "python-gnupg" },
     { name = "redis" },
     { name = "requests" },
-    { name = "requests-oauthlib" },
     { name = "sqlalchemy" },
     { name = "sqlalchemy-utils" },
     { name = "strictyaml" },
@@ -1731,7 +1693,6 @@ requires-dist = [
     { name = "memory-profiler", specifier = "~=0.57.0" },
     { name = "pgpy", specifier = "==0.5.4" },
     { name = "phpserialize", specifier = "~=1.3" },
-    { name = "protobuf", specifier = "==5.27.1" },
     { name = "psycopg2-binary", specifier = "~=2.9.10" },
     { name = "pycryptodome", specifier = "~=3.9.8" },
     { name = "pyopenssl", specifier = "~=19.1.0" },
@@ -1742,7 +1703,6 @@ requires-dist = [
     { name = "python-gnupg", specifier = "~=0.4.6" },
     { name = "redis", specifier = "==5.2.1" },
     { name = "requests", specifier = "~=2.25.1" },
-    { name = "requests-oauthlib", specifier = "~=1.3.0" },
     { name = "sqlalchemy", specifier = "~=1.3.24" },
     { name = "sqlalchemy-utils", specifier = "==0.36.8" },
     { name = "sqlalchemy-utils", specifier = "~=0.36.8" },

@@ -1,28 +1,18 @@
 import base64
 import dataclasses
 from io import BytesIO
-from typing import Optional
 
 from flask import jsonify, g, request, make_response
 
-from app import s3, config
+from app import s3
 from app.api.base import api_bp, require_api_auth
 from app.config import SESSION_COOKIE_NAME
 from app.db import Session
 from app.user_stats import get_stats
 from app.image_validation import detect_image_format, ImageFormat
-from app.models import ApiKey, File, PartnerUser, User
-from app.proton.proton_partner import get_proton_partner
+from app.models import ApiKey, File, User
 from app.session import logout_session
 from app.utils import random_string
-
-
-def get_connected_proton_address(user: User) -> Optional[str]:
-    proton_partner = get_proton_partner()
-    partner_user = PartnerUser.get_by(user_id=user.id, partner_id=proton_partner.id)
-    if partner_user is None:
-        return None
-    return partner_user.partner_email
 
 
 def user_to_dict(user: User) -> dict:
@@ -32,12 +22,8 @@ def user_to_dict(user: User) -> dict:
         "email": user.email,
         "in_trial": user.in_trial(),
         "max_alias_free_plan": user.max_alias_for_free_account(),
-        "connected_proton_address": None,
         "can_create_reverse_alias": user.can_create_contacts(),
     }
-
-    if config.CONNECT_WITH_PROTON:
-        ret["connected_proton_address"] = get_connected_proton_address(user)
 
     if user.profile_picture_id:
         ret["profile_picture_url"] = user.profile_picture.get_url()
@@ -59,7 +45,6 @@ def user_info():
     - email
     - in_trial
     - max_alias_free
-    - is_connected_with_proton
     - can_create_reverse_alias
     """
     user = g.user

@@ -106,9 +106,7 @@ def can_domain_be_used(user: User, domain: str) -> Optional[CannotUseDomainReaso
         return None
 
 
-def create_custom_domain(
-    user: User, domain: str, partner_id: Optional[int] = None
-) -> CreateCustomDomainResult:
+def create_custom_domain(user: User, domain: str) -> CreateCustomDomainResult:
     if not user.is_premium():
         return CreateCustomDomainResult(
             message="Only premium plan can add custom domain",
@@ -133,10 +131,6 @@ def create_custom_domain(
                 root_cd,
             )
             new_custom_domain.ownership_verified = True
-
-    # Add the partner_id in case it's passed
-    if partner_id is not None:
-        new_custom_domain.partner_id = partner_id
 
     emit_user_audit_log(
         user=user,

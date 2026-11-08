@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import List
 
 from app import config
 from app.constants import DMARC_RECORD
@@ -57,28 +57,14 @@ class CustomDomainValidation:
         self,
         dkim_domain: str,
         dns_client: DNSClient = get_network_dns_client(),
-        partner_domains: Optional[dict[int, str]] = None,
-        partner_domains_validation_prefixes: Optional[dict[int, str]] = None,
     ):
         self.dkim_domain = dkim_domain
         self._dns_client = dns_client
-        self._partner_domains = partner_domains or config.PARTNER_DNS_CUSTOM_DOMAINS
-        self._partner_domain_validation_prefixes = (
-            partner_domains_validation_prefixes
-            or config.PARTNER_CUSTOM_DOMAIN_VALIDATION_PREFIXES
-        )
 
     def get_ownership_verification_record(
         self, domain: CustomDomain
     ) -> ExpectedValidationRecords:
         prefixes = ["sl"]
-        if (
-            domain.partner_id is not None
-            and domain.partner_id in self._partner_domain_validation_prefixes
-        ):
-            prefixes.insert(
-                0, self._partner_domain_validation_prefixes[domain.partner_id]
-            )
 
         if not domain.ownership_txt_token:
             domain.ownership_txt_token = random_string(30)
@@ -93,11 +79,6 @@ class CustomDomainValidation:
         self, domain: CustomDomain
     ) -> dict[int, ExpectedValidationRecords]:
         records = {}
-        if domain.partner_id is not None and domain.partner_id in self._partner_domains:
-            domain = self._partner_domains[domain.partner_id]
-            records[10] = [f"mx1.{domain}."]
-            records[20] = [f"mx2.{domain}."]
-        # Default ones
         for priority, domain in config.EMAIL_SERVERS_WITH_PRIORITY:
             if priority not in records:
                 records[priority] = []
@@ -113,11 +94,7 @@ class CustomDomainValidation:
     def get_expected_spf_domain(
         self, domain: CustomDomain
     ) -> ExpectedValidationRecords:
-        records = []
-        if domain.partner_id is not None and domain.partner_id in self._partner_domains:
-            records.append(self._partner_domains[domain.partner_id])
-        else:
-            records.append(config.EMAIL_DOMAIN)
+        records = [config.EMAIL_DOMAIN]
         return ExpectedValidationRecords(recommended=records[0], allowed=records)
 
     def get_expected_spf_record(self, domain: CustomDomain) -> str:
@@ -128,17 +105,10 @@ class CustomDomainValidation:
         self, domain: CustomDomain
     ) -> {str: ExpectedValidationRecords}:
         """
-        Get a list of dkim records to set up. Depending on the custom_domain, whether if it's from a partner or not,
-        it will return the default ones or the partner ones.
+        Get a list of dkim records to set up.
         """
 
-        # By default use the default domain
         dkim_domains = [self.dkim_domain]
-        if domain.partner_id is not None:
-            # Domain is from a partner. Retrieve the partner config and use that domain as preferred if it exists
-            partner_domain = self._partner_domains.get(domain.partner_id, None)
-            if partner_domain is not None:
-                dkim_domains.insert(0, partner_domain)
 
         output = {}
         for key in ("dkim", "dkim02", "dkim03"):

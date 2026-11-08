@@ -16,7 +16,7 @@ from app.custom_domain_utils import (
 from app.db import Session
 from app.models import User, CustomDomain, Mailbox, DomainMailbox, Alias
 from tests.utils import create_new_user, random_string, random_domain
-from tests.utils import get_proton_partner, random_email
+from tests.utils import random_email
 
 user: Optional[User] = None
 
@@ -141,16 +141,6 @@ def test_can_create_custom_domain_validates_if_parent_is_validated():
     assert res.instance.domain == subdomain
     assert res.instance.user_id == user.id
     assert res.instance.ownership_verified is True
-
-
-def test_creates_custom_domain_with_partner_id():
-    domain = random_domain()
-    proton_partner = get_proton_partner()
-    res = create_custom_domain(user=user, domain=domain, partner_id=proton_partner.id)
-    assert res.success is True
-    assert res.instance.domain == domain
-    assert res.instance.user_id == user.id
-    assert res.instance.partner_id == proton_partner.id
 
 
 # set_custom_domain_mailboxes

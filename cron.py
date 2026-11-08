@@ -23,7 +23,6 @@ from app.email_utils import (
     get_email_domain_part,
 )
 from app.email_validation import is_valid_email, normalize_reply_email
-from app.errors import ProtonPartnerNotSetUp
 from app.log import LOG
 from app.mail_sender import load_unsent_mails_from_fs_and_resend
 from app.models import (
@@ -50,11 +49,8 @@ from app.models import (
     Directory,
     DeletedDirectory,
     DeletedSubdomain,
-    PartnerSubscription,
-    PartnerUser,
 )
 from app.pgp_utils import load_public_key_and_check, PGPException
-from app.proton.proton_partner import get_proton_partner
 from app.user_audit_log_utils import emit_user_audit_log, UserAuditLogAction
 from app.utils import sanitize_email
 from server import create_light_app
@@ -319,35 +315,11 @@ def compute_metric2() -> Metric2:
         if user.is_paid():
             nb_referred_user_paid += 1
 
-    # compute nb_proton_premium, nb_proton_user
-    nb_proton_premium = nb_proton_user = 0
-    try:
-        proton_partner = get_proton_partner()
-        nb_proton_premium = (
-            Session.query(PartnerSubscription, PartnerUser)
-            .filter(
-                PartnerSubscription.partner_user_id == PartnerUser.id,
-                PartnerUser.partner_id == proton_partner.id,
-                PartnerSubscription.end_at > now,
-            )
-            .count()
-        )
-        nb_proton_user = (
-            Session.query(PartnerUser)
-            .filter(
-                PartnerUser.partner_id == proton_partner.id,
-            )
-            .count()
-        )
-    except ProtonPartnerNotSetUp:
-        LOG.d("Proton partner not set up")
-
     return Metric2.create(
         date=now,
         # user stats
         nb_user=User.count(),
         nb_activated_user=User.filter_by(activated=True).count(),
-        nb_proton_user=nb_proton_user,
         # subscription stats
         nb_premium=Subscription.filter(Subscription.cancelled.is_(False)).count(),
         nb_cancelled_premium=Subscription.filter(
@@ -362,7 +334,6 @@ def compute_metric2() -> Metric2:
         nb_coinbase_premium=CoinbaseSubscription.filter(
             CoinbaseSubscription.end_at > now
         ).count(),
-        nb_proton_premium=nb_proton_premium,
         # referral stats
         nb_referred_user=User.filter(User.referral_id.isnot(None)).count(),
         nb_referred_user_paid=nb_referred_user_paid,
@@ -557,13 +528,11 @@ def stats():
 Growth Stats for {today}
 
 nb_user: {stats_today.nb_user} - {increase_percent(stats_yesterday.nb_user, stats_today.nb_user)}
-nb_proton_user: {stats_today.nb_proton_user} - {increase_percent(stats_yesterday.nb_proton_user, stats_today.nb_proton_user)}
 nb_premium: {stats_today.nb_premium} - {increase_percent(stats_yesterday.nb_premium, stats_today.nb_premium)}
 nb_cancelled_premium: {stats_today.nb_cancelled_premium} - {increase_percent(stats_yesterday.nb_cancelled_premium, stats_today.nb_cancelled_premium)}
 nb_apple_premium: {stats_today.nb_apple_premium} - {increase_percent(stats_yesterday.nb_apple_premium, stats_today.nb_apple_premium)}
 nb_manual_premium: {stats_today.nb_manual_premium} - {increase_percent(stats_yesterday.nb_manual_premium, stats_today.nb_manual_premium)}
 nb_coinbase_premium: {stats_today.nb_coinbase_premium} - {increase_percent(stats_yesterday.nb_coinbase_premium, stats_today.nb_coinbase_premium)}
-nb_proton_premium: {stats_today.nb_proton_premium} - {increase_percent(stats_yesterday.nb_proton_premium, stats_today.nb_proton_premium)}
 nb_alias: {stats_today.nb_alias} - {increase_percent(stats_yesterday.nb_alias, stats_today.nb_alias)}
 
 nb_forward_last_24h: {stats_today.nb_forward_last_24h} - {increase_percent(stats_yesterday.nb_forward_last_24h, stats_today.nb_forward_last_24h)}
@@ -936,11 +905,6 @@ async def _hibp_check(api_key: str, queue: asyncio.Queue):
             alias.hibp_last_check = arrow.utcnow()
             Session.commit()
             continue
-        if alias.is_created_from_partner():
-            # Mark as hibp done
-            alias.hibp_last_check = arrow.utcnow()
-            Session.commit()
-            continue
 
         LOG.d("Checking HIBP for %s", alias)
 
@@ -1012,12 +976,6 @@ def get_alias_to_check_hibp(
             User.id == CoinbaseSubscription.user_id,
             isouter=True,
         )
-        .join(PartnerUser, User.id == PartnerUser.user_id, isouter=True)
-        .join(
-            PartnerSubscription,
-            PartnerSubscription.partner_user_id == PartnerUser.id,
-            isouter=True,
-        )
         .filter(
             or_(
                 Alias.hibp_last_check.is_(None),
@@ -1036,14 +994,9 @@ def get_alias_to_check_hibp(
                 Subscription.next_bill_date > now.date(),
                 AppleSubscription.expires_date > now,
                 CoinbaseSubscription.end_at > now,
-                PartnerSubscription.end_at > now,
             ),
         )
     )
-    if config.HIBP_SKIP_PARTNER_ALIAS:
-        alias_query = alias_query.filter(
-            Alias.flags.op("&")(Alias.FLAG_PARTNER_CREATED) == 0
-        )
     for alias in (
         alias_query.order_by(Alias.id.asc()).enable_eagerloads(False).yield_per(500)
     ):

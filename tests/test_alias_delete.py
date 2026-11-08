@@ -3,13 +3,11 @@ from typing import List, Optional
 import arrow
 import pytest
 
-from app import config
 from app.alias_audit_log_utils import AliasAuditLogAction
 from app.alias_delete import delete_alias, restore_all_alias, clear_trash
 from app.alias_delete import perform_alias_deletion, move_alias_to_trash, restore_alias
 from app.db import Session
 from app.errors import CannotCreateAliasQuotaExceeded
-from app.events.event_dispatcher import GlobalDispatcher
 from app.models import (
     UserAliasDeleteAction,
     Alias,
@@ -17,28 +15,10 @@ from app.models import (
     AliasAuditLog,
     DeletedAlias,
     Mailbox,
-    PartnerUser,
     CustomDomain,
     DomainDeletedAlias,
 )
-from tests.events.event_test_utils import (
-    OnMemoryDispatcher,
-    _get_event_from_string,
-    _create_linked_user,
-)
 from tests.utils import create_new_user, random_domain
-
-on_memory_dispatcher = OnMemoryDispatcher()
-
-
-def setup_module():
-    GlobalDispatcher.set_dispatcher(on_memory_dispatcher)
-    config.EVENT_WEBHOOK = "http://test"
-
-
-def teardown_module():
-    GlobalDispatcher.set_dispatcher(None)
-    config.EVENT_WEBHOOK = None
 
 
 def ensure_alias_is_trashed(
@@ -211,38 +191,23 @@ def test_delete_mailbox_deletes_alias_with_user_setting(
 
 
 # Restore alias
-def check_alias_has_been_restored(alias_id: int, user_pu: PartnerUser):
+def check_alias_has_been_restored(alias_id: int, user_id: int):
     alias = Alias.get(alias_id)
     assert alias.delete_on is None
     assert alias.delete_reason is None
     assert alias.enabled
     # audit log
     audit_log = (
-        AliasAuditLog.get_by(user_id=user_pu.user_id, alias_id=alias.id)
+        AliasAuditLog.get_by(user_id=user_id, alias_id=alias.id)
         .order_by(AliasAuditLog.id.desc())
         .first()
     )
     assert audit_log is not None
     assert audit_log.action == AliasAuditLogAction.RestoreAlias.value
-    # create event
-    assert len(on_memory_dispatcher.memory) > 0
-    found = False
-    for event_data in on_memory_dispatcher.memory:
-        event_content = _get_event_from_string(event_data, user_pu.user, user_pu)
-        if event_content.alias_created is None:
-            continue
-        alias_created = event_content.alias_created
-        if alias_created.id != alias.id:
-            continue
-        found = True
-        assert alias.email == alias_created.email
-        assert alias.note or "" == alias_created.note
-        assert alias.enabled == alias_created.enabled
-    assert found
 
 
 def test_restore_one_alias():
-    (user, user_pu) = _create_linked_user()
+    user = create_new_user()
     alias1 = Alias.create_new_random(user)
     alias1.delete_on = arrow.now().shift(minutes=6)
     alias1.delete_reason = AliasDeleteReason.Unspecified
@@ -252,18 +217,17 @@ def test_restore_one_alias():
     alias2.delete_reason = AliasDeleteReason.Unspecified
     alias2.enabled = False
     Session.commit()
-    on_memory_dispatcher.clear()
     restore_alias(user, alias2.id)
     new_alias_1 = Alias.get(alias1.id)
     assert new_alias_1.delete_on is not None
     assert new_alias_1.delete_reason is not None
     assert not new_alias_1.enabled
-    check_alias_has_been_restored(alias2.id, user_pu)
+    check_alias_has_been_restored(alias2.id, user.id)
 
 
 # Restore all alias
 def test_restore_all_alias():
-    (user, user_pu) = _create_linked_user()
+    user = create_new_user()
     alias1 = Alias.create_new_random(user)
     alias1.delete_on = arrow.now().shift(minutes=6)
     alias1.delete_reason = AliasDeleteReason.Unspecified
@@ -273,21 +237,19 @@ def test_restore_all_alias():
     alias2.delete_reason = AliasDeleteReason.Unspecified
     alias2.enabled = False
     Session.commit()
-    on_memory_dispatcher.clear()
     count = restore_all_alias(user)
     assert count == 2
-    check_alias_has_been_restored(alias1.id, user_pu)
-    check_alias_has_been_restored(alias2.id, user_pu)
+    check_alias_has_been_restored(alias1.id, user.id)
+    check_alias_has_been_restored(alias2.id, user.id)
 
 
 def test_clear_trash():
-    (user, user_pu) = _create_linked_user()
+    user = create_new_user()
     alias1 = Alias.create_new_random(user)
     alias2 = Alias.create_new_random(user)
     alias2.delete_on = arrow.now().shift(days=10)
     alias2.delete_reason = AliasDeleteReason.MailboxDeleted
     Session.commit()
-    on_memory_dispatcher.clear()
     count = clear_trash(user)
     assert count == 1
     db_alias = Alias.get_by(id=alias1.id)
