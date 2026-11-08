@@ -1312,19 +1312,6 @@ class ResetPasswordCode(Base, ModelMixin):
         return self.expired < arrow.now()
 
 
-class SocialAuth(Base, ModelMixin):
-    """Store how user authenticates with social login"""
-
-    __tablename__ = "social_auth"
-
-    user_id = sa.Column(sa.ForeignKey(User.id, ondelete="cascade"), nullable=False)
-
-    # name of the social login used, could be facebook, google or github
-    social = sa.Column(sa.String(128), nullable=False)
-
-    __table_args__ = (sa.UniqueConstraint("user_id", "social", name="uq_social_auth"),)
-
-
 # <<< OAUTH models >>>
 
 
