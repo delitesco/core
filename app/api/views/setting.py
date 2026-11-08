@@ -1,7 +1,7 @@
 import arrow
-from flask import jsonify, g, request
+from flask import jsonify, g
 
-from app.api.base import api_bp, require_api_auth
+from app.api.base import api_bp, json_body, require_api_auth
 from app.db import Session
 from app.log import LOG
 from app.models import (
@@ -50,7 +50,15 @@ def update_setting():
     - random_alias_default_domain: str
     """
     user = g.user
-    data = request.get_json() or {}
+    data = json_body()
+    for field in (
+        "alias_generator",
+        "sender_format",
+        "random_alias_suffix",
+        "random_alias_default_domain",
+    ):
+        if field in data and not isinstance(data[field], str):
+            return jsonify(error=f"Invalid {field}"), 400
 
     if "alias_generator" in data:
         alias_generator = data["alias_generator"]
@@ -80,6 +88,8 @@ def update_setting():
     if "random_alias_default_domain" in data:
         default_domain = data["random_alias_default_domain"]
         sl_domain: SLDomain = SLDomain.get_by(domain=default_domain)
+        if sl_domain and sl_domain.hidden:
+            return jsonify(error="invalid domain"), 400
         if sl_domain:
             if sl_domain.premium_only and not user.is_premium():
                 return jsonify(error="You cannot use this domain"), 400

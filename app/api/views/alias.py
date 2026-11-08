@@ -8,7 +8,14 @@ from flask import request
 from app import alias_utils, alias_delete
 from app.alias_audit_log_utils import emit_alias_audit_log, AliasAuditLogAction
 from app.alias_mailbox_utils import set_mailboxes_for_alias
-from app.api.base import api_bp, require_api_auth
+from app.api.base import (
+    api_bp,
+    is_optional_str,
+    json_body,
+    parse_int,
+    parse_int_list,
+    require_api_auth,
+)
 from app.api.serializer import (
     AliasInfo,
     serialize_alias_info,
@@ -61,7 +68,7 @@ def get_aliases():
         return jsonify(error="page_id must be provided in request query"), 400
 
     query = None
-    data = request.get_json(silent=True)
+    data = json_body()
     if data:
         query = data.get("query")
 
@@ -132,7 +139,7 @@ def get_aliases_v2():
         alias_filter = None
 
     query = None
-    data = request.get_json(silent=True)
+    data = json_body()
     if data:
         query = data.get("query")
 
@@ -273,7 +280,7 @@ def update_alias(alias_id):
     Output:
         200
     """
-    data = request.get_json()
+    data = json_body()
     if not data:
         return jsonify(error="request body cannot be empty"), 400
 
@@ -287,12 +294,16 @@ def update_alias(alias_id):
     changed = False
     if "note" in data:
         new_note = data.get("note")
+        if not is_optional_str(new_note):
+            return jsonify(error="Invalid note"), 400
         alias_utils.change_alias_note(alias, new_note)
         changed_fields.append("note")
         changed = True
 
     if "mailbox_id" in data:
-        mailbox_id = int(data.get("mailbox_id"))
+        mailbox_id = parse_int(data.get("mailbox_id"))
+        if mailbox_id is None:
+            return jsonify(error="Invalid mailbox_id"), 400
         mailbox = Mailbox.get(mailbox_id)
         if not mailbox or mailbox.user_id != user.id or not mailbox.verified:
             return jsonify(error="Forbidden"), 400
@@ -302,9 +313,8 @@ def update_alias(alias_id):
         changed = True
 
     if "mailbox_ids" in data:
-        try:
-            mailbox_ids = [int(m_id) for m_id in data.get("mailbox_ids")]
-        except (ValueError, TypeError):
+        mailbox_ids = parse_int_list(data.get("mailbox_ids"))
+        if mailbox_ids is None:
             return jsonify(error="Invalid mailbox_id"), 400
         err = set_mailboxes_for_alias(
             user_id=user.id, alias=alias, mailbox_ids=mailbox_ids
@@ -319,6 +329,8 @@ def update_alias(alias_id):
     if "name" in data:
         # to make sure alias name doesn't contain linebreak
         new_name = data.get("name")
+        if not is_optional_str(new_name):
+            return jsonify(error="Invalid name"), 400
         if new_name and len(new_name) > 128:
             return jsonify(error="Name can't be longer than 128 characters"), 400
 
@@ -329,11 +341,15 @@ def update_alias(alias_id):
         changed = True
 
     if "disable_pgp" in data:
+        if not isinstance(data.get("disable_pgp"), bool):
+            return jsonify(error="Invalid disable_pgp"), 400
         alias.disable_pgp = data.get("disable_pgp")
         changed_fields.append("disable_pgp")
         changed = True
 
     if "pinned" in data:
+        if not isinstance(data.get("pinned"), bool):
+            return jsonify(error="Invalid pinned"), 400
         alias.pinned = data.get("pinned")
         changed_fields.append("pinned")
         changed = True
@@ -421,7 +437,7 @@ def create_contact_route(alias_id):
         201 if success
         409 if contact already added
     """
-    data = request.get_json()
+    data = json_body()
     if not data:
         return jsonify(error="request body cannot be empty"), 400
 
@@ -430,6 +446,8 @@ def create_contact_route(alias_id):
         return jsonify(error="Forbidden"), 403
 
     contact_address = data.get("contact")
+    if not isinstance(contact_address, str):
+        return jsonify(error="Invalid contact"), 400
 
     try:
         contact = create_contact_for_alias(alias, contact_address)

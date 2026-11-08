@@ -1,8 +1,8 @@
 import dataclasses
 
-from flask import jsonify, g, request
+from flask import jsonify, g
 
-from app.api.base import api_bp, require_api_auth
+from app.api.base import api_bp, is_optional_str, json_body, require_api_auth
 from app.db import Session
 from app.user_stats import get_stats
 from app.models import User
@@ -45,10 +45,13 @@ def update_user_info():
     - name (optional)
     """
     user = g.user
-    data = request.get_json() or {}
+    data = json_body()
 
     if "name" in data:
-        user.name = data["name"]
+        name = data["name"]
+        if not is_optional_str(name) or (name and len(name) > 128):
+            return jsonify(error="Invalid name"), 400
+        user.name = name
 
     Session.commit()
 

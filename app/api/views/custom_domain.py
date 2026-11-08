@@ -1,7 +1,13 @@
-from flask import g, request
+from flask import g
 from flask import jsonify
 
-from app.api.base import api_bp, require_api_auth
+from app.api.base import (
+    api_bp,
+    is_optional_str,
+    json_body,
+    parse_int_list,
+    require_api_auth,
+)
 from app.custom_domain_utils import set_custom_domain_mailboxes
 from app.db import Session
 from app.extensions import limiter
@@ -76,7 +82,7 @@ def update_custom_domain(custom_domain_id):
     Output:
         200
     """
-    data = request.get_json()
+    data = json_body()
     if not data:
         return jsonify(error="request body cannot be empty"), 400
 
@@ -89,21 +95,29 @@ def update_custom_domain(custom_domain_id):
     changed = False
     if "catch_all" in data:
         catch_all = data.get("catch_all")
+        if not isinstance(catch_all, bool):
+            return jsonify(error="Invalid catch_all"), 400
         custom_domain.catch_all = catch_all
         changed = True
 
     if "random_prefix_generation" in data:
         random_prefix_generation = data.get("random_prefix_generation")
+        if not isinstance(random_prefix_generation, bool):
+            return jsonify(error="Invalid random_prefix_generation"), 400
         custom_domain.random_prefix_generation = random_prefix_generation
         changed = True
 
     if "name" in data:
         name = data.get("name")
+        if not is_optional_str(name) or (name and len(name) > 128):
+            return jsonify(error="Invalid name"), 400
         custom_domain.name = name
         changed = True
 
     if "mailbox_ids" in data:
-        mailbox_ids = [int(m_id) for m_id in data.get("mailbox_ids")]
+        mailbox_ids = parse_int_list(data.get("mailbox_ids"))
+        if mailbox_ids is None:
+            return jsonify(error="Invalid mailbox_ids"), 400
         result = set_custom_domain_mailboxes(user.id, custom_domain, mailbox_ids)
         if result.success:
             changed = True
