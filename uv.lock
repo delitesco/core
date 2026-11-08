@@ -531,18 +531,6 @@ wheels = [
 ]
 
 [[package]]
-name = "facebook-sdk"
-version = "3.1.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "requests" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/80/c7/e9b1677116e6a850b5f22630959b87c0d2605d3753d8f52eebd544f85662/facebook-sdk-3.1.0.tar.gz", hash = "sha256:cabcd2e69ea3d9f042919c99b353df7aa1e2be86d040121f6e9f5e63c1cf0f8d", size = 16281, upload-time = "2018-11-06T06:54:02.227Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/79/d7/4cb0f5930f79205cc45db22e17fa716396d813c3d6b8d5de77783a5fa59a/facebook_sdk-3.1.0-py2.py3-none-any.whl", hash = "sha256:2e987b3e0f466a6f4ee77b935eb023dba1384134f004a2af21f1cfff7fe0806e", size = 7542, upload-time = "2018-11-06T06:53:51.671Z" },
-]
-
-[[package]]
 name = "filelock"
 version = "3.15.4"
 source = { registry = "https://pypi.org/simple" }
@@ -805,84 +793,6 @@ wheels = [
 ]
 
 [[package]]
-name = "google-api-core"
-version = "1.22.2"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "google-auth" },
-    { name = "googleapis-common-protos" },
-    { name = "protobuf" },
-    { name = "pytz" },
-    { name = "requests" },
-    { name = "setuptools" },
-    { name = "six" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/6b/0b/992fd8a7fcc8b6498b85ec771237a7306e84f3523d9f34c9ea47ca00d82a/google-api-core-1.22.2.tar.gz", hash = "sha256:779107f17e0fef8169c5239d56a8fbff03f9f72a3893c0c9e5842ec29dfedd54", size = 92933, upload-time = "2020-09-03T19:05:33.379Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/3c/45/a5707ce2cbd6681c09e69a0ce10d9bebe98e0231c458a4dc652670f3584f/google_api_core-1.22.2-py2.py3-none-any.whl", hash = "sha256:67e33a852dcca7cb7eff49abc35c8cc2c0bb8ab11397dc8306d911505cae2990", size = 91155, upload-time = "2020-09-03T19:05:31.714Z" },
-]
-
-[[package]]
-name = "google-api-python-client"
-version = "1.12.3"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "google-api-core" },
-    { name = "google-auth" },
-    { name = "google-auth-httplib2" },
-    { name = "httplib2" },
-    { name = "six" },
-    { name = "uritemplate" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/36/76/5e27bab1fb7e449fe3564019f36c96dd0fc0240132e9a8744835ec6c3567/google-api-python-client-1.12.3.tar.gz", hash = "sha256:844ef76bda585ea0ea2d5e7f8f9a0eb10d6e2eba66c4fea0210ec7843941cb1a", size = 146168, upload-time = "2020-09-29T16:20:58.361Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/51/9a/2976a839fffb35d341bdce0cb06f1f9da80b148bfe209c55d3e34e5cc146/google_api_python_client-1.12.3-py2.py3-none-any.whl", hash = "sha256:5b3f4908c041f3109135841cf7e49fc4477f26f7d02b6db72753a17f8b338d01", size = 61278, upload-time = "2020-09-29T16:20:56.731Z" },
-]
-
-[[package]]
-name = "google-auth"
-version = "1.22.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "aiohttp" },
-    { name = "cachetools" },
-    { name = "pyasn1-modules" },
-    { name = "rsa" },
-    { name = "setuptools" },
-    { name = "six" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/8b/3b/35bdcefe341d5ae08f32ac3559d6c99ebaef5765939b43c425f5b32e4d96/google-auth-1.22.0.tar.gz", hash = "sha256:a73e6fb6d232ed1293ef9a5301e6f8aada7880d19c65d7f63e130dc50ec05593", size = 119967, upload-time = "2020-09-28T22:49:17.29Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/d6/3f/7fbf002e01c17c35cb68de64ab2cfc069fd6aca5b8fdc44a34490d993279/google_auth-1.22.0-py2.py3-none-any.whl", hash = "sha256:e86e72142d939a8d90a772947268aacc127ab7a1d1d6f3e0fecca7a8d74d8257", size = 114697, upload-time = "2020-09-28T22:49:15.719Z" },
-]
-
-[[package]]
-name = "google-auth-httplib2"
-version = "0.0.4"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "google-auth" },
-    { name = "httplib2" },
-    { name = "six" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/6c/5e/97a5e7573457020351a275c74c559dbe2ebe1c606119f991541c98ffa651/google-auth-httplib2-0.0.4.tar.gz", hash = "sha256:8d092cc60fb16517b12057ec0bba9185a96e3b7169d86ae12eae98e645b7bc39", size = 10287, upload-time = "2020-07-07T19:08:33.175Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/bd/4e/992849016f8b0c27fb604aafd0a7a724db16128906197bd1245c6f18e6a1/google_auth_httplib2-0.0.4-py2.py3-none-any.whl", hash = "sha256:aeaff501738b289717fac1980db9711d77908a6c227f60e4aa1923410b43e2ee", size = 9117, upload-time = "2020-07-07T19:08:31.75Z" },
-]
-
-[[package]]
-name = "googleapis-common-protos"
-version = "1.52.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "protobuf" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/95/3f/a1282d82def57e0c28bab597d25785774a4e64433aac9cc136e65c500da8/googleapis-common-protos-1.52.0.tar.gz", hash = "sha256:560716c807117394da12cecb0a54da5a451b5cf9866f1d37e9a5e2329a665351", size = 39383, upload-time = "2020-06-04T02:49:11.342Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/03/74/3956721ea1eb4bcf7502a311fdaa60b85bd751de4e57d1943afe9b334141/googleapis_common_protos-1.52.0-py2.py3-none-any.whl", hash = "sha256:c8961760f5aad9a711d37b675be103e0cc4e9a39327e0d6d857872f698403e24", size = 100172, upload-time = "2020-06-04T02:49:09.844Z" },
-]
-
-[[package]]
 name = "greenlet"
 version = "3.1.1"
 source = { registry = "https://pypi.org/simple" }
@@ -943,18 +853,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/80/5c/5f17d77256bf78ca98647517fadee50575e75d812daa01352c31d89d5bf2/html-void-elements-0.1.0.tar.gz", hash = "sha256:931b88f84cd606fee0b582c28fcd00e41d7149421fb673e1e1abd2f0c4f231f0", size = 14766, upload-time = "2022-03-09T21:36:49.013Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/f5/0a/373f28a1cf37f8c9aa23c82cbcac7197ddea95c88b5a3eaa564cdb8de375/html_void_elements-0.1.0-py3-none-any.whl", hash = "sha256:784cf39db03cdeb017320d9301009f8f3480f9d7b254d0974272e80e0cb5e0d2", size = 14889, upload-time = "2022-03-09T21:36:50.202Z" },
-]
-
-[[package]]
-name = "httplib2"
-version = "0.22.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "pyparsing" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/3d/ad/2371116b22d616c194aa25ec410c9c6c37f23599dcd590502b74db197584/httplib2-0.22.0.tar.gz", hash = "sha256:d7a10bc5ef5ab08322488bde8c726eeee5c8618723fdb399597ec58f3d82df81", size = 351116, upload-time = "2023-03-21T22:29:37.214Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/a8/6c/d2fbdaaa5959339d53ba38e94c123e4e84b8fbc4b84beb0e70d7c1608486/httplib2-0.22.0-py3-none-any.whl", hash = "sha256:14ae0a53c1ba8f3d37e9e27cf37eabb0fb9980f435ba405d546948b009dd64dc", size = 96854, upload-time = "2023-03-21T22:29:35.683Z" },
 ]
 
 [[package]]
@@ -1483,18 +1381,6 @@ wheels = [
 ]
 
 [[package]]
-name = "pyasn1-modules"
-version = "0.2.8"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "pyasn1" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/88/87/72eb9ccf8a58021c542de2588a867dbefc7556e14b2866d1e40e9e2b587e/pyasn1-modules-0.2.8.tar.gz", hash = "sha256:905f84c712230b2c592c19470d3ca8d552de726050d1d1716282a1f6146be65e", size = 242864, upload-time = "2020-01-09T17:23:48.267Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/95/de/214830a981892a3e286c3794f41ae67a4495df1108c3da8a9f62159b9a9d/pyasn1_modules-0.2.8-py2.py3-none-any.whl", hash = "sha256:a50b808ffeb97cb3601dd25981f6b016cbb3d31fbf57a8b8a87428e6158d0c74", size = 155269, upload-time = "2020-01-09T17:23:45.61Z" },
-]
-
-[[package]]
 name = "pycparser"
 version = "2.20"
 source = { registry = "https://pypi.org/simple" }
@@ -1565,15 +1451,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/9b/1b/179c53123bd712b6073e928546b7d7c480e2504955ede53b4a8bef24f31c/pyotp-2.4.0.tar.gz", hash = "sha256:01eceab573181188fe038d001e42777884a7f5367203080ef5bda0e30fe82d28", size = 14789, upload-time = "2020-07-29T20:07:00.082Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/3d/2f/9bc720582b37d648f949fd190be6e50d6530c5223709462d7b7fab7c0c2c/pyotp-2.4.0-py2.py3-none-any.whl", hash = "sha256:e96c2d725d0b613b793775bb184e90297fda5f4989e210e28acf08a09ac2cc83", size = 11246, upload-time = "2020-07-29T20:06:58.811Z" },
-]
-
-[[package]]
-name = "pyparsing"
-version = "2.4.7"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/c1/47/dfc9c342c9842bbe0036c7f763d2d6686bcf5eb1808ba3e170afdb282210/pyparsing-2.4.7.tar.gz", hash = "sha256:c203ec8783bf771a155b207279b9bccb8dea02d8f0c9e5f8ead507bc3246ecc1", size = 649718, upload-time = "2020-04-05T22:21:25.349Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/8a/bb/488841f56197b13700afd5658fc279a2025a39e22449b7cf29864669b15d/pyparsing-2.4.7-py2.py3-none-any.whl", hash = "sha256:ef9d7589ef3c200abe66653d3f1ab1033c3c419ae9b9bdb1240a85b024efc88b", size = 67842, upload-time = "2020-04-05T22:21:22.897Z" },
 ]
 
 [[package]]
@@ -1774,18 +1651,6 @@ wheels = [
 ]
 
 [[package]]
-name = "rsa"
-version = "4.6"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "pyasn1" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/a2/d5/04b8a9719149583fec76efdff2e7a81c6e3cc34909ee818d3fbf115edc2e/rsa-4.6.tar.gz", hash = "sha256:109ea5a66744dd859bf16fe904b8d8b627adafb9408753161e766a92e7d681fa", size = 46954, upload-time = "2020-06-12T20:25:46.974Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/1c/df/c3587a667d6b308fadc90b99e8bc8774788d033efcc70f4ecaae7fad144b/rsa-4.6-py3-none-any.whl", hash = "sha256:6166864e23d6b5195a5cfed6cd9fed0fe774e226d8f854fcb23b7bbef0350233", size = 47400, upload-time = "2020-06-15T16:10:14.187Z" },
-]
-
-[[package]]
 name = "ruamel-yaml"
 version = "0.17.4"
 source = { registry = "https://pypi.org/simple" }
@@ -1870,6 +1735,7 @@ dependencies = [
     { name = "bcrypt" },
     { name = "blinker" },
     { name = "boto3" },
+    { name = "cachetools" },
     { name = "coinbase-commerce" },
     { name = "coloredlogs" },
     { name = "cryptography" },
@@ -1877,7 +1743,6 @@ dependencies = [
     { name = "dkimpy" },
     { name = "dnspython" },
     { name = "email-validator" },
-    { name = "facebook-sdk" },
     { name = "flanker" },
     { name = "flask" },
     { name = "flask-admin" },
@@ -1890,8 +1755,6 @@ dependencies = [
     { name = "flask-profiler" },
     { name = "flask-wtf" },
     { name = "gevent" },
-    { name = "google-api-python-client" },
-    { name = "google-auth-httplib2" },
     { name = "gunicorn" },
     { name = "ipython" },
     { name = "itsdangerous" },
@@ -1901,6 +1764,7 @@ dependencies = [
     { name = "memory-profiler" },
     { name = "pgpy" },
     { name = "phpserialize" },
+    { name = "protobuf" },
     { name = "psycopg2-binary" },
     { name = "pycryptodome" },
     { name = "pyopenssl" },
@@ -1945,6 +1809,7 @@ requires-dist = [
     { name = "bcrypt", specifier = "~=3.2.0" },
     { name = "blinker", specifier = "~=1.9.0" },
     { name = "boto3", specifier = "~=1.35.37" },
+    { name = "cachetools", specifier = "~=4.1.1" },
     { name = "coinbase-commerce", specifier = "~=1.0.1" },
     { name = "coloredlogs", specifier = "~=14.0" },
     { name = "cryptography", specifier = "~=37.0.1" },
@@ -1952,7 +1817,6 @@ requires-dist = [
     { name = "dkimpy", specifier = "==1.0.5" },
     { name = "dnspython", specifier = "~=2.7.0" },
     { name = "email-validator", specifier = "~=2.2.0" },
-    { name = "facebook-sdk", specifier = "~=3.1.0" },
     { name = "flanker", specifier = "~=0.9.11" },
     { name = "flask", specifier = "~=1.1.2" },
     { name = "flask-admin", specifier = "~=1.5.6" },
@@ -1965,8 +1829,6 @@ requires-dist = [
     { name = "flask-profiler", specifier = "~=1.8.1" },
     { name = "flask-wtf", specifier = "~=0.14.3" },
     { name = "gevent", specifier = "~=24.11.1" },
-    { name = "google-api-python-client", specifier = "~=1.12.3" },
-    { name = "google-auth-httplib2", specifier = "~=0.0.4" },
     { name = "gunicorn", specifier = "~=20.0.4" },
     { name = "ipython", specifier = "~=7.31.1" },
     { name = "itsdangerous", specifier = "~=1.1.0" },
@@ -1976,6 +1838,7 @@ requires-dist = [
     { name = "memory-profiler", specifier = "~=0.57.0" },
     { name = "pgpy", specifier = "==0.5.4" },
     { name = "phpserialize", specifier = "~=1.3" },
+    { name = "protobuf", specifier = "==5.27.1" },
     { name = "psycopg2-binary", specifier = "~=2.9.10" },
     { name = "pycryptodome", specifier = "~=3.9.8" },
     { name = "pyopenssl", specifier = "~=19.1.0" },
@@ -2171,15 +2034,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/b1/d6/7e2a98e98c43cf11406de6097e2656d31559f788e9210326ce6544bd7d40/Unidecode-1.1.1.tar.gz", hash = "sha256:2b6aab710c2a1647e928e36d69c21e76b453cd455f4e2621000e54b2a9b8cce8", size = 212151, upload-time = "2019-06-21T09:09:02.092Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/d0/42/d9edfed04228bacea2d824904cae367ee9efd05e6cce7ceaaedd0b0ad964/Unidecode-1.1.1-py2.py3-none-any.whl", hash = "sha256:1d7a042116536098d05d599ef2b8616759f02985c85b4fef50c78a5aaf10822a", size = 238337, upload-time = "2019-06-21T09:09:22.1Z" },
-]
-
-[[package]]
-name = "uritemplate"
-version = "3.0.1"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/42/da/fa9aca2d866f932f17703b3b5edb7b17114bb261122b6e535ef0d9f618f8/uritemplate-3.0.1.tar.gz", hash = "sha256:5af8ad10cec94f215e3f48112de2022e1d5a37ed427fbd88652fa908f2ab7cae", size = 32806, upload-time = "2019-12-19T22:13:08.286Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/bf/0c/60d82c077998feb631608dca3cc1fe19ac074e772bf0c24cf409b977b815/uritemplate-3.0.1-py2.py3-none-any.whl", hash = "sha256:07620c3f3f8eed1f12600845892b0e036a2420acf513c53f7de0abd911a5894f", size = 15615, upload-time = "2019-12-19T22:13:06.86Z" },
 ]
 
 [[package]]

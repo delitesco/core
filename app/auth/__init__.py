@@ -6,17 +6,12 @@ from .views import (
     resend_activation,
     reset_password,
     forgot_password,
-    github,
-    google,
-    facebook,
     proton,
     change_email,
     mfa,
     fido,
-    social,
     recovery,
     api_to_cookie,
-    oidc,
 )
 
 __all__ = [
@@ -27,15 +22,10 @@ __all__ = [
     "resend_activation",
     "reset_password",
     "forgot_password",
-    "github",
-    "google",
-    "facebook",
     "proton",
     "change_email",
     "mfa",
     "fido",
-    "social",
     "recovery",
     "api_to_cookie",
-    "oidc",
 ]

@@ -7,7 +7,7 @@ from app import email_utils, config
 from app.abuser_utils import check_if_abuser_email
 from app.auth.base import auth_bp
 from app.auth.views.login_utils import get_referral
-from app.config import CONNECT_WITH_PROTON, CONNECT_WITH_OIDC_ICON
+from app.config import CONNECT_WITH_PROTON
 from app.config import URL
 from app.db import Session
 from app.email_utils import (
@@ -78,8 +78,6 @@ def register():
         form=form,
         next_url=next_url,
         connect_with_proton=CONNECT_WITH_PROTON,
-        connect_with_oidc=config.OIDC_CLIENT_ID is not None,
-        connect_with_oidc_icon=CONNECT_WITH_OIDC_ICON,
     )
 
 

@@ -1,13 +1,10 @@
 import secrets
 import string
 
-import google.oauth2.credentials
-import googleapiclient.discovery
 from flask import jsonify, request
 from flask_login import login_user
 from itsdangerous import Signer
 
-from app import email_utils
 from app.api.base import api_bp
 from app.abuser_utils import check_if_abuser_email
 from app.config import FLASK_SECRET, DISABLE_REGISTRATION
@@ -21,7 +18,7 @@ from app.email_utils import (
 )
 from app.extensions import limiter
 from app.log import LOG
-from app.models import User, ApiKey, SocialAuth, AccountActivation
+from app.models import User, ApiKey, AccountActivation
 from app.user_audit_log_utils import emit_user_audit_log, UserAuditLogAction
 from app.utils import sanitize_email, canonicalize_email
 
@@ -231,113 +228,6 @@ def auth_reactivate():
     )
 
     return jsonify(msg="User needs to confirm their account"), 200
-
-
-@api_bp.route("/auth/facebook", methods=["POST"])
-@limiter.limit("10/minute")
-def auth_facebook():
-    """
-    Authenticate user with Facebook
-    Input:
-        facebook_token: facebook access token
-        device: to create an ApiKey associated with this device
-    Output:
-        200 and user info containing:
-        {
-            name: "John Wick",
-            mfa_enabled: true,
-            mfa_key: "a long string",
-            api_key: "a long string"
-        }
-
-    """
-    import facebook
-
-    data = request.get_json()
-    if not data:
-        return jsonify(error="request body cannot be empty"), 400
-
-    facebook_token = data.get("facebook_token")
-    device = data.get("device")
-
-    graph = facebook.GraphAPI(access_token=facebook_token)
-    user_info = graph.get_object("me", fields="email,name")
-    email = sanitize_email(user_info.get("email"))
-
-    user = User.get_by(email=email)
-
-    if not user:
-        if DISABLE_REGISTRATION:
-            return jsonify(error="registration is closed"), 400
-        if not email_can_be_used_as_mailbox(email) or personal_email_already_used(
-            email
-        ):
-            return jsonify(error=f"cannot use {email} as personal inbox"), 400
-
-        LOG.d("create facebook user with %s", user_info)
-        user = User.create(email=email, name=user_info["name"], activated=True)
-        Session.commit()
-        email_utils.send_welcome_email(user)
-
-    if not SocialAuth.get_by(user_id=user.id, social="facebook"):
-        SocialAuth.create(user_id=user.id, social="facebook")
-        Session.commit()
-
-    return jsonify(**auth_payload(user, device)), 200
-
-
-@api_bp.route("/auth/google", methods=["POST"])
-@limiter.limit("10/minute")
-def auth_google():
-    """
-    Authenticate user with Google
-    Input:
-        google_token: Google access token
-        device: to create an ApiKey associated with this device
-    Output:
-        200 and user info containing:
-        {
-            name: "John Wick",
-            mfa_enabled: true,
-            mfa_key: "a long string",
-            api_key: "a long string"
-        }
-
-    """
-    data = request.get_json()
-    if not data:
-        return jsonify(error="request body cannot be empty"), 400
-
-    google_token = data.get("google_token")
-    device = data.get("device")
-
-    cred = google.oauth2.credentials.Credentials(token=google_token)
-
-    build = googleapiclient.discovery.build("oauth2", "v2", credentials=cred)
-
-    user_info = build.userinfo().get().execute()
-    email = sanitize_email(user_info.get("email"))
-
-    user = User.get_by(email=email)
-
-    if not user:
-        if DISABLE_REGISTRATION:
-            return jsonify(error="registration is closed"), 400
-        if not email_can_be_used_as_mailbox(email) or personal_email_already_used(
-            email
-        ):
-            return jsonify(error=f"cannot use {email} as personal inbox"), 400
-
-        LOG.d("create Google user with %s", user_info)
-        user = User.create(email=email, name="", activated=True)
-        Session.commit()
-        email_utils.send_welcome_email(user)
-
-    if not SocialAuth.get_by(user_id=user.id, social="google"):
-        SocialAuth.create(user_id=user.id, social="google")
-        Session.commit()
-
-    return jsonify(**auth_payload(user, device)), 200
 
 
 def auth_payload(user, device) -> dict:

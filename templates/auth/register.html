@@ -50,16 +50,6 @@
           Sign up with Proton
         </a>
       {% endif %}
-      {% if connect_with_oidc %}
-
-        <div class="text-center my-2 text-gray">
-          <span>or</span>
-        </div>
-        <a class="btn btn-primary btn-block mt-2 btn-social"
-           href="{{ url_for('auth.oidc_login', next=next_url) }}">
-          <i class="fa {{ connect_with_oidc_icon }}"></i> Sign up with SSO
-        </a>
-      {% endif %}
     </div>
   </form>
   <div class="text-center text-muted mb-6">

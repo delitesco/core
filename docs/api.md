@@ -3,8 +3,6 @@
 [Account endpoints](#account-endpoints)
 - [POST /api/auth/login](#post-apiauthlogin): Authentication
 - [POST /api/auth/mfa](#post-apiauthmfa): 2FA authentication
-- [POST /api/auth/facebook](#post-apiauthfacebook) (deprecated)
-- [POST /api/auth/google](#post-apiauthgoogle) (deprecated)
 - [POST /api/auth/register](#post-apiauthregister): Register a new account.
 - [POST /api/auth/activate](#post-apiauthactivate): Activate new account.
 - [POST /api/auth/reactivate](##post-apiauthreactivate): Request a new activation code.
@@ -131,26 +129,6 @@ Output:
 
 The `api_key` is used in all subsequent requests. It's empty if MFA is enabled. If user hasn't enabled MFA, `mfa_key` is
 empty.
-
-#### POST /api/auth/facebook
-
-Input:
-
-- facebook_token: Facebook access token
-- device: device name. Used to create the API Key. Should be humanly readable so user can manage later on the "API Key"
-  page.
-
-Output: Same output as for `/api/auth/login` endpoint
-
-#### POST /api/auth/google
-
-Input:
-
-- google_token: Google access token
-- device: device name. Used to create the API Key. Should be humanly readable so user can manage later on the "API Key"
-  page.
-
-Output: Same output as for `/api/auth/login` endpoint
 
 #### POST /api/auth/register
 
