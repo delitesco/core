@@ -1,6 +1,5 @@
 import time
 
-import flask_limiter
 from flask import (
     Flask,
     request,
@@ -56,7 +55,7 @@ def create_app() -> Flask:
     app.secret_key = FLASK_SECRET
 
     if MEM_STORE_URI:
-        app.config[flask_limiter.extension.C.STORAGE_URL] = MEM_STORE_URI
+        app.config["RATELIMIT_STORAGE_URI"] = MEM_STORE_URI
         initialize_redis_services(app, MEM_STORE_URI)
 
     limiter.init_app(app)
@@ -97,7 +96,6 @@ def setup_request_logging(app):
         # not logging /static call
         if (
             not request.path.startswith("/static")
-            and not request.path.startswith("/git")
             and not request.path.startswith("/favicon.ico")
             and not request.path.startswith("/health")
         ):

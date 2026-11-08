@@ -26,11 +26,18 @@ def sleep_thread(pl: _InnerLock, sem: Optional[threading.Semaphore] = None):
 
 def test_too_many_requests(flask_app):
     user = create_new_user()
+
+    def hold_lock(pl: _InnerLock, sem: threading.Semaphore):
+        # a request of the same user running in another thread, with its own context
+        with flask_app.test_request_context():
+            g.user = user
+            sleep_thread(pl, sem)
+
     with flask_app.test_request_context():
         g.user = user
         sem = threading.Semaphore(0)
         pl = _InnerLock("test", max_wait_secs=5)
-        t = threading.Thread(target=sleep_thread, args=(pl, sem))
+        t = threading.Thread(target=hold_lock, args=(pl, sem))
         t.daemon = True
         t.start()
         sem.acquire()

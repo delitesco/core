@@ -2,6 +2,8 @@ FROM --platform=linux/amd64 ubuntu:22.04
 
 ARG UV_VERSION="0.7.13"
 ARG UV_HASH="909278eb197c5ed0e9b5f16317d1255270d1f9ea4196e7179ce934d48c4c2545"
+# the production image leaves out the development tools; the test image passes ""
+ARG UV_SYNC_ARGS="--no-dev"
 
 # Keeps Python from generating .pyc files in the container
 ENV PYTHONDONTWRITEBYTECODE=1
@@ -26,7 +28,7 @@ RUN apt-get update \
     && rm -f uv.tar.gz \
     && uv python install `cat .python-version` \
     && export CMAKE_POLICY_VERSION_MINIMUM=3.5 \
-    && uv sync --locked \
+    && uv sync --locked ${UV_SYNC_ARGS} \
     && apt-get autoremove -y \
     && apt-get purge -y curl netcat-traditional build-essential pkg-config cmake ninja-build python3-dev clang\
     && apt-get autoremove -y \
