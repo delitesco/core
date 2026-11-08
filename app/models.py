@@ -14,7 +14,6 @@ import sqlalchemy as sa
 from arrow import Arrow
 from email_validator import validate_email
 from flanker.addresslib import address
-from flask import url_for
 from flask_login import UserMixin
 from jinja2 import FileSystemLoader, Environment
 from sqlalchemy import orm
@@ -25,7 +24,6 @@ from sqlalchemy.orm import deferred
 from sqlalchemy_utils import ArrowType
 
 from app import config, rate_limiter
-from app import s3
 from app.constants import JobType
 from app.db import Session
 from app.errors import (
@@ -144,20 +142,6 @@ class ModelMixin(object):
             if n not in self._repr_hide
         )
         return "%s(%s)" % (self.__class__.__name__, values)
-
-
-class File(Base, ModelMixin):
-    __tablename__ = "file"
-    path = sa.Column(sa.String(128), unique=True, nullable=False)
-    user_id = sa.Column(sa.ForeignKey("users.id", ondelete="cascade"), nullable=True)
-
-    __table_args__ = (sa.Index("ix_file_user_id", "user_id"),)
-
-    def get_url(self, expires_in=3600):
-        return s3.get_url(self.path, expires_in)
-
-    def __repr__(self):
-        return f"<File {self.path}>"
 
 
 class EnumE(enum.Enum):
@@ -380,8 +364,6 @@ class User(Base, ModelMixin, UserMixin, PasswordOracle):
     # an account can be disabled if having harmful behavior
     disabled = sa.Column(sa.Boolean, default=False, nullable=False, server_default="0")
 
-    profile_picture_id = sa.Column(sa.ForeignKey(File.id), nullable=True)
-
     otp_secret = sa.Column(sa.String(16), nullable=True)
     enable_otp = sa.Column(
         sa.Boolean, nullable=False, default=False, server_default="0"
@@ -412,8 +394,6 @@ class User(Base, ModelMixin, UserMixin, PasswordOracle):
     default_mailbox_id = sa.Column(
         sa.ForeignKey("mailbox.id"), nullable=True, default=None
     )
-
-    profile_picture = orm.relationship(File, foreign_keys=[profile_picture_id])
 
     # Specify the format for sender address
     # for the full list, see SenderFormatEnum
@@ -560,7 +540,6 @@ class User(Base, ModelMixin, UserMixin, PasswordOracle):
         sa.Index(
             "ix_users_default_alias_custom_domain_id", default_alias_custom_domain_id
         ),
-        sa.Index("ix_users_profile_picture_id", profile_picture_id),
         sa.Index(
             "idx_users_email_trgm",
             "email",
@@ -710,12 +689,6 @@ class User(Base, ModelMixin, UserMixin, PasswordOracle):
             )
             return False
         return True
-
-    def profile_picture_url(self):
-        if self.profile_picture_id:
-            return self.profile_picture.get_url()
-        else:
-            return url_for("static", filename="default-avatar.png")
 
     def suggested_emails(self, website_name) -> (str, [str]):
         """return suggested email and other email choices"""
@@ -1145,12 +1118,6 @@ class Alias(Base, ModelMixin):
     )
 
     # to know whether an alias is added using a batch import
-    batch_import_id = sa.Column(
-        sa.ForeignKey("batch_import.id", ondelete="SET NULL"),
-        nullable=True,
-        default=None,
-    )
-
     # set in case of alias transfer.
     original_owner_id = sa.Column(
         sa.ForeignKey(User.id, ondelete="SET NULL"), nullable=True
@@ -1672,9 +1639,6 @@ class EmailLog(Base, ModelMixin):
             return "reply"
         else:
             return "forward"
-
-    def get_dashboard_url(self):
-        return f"{config.URL}/dashboard/refused_email?highlight_id={self.id}"
 
     @classmethod
     def create(cls, *args, **kwargs):
@@ -2247,12 +2211,6 @@ class RefusedEmail(Base, ModelMixin):
 
     __table_args__ = (sa.Index("ix_refused_email_user_id", "user_id"),)
 
-    def get_url(self, expires_in=3600):
-        if self.path:
-            return s3.get_url(self.path, expires_in)
-        else:
-            return s3.get_url(self.full_report_path, expires_in)
-
     def __repr__(self):
         return f"<Refused Email {self.id} {self.path} {self.delete_at}>"
 
@@ -2466,28 +2424,6 @@ class SLDomain(Base, ModelMixin):
 
     def __repr__(self):
         return f"<SLDomain {self.id} {self.domain} {'Premium' if self.premium_only else 'Free'}>"
-
-
-class BatchImport(Base, ModelMixin):
-    __tablename__ = "batch_import"
-    user_id = sa.Column(sa.ForeignKey(User.id, ondelete="cascade"), nullable=False)
-    file_id = sa.Column(sa.ForeignKey(File.id, ondelete="cascade"), nullable=False)
-    processed = sa.Column(sa.Boolean, nullable=False, default=False)
-    summary = sa.Column(sa.Text, nullable=True, default=None)
-
-    file = orm.relationship(File)
-    user = orm.relationship(User)
-
-    __table_args__ = (
-        sa.Index("ix_batch_import_file_id", "file_id"),
-        sa.Index("ix_batch_import_user_id", "user_id"),
-    )
-
-    def nb_alias(self):
-        return Alias.filter_by(batch_import_id=self.id).count()
-
-    def __repr__(self):
-        return f"<BatchImport {self.id}>"
 
 
 class AuthorizedAddress(Base, ModelMixin):

@@ -198,13 +198,6 @@ MAILBOX_SECRET = FLASK_SECRET + "mailbox"
 CUSTOM_ALIAS_SECRET = FLASK_SECRET + "custom_alias"
 UNSUBSCRIBE_SECRET = FLASK_SECRET + "unsub"
 
-# AWS
-AWS_REGION = os.environ.get("AWS_REGION") or "eu-west-3"
-BUCKET = os.environ.get("BUCKET")
-AWS_ACCESS_KEY_ID = os.environ.get("AWS_ACCESS_KEY_ID")
-AWS_SECRET_ACCESS_KEY = os.environ.get("AWS_SECRET_ACCESS_KEY")
-AWS_ENDPOINT_URL = os.environ.get("AWS_ENDPOINT_URL", None)
-
 # Used to generate random email
 # words.txt is a list of English words and doesn't contain any "bad" word
 # words_alpha.txt comes from https://github.com/dwyl/english-words and also contains bad words.
@@ -234,9 +227,9 @@ MFA_USER_ID = "mfa_user_id"
 # for pagination
 PAGE_LIMIT = 20
 
-# Upload to static/upload instead of s3
-LOCAL_FILE_UPLOAD = "LOCAL_FILE_UPLOAD" in os.environ
-UPLOAD_DIR = None
+# Where the mail handler stores refused/quarantined emails and provider complaints.
+# Must not be served over HTTP.
+UPLOAD_DIR = get_abs_path(os.environ.get("UPLOAD_DIR", "data/upload"))
 
 # Rate Limiting
 # nb max of activity (forward/reply) an alias can have during 1 min
@@ -244,13 +237,6 @@ MAX_ACTIVITY_DURING_MINUTE_PER_ALIAS = 10
 
 # nb max of activity (forward/reply) a mailbox can have during 1 min
 MAX_ACTIVITY_DURING_MINUTE_PER_MAILBOX = 15
-
-if LOCAL_FILE_UPLOAD:
-    print("Upload files to local dir")
-    UPLOAD_DIR = os.path.join(ROOT_DIR, "static/upload")
-    if not os.path.exists(UPLOAD_DIR):
-        print("Create upload dir")
-        os.makedirs(UPLOAD_DIR)
 
 LANDING_PAGE_URL = os.environ.get("LANDING_PAGE_URL") or "https://simplelogin.io"
 

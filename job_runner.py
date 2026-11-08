@@ -19,11 +19,10 @@ from app.email_utils import (
     send_email,
     render,
 )
-from app.import_utils import handle_batch_import
 from app.jobs.export_user_data_job import ExportUserDataJob
 from app.jobs.mark_abuser_job import MarkAbuserJob
 from app.log import LOG
-from app.models import User, Job, BatchImport, Mailbox, JobState
+from app.models import User, Job, Mailbox, JobState
 from app.user_audit_log_utils import emit_user_audit_log, UserAuditLogAction
 from server import create_light_app
 from tasks.delete_custom_domain_job import DeleteCustomDomainJob
@@ -200,10 +199,6 @@ def process_job(job: Job):
             LOG.d("send onboarding pgp email to user %s", user)
             onboarding_pgp(user)
 
-    elif job.name == JobType.BATCH_IMPORT.value:
-        batch_import_id = job.payload.get("batch_import_id")
-        batch_import = BatchImport.get(batch_import_id)
-        handle_batch_import(batch_import)
     elif job.name == JobType.DELETE_ACCOUNT.value:
         user_id = job.payload.get("user_id")
         user = User.get(user_id)

@@ -29,14 +29,6 @@ def test_generate_email(flask_client):
     assert UUID(email_uuid.split("@")[0], version=4)
 
 
-def test_profile_picture_url(flask_client):
-    user = create_new_user()
-
-    assert (
-        user.profile_picture_url() == f"http://{EMAIL_DOMAIN}/static/default-avatar.png"
-    )
-
-
 def test_alias_create_random(flask_client):
     user = create_new_user()
 

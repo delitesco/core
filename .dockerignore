@@ -9,9 +9,9 @@ config
 adhoc
 static/node_modules
 db.sqlite-journal
-static/upload
 venv/
 .venv
 .coverage
 htmlcov
 .git/
+/data/

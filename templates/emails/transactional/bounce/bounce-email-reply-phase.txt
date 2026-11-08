@@ -5,8 +5,6 @@ This might mean {{ contact.email }}
 - doesn't exist, or
 - its mail server refuses your email.
 
-You can view the email at {{refused_email_url}}.
-This email is automatically deleted in 7 days.
 
 Best,
 SimpleLogin Team.

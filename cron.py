@@ -10,7 +10,7 @@ from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.orm import joinedload
 from sqlalchemy.sql import Insert, text
 
-from app import s3, config
+from app import config, file_storage
 from app.alias_utils import nb_email_log_for_mailbox
 from app.db import Session
 from app.email_utils import (
@@ -46,7 +46,6 @@ from tasks.check_custom_domains import check_all_custom_domains
 from tasks.clean_alias_audit_log import cleanup_alias_audit_log
 from tasks.clean_user_audit_log import cleanup_user_audit_log
 from tasks.cleanup_alias import cleanup_alias
-from tasks.cleanup_old_imports import cleanup_old_imports
 from tasks.cleanup_old_jobs import cleanup_old_jobs
 from tasks.cleanup_old_notifications import cleanup_old_notifications
 
@@ -103,9 +102,9 @@ def delete_refused_emails():
         if arrow.now().shift(days=1) > refused_email.delete_at >= arrow.now():
             LOG.d("Delete refused email %s", refused_email)
             if refused_email.path:
-                s3.delete(refused_email.path)
+                file_storage.delete(refused_email.path)
 
-            s3.delete(refused_email.full_report_path)
+            file_storage.delete(refused_email.full_report_path)
 
             # do not set path and full_report_path to null
             # so we can check later that the files are indeed deleted
@@ -632,7 +631,6 @@ def clear_users_scheduled_to_be_deleted(dry_run=False):
 
 def delete_old_data():
     oldest_valid = arrow.now().shift(days=-config.KEEP_OLD_DATA_DAYS)
-    cleanup_old_imports(oldest_valid)
     cleanup_old_jobs(oldest_valid)
     cleanup_old_notifications(oldest_valid)
 

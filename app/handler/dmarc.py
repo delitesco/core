@@ -5,7 +5,7 @@ from typing import Optional, Tuple
 from aiosmtpd.handlers import Message
 from aiosmtpd.smtp import Envelope
 
-from app import s3, config
+from app import config, file_storage
 from app.config import (
     DMARC_CHECK_ENABLED,
     ALERT_QUARANTINE_DMARC,
@@ -89,7 +89,7 @@ More info on https://simplelogin.io/docs/getting-started/anti-phishing/
             f"dmarc forward: put email from {contact} to {alias} to quarantine. {spam_result.event_data()}, "
             f"mail_from:{envelope.mail_from}, from_header: {msg[headers.FROM]}"
         )
-        email_log = quarantine_dmarc_failed_forward_email(alias, contact, envelope, msg)
+        quarantine_dmarc_failed_forward_email(alias, contact, envelope, msg)
         Notification.create(
             user_id=alias.user_id,
             title=f"{alias.email} has a new mail in quarantine",
@@ -109,14 +109,12 @@ More info on https://simplelogin.io/docs/getting-started/anti-phishing/
                 user=user,
                 from_header=from_header,
                 alias=alias,
-                refused_email_url=email_log.get_dashboard_url(),
             ),
             render(
                 "transactional/message-quarantine-dmarc.html",
                 user=user,
                 from_header=from_header,
                 alias=alias,
-                refused_email_url=email_log.get_dashboard_url(),
             ),
             max_nb_alert=10,
             ignore_smtp_error=True,
@@ -131,7 +129,7 @@ def quarantine_dmarc_failed_forward_email(alias, contact, envelope, msg) -> Emai
     msg[headers.SL_ENVELOPE_FROM] = envelope.mail_from
     random_name = str(uuid.uuid4())
     s3_report_path = f"refused-emails/full-{random_name}.eml"
-    s3.upload_email_from_bytesio(
+    file_storage.upload_email_from_bytesio(
         s3_report_path, BytesIO(message_to_bytes(msg)), f"full-{random_name}"
     )
     refused_email = RefusedEmail.create(

@@ -236,34 +236,6 @@ wheels = [
 ]
 
 [[package]]
-name = "boto3"
-version = "1.35.37"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "botocore" },
-    { name = "jmespath" },
-    { name = "s3transfer" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/80/8b/31845869fb935b93d1f1a846d2a8e13dc91af4cf03ba701e2068c08b99af/boto3-1.35.37.tar.gz", hash = "sha256:470d981583885859fed2fd1c185eeb01cc03e60272d499bafe41b12625b158c8", size = 110977, upload-time = "2024-10-09T19:22:51.836Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/ad/d9/6094eaa18d9c4817df7f413b40eacb43918f46e3432eba45df926c01854d/boto3-1.35.37-py3-none-any.whl", hash = "sha256:385ca77bf8ea4ab2d97f6e2435bdb29f77d9301e2f7ac796c2f465753c2adf3c", size = 139144, upload-time = "2024-10-09T19:22:49.277Z" },
-]
-
-[[package]]
-name = "botocore"
-version = "1.35.37"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "jmespath" },
-    { name = "python-dateutil" },
-    { name = "urllib3" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/57/a4/bc96ba621c869f723ce4cb4dadb53fdbb821d64ef1146f0749098ef342cf/botocore-1.35.37.tar.gz", hash = "sha256:b2b4d29bafd95b698344f2f0577bb67064adbf1735d8a0e3c7473daa59c23ba6", size = 12810098, upload-time = "2024-10-09T19:22:38.783Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/3a/1c/3057bfd23f56ff11d41db1db8f2c9423381d6e60ae90594921ac2a63be53/botocore-1.35.37-py3-none-any.whl", hash = "sha256:64f965d4ba7adb8d79ce044c3aef7356e05dd74753cf7e9115b80f477845d920", size = 12597169, upload-time = "2024-10-09T19:22:34.345Z" },
-]
-
-[[package]]
 name = "cachetools"
 version = "4.1.1"
 source = { registry = "https://pypi.org/simple" }
@@ -873,15 +845,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/4f/e7/65300e6b32e69768ded990494809106f87da1d436418d5f1367ed3966fd7/Jinja2-2.11.3.tar.gz", hash = "sha256:a6d58433de0ae800347cab1fa3043cebbabe8baa9d29e668f1c768cb87a333c6", size = 257589, upload-time = "2021-01-31T16:33:09.175Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/7e/c2/1eece8c95ddbc9b1aeb64f5783a9e07a286de42191b7204d67b7496ddf35/Jinja2-2.11.3-py2.py3-none-any.whl", hash = "sha256:03e47ad063331dd6a3f04a43eddca8a966a26ba0c5b7207a9a9e4e08f1b29419", size = 125699, upload-time = "2021-01-31T16:33:07.289Z" },
-]
-
-[[package]]
-name = "jmespath"
-version = "0.10.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/3c/56/3f325b1eef9791759784aa5046a8f6a1aff8f7c898a2e34506771d3b99d8/jmespath-0.10.0.tar.gz", hash = "sha256:b85d0567b8666149a93172712e68920734333c0ce7e89b78b3e987f71e5ed4f9", size = 21607, upload-time = "2020-05-12T22:03:47.267Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/07/cb/5f001272b6faeb23c1c9e0acc04d48eaaf5c862c17709d20e3469c6e0139/jmespath-0.10.0-py2.py3-none-any.whl", hash = "sha256:cdf6525904cc597730141d61b36f2e4b8ecc257c420fa2f4549bac2c2d0cb72f", size = 24489, upload-time = "2020-05-12T22:03:45.643Z" },
 ]
 
 [[package]]
@@ -1540,18 +1503,6 @@ wheels = [
 ]
 
 [[package]]
-name = "s3transfer"
-version = "0.10.3"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "botocore" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/a0/a8/e0a98fd7bd874914f0608ef7c90ffde17e116aefad765021de0f012690a2/s3transfer-0.10.3.tar.gz", hash = "sha256:4f50ed74ab84d474ce614475e0b8d5047ff080810aac5d01ea25231cfc944b0c", size = 144591, upload-time = "2024-10-08T19:17:16.765Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/e5/c0/b0fba8259b61c938c9733da9346b9f93e00881a9db22aafdd72f6ae0ec05/s3transfer-0.10.3-py3-none-any.whl", hash = "sha256:263ed587a5803c6c708d3ce44dc4dfedaab4c1a32e8329bab818933d79ddcf5d", size = 82625, upload-time = "2024-10-08T19:17:14.904Z" },
-]
-
-[[package]]
 name = "sentry-sdk"
 version = "2.20.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1584,7 +1535,6 @@ dependencies = [
     { name = "arrow" },
     { name = "bcrypt" },
     { name = "blinker" },
-    { name = "boto3" },
     { name = "cachetools" },
     { name = "coloredlogs" },
     { name = "cryptography" },
@@ -1622,7 +1572,6 @@ dependencies = [
     { name = "strictyaml" },
     { name = "tldextract" },
     { name = "unidecode" },
-    { name = "watchtower" },
     { name = "webauthn" },
     { name = "werkzeug" },
     { name = "yacron" },
@@ -1647,7 +1596,6 @@ requires-dist = [
     { name = "arrow", specifier = "~=0.16.0" },
     { name = "bcrypt", specifier = "~=3.2.0" },
     { name = "blinker", specifier = "~=1.9.0" },
-    { name = "boto3", specifier = "~=1.35.37" },
     { name = "cachetools", specifier = "~=4.1.1" },
     { name = "coloredlogs", specifier = "~=14.0" },
     { name = "cryptography", specifier = "~=37.0.1" },
@@ -1686,7 +1634,6 @@ requires-dist = [
     { name = "strictyaml", specifier = "~=1.7.3" },
     { name = "tldextract", specifier = "~=3.1.2" },
     { name = "unidecode", specifier = "~=1.1.1" },
-    { name = "watchtower", specifier = "~=0.8.0" },
     { name = "webauthn", specifier = "~=0.4.7" },
     { name = "werkzeug", specifier = "~=1.0.1" },
     { name = "yacron", specifier = "~=0.19.0" },
@@ -1862,18 +1809,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/c4/b3/b9fe4d783105896f9038c170e4630a9976b92769f951c04634774c10acb1/virtualenv-20.21.1.tar.gz", hash = "sha256:4c104ccde994f8b108163cf9ba58f3d11511d9403de87fb9b4f52bf33dbc8668", size = 12108081, upload-time = "2023-04-19T20:44:11.241Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/fb/9b/445412c769289c18a5f9c2e8c816c1369f6c5fae4802f2196e5aef7630fd/virtualenv-20.21.1-py3-none-any.whl", hash = "sha256:09ddbe1af0c8ed2bb4d6ed226b9e6415718ad18aef9fa0ba023d96b7a8356049", size = 8744928, upload-time = "2023-04-19T20:44:07.197Z" },
-]
-
-[[package]]
-name = "watchtower"
-version = "0.8.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "boto3" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/c8/08/27c5175927719c4a446121881e08d9afe887304f550fb5e9a4450612338a/watchtower-0.8.0.tar.gz", hash = "sha256:9733d1dfc2ab25880386188ee41b19d39893a09c91725bd92b2f782a72890fda", size = 14217, upload-time = "2020-06-29T04:48:37.579Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/45/35/5866d97dab3f7d0000daf0d0fc792b6ca6767c48b233f55fbab6216ffd3e/watchtower-0.8.0-py2.py3-none-any.whl", hash = "sha256:d6704b258494bddc3e9ddda286ef5067e4b09ab4287aea4289afdd035cc4742b", size = 13065, upload-time = "2020-06-29T04:48:36.127Z" },
 ]
 
 [[package]]
