@@ -15,12 +15,13 @@ import arrow
 from flask import jsonify, request
 
 from app import config
-from app.api.base import api_bp
+from app.alias_utils import AliasTransferError, transfer_alias
+from app.api.base import api_bp, json_body, parse_int, parse_int_list
 from app.constants import JobType
 from app.db import Session
 from app.extensions import limiter
 from app.log import LOG
-from app.models import ApiKey, Job, User
+from app.models import Alias, ApiKey, Job, Mailbox, User
 from app.user_audit_log_utils import emit_user_audit_log, UserAuditLogAction
 
 PROVISIONING_KEY_HEADER = "X-Provisioning-Key"
@@ -116,4 +117,45 @@ def provision_delete_user(user_id: int):
     )
     Session.commit()
     LOG.i("Scheduled deletion of %s", user)
+    return jsonify(ok=True), 200
+
+
+@api_bp.route("/provision/aliases/<int:alias_id>/transfer", methods=["POST"])
+@limiter.limit(lambda: config.PROVISIONING_RATE_LIMIT)
+@require_provisioning_key
+def provision_transfer_alias(alias_id: int):
+    """
+    Give an alias, with its contacts, to another user. The backend in front of this
+    service decides who may transfer what (e.g. after the receiving account accepted).
+    Input (body):
+        to_user_id: the receiving user
+        mailbox_ids: verified mailboxes of the receiving user the alias forwards to
+    Output: 200 {"ok": true}; 404 if the alias or the user does not exist;
+        400 if the alias cannot be transferred (custom domain, directory, trash) or the
+        mailboxes are not verified mailboxes of the receiving user.
+    """
+    data = json_body()
+    to_user_id = parse_int(data.get("to_user_id"))
+    mailbox_ids = parse_int_list(data.get("mailbox_ids"))
+    if to_user_id is None or not mailbox_ids:
+        return jsonify(error="to_user_id and mailbox_ids are required"), 400
+
+    alias = Alias.get(alias_id)
+    new_user = _get_active_user(to_user_id)
+    if not alias or not new_user:
+        return jsonify(error="Alias or user not found"), 404
+
+    mailboxes = [Mailbox.get(mailbox_id) for mailbox_id in mailbox_ids]
+    if any(mailbox is None for mailbox in mailboxes):
+        return jsonify(
+            error="Mailboxes must be verified mailboxes of the new owner"
+        ), 400
+
+    try:
+        transfer_alias(alias, new_user, mailboxes)
+    except AliasTransferError as e:
+        # raised before anything is changed
+        return jsonify(error=e.msg), 400
+
+    LOG.i("Transferred %s to %s", alias, new_user)
     return jsonify(ok=True), 200
