@@ -1,7 +1,6 @@
 from __future__ import annotations
 from typing import Dict, Optional
 
-import newrelic.agent
 
 from app.email import headers
 from app.log import LOG
@@ -125,11 +124,3 @@ class SpamdResult:
     @classmethod
     def _get_from_message(cls, msg: Message) -> Optional[SpamdResult]:
         return getattr(msg, "spamd_check", None)
-
-    @classmethod
-    def send_to_new_relic(cls, msg: Message):
-        check = cls._get_from_message(msg)
-        if check:
-            newrelic.agent.record_custom_event("SpamdCheck", check.event_data())
-        else:
-            newrelic.agent.record_custom_event("SpamdCheck", {"header": "missing"})

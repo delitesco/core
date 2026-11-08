@@ -6,8 +6,6 @@ import arrow
 import click
 import flask_limiter
 import flask_profiler
-import newrelic.agent
-import sentry_sdk
 from flask import (
     Flask,
     redirect,
@@ -22,8 +20,6 @@ from flask import (
 from flask_admin import Admin
 from flask_cors import cross_origin, CORS
 from flask_login import current_user
-from sentry_sdk.integrations.flask import FlaskIntegration
-from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from app import config, constants
@@ -53,15 +49,11 @@ from app.build_info import SHA1
 from app.config import (
     DB_URI,
     FLASK_SECRET,
-    SENTRY_DSN,
     URL,
     FLASK_PROFILER_PATH,
     FLASK_PROFILER_PASSWORD,
-    SENTRY_FRONT_END_DSN,
     FIRST_ALIAS_DOMAIN,
     SESSION_COOKIE_NAME,
-    PLAUSIBLE_HOST,
-    PLAUSIBLE_DOMAIN,
     GITHUB_CLIENT_ID,
     GOOGLE_CLIENT_ID,
     FACEBOOK_CLIENT_ID,
@@ -73,7 +65,6 @@ from app.config import (
     ZENDESK_ENABLED,
     MAX_NB_EMAIL_FREE_PLAN,
     MEM_STORE_URI,
-    SENTRY_TRACE_RATE,
 )
 from app.dashboard.base import dashboard_bp
 from app.db import Session
@@ -103,7 +94,6 @@ from app.models import (
     ForbiddenMxIp,
 )
 from app.monitor.base import monitor_bp
-from app.monitor_utils import send_version_event
 from app.newsletter_utils import send_newsletter_to_user
 from app.oauth.base import oauth_bp
 from app.onboarding.base import onboarding_bp
@@ -112,20 +102,6 @@ from app.payments.paddle import setup_paddle_callback
 from app.phone.base import phone_bp
 from app.redis_services import initialize_redis_services
 from app.request_utils import generate_request_id
-from app.sentry_utils import sentry_before_send
-
-if SENTRY_DSN:
-    LOG.d("enable sentry")
-    sentry_sdk.init(
-        dsn=SENTRY_DSN,
-        release=f"app@{SHA1}",
-        integrations=[
-            FlaskIntegration(),
-            SqlalchemyIntegration(),
-        ],
-        before_send=sentry_before_send,
-        traces_sample_rate=SENTRY_TRACE_RATE,
-    )
 
 # the app is served behind nginx which uses http and not https
 os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
@@ -228,7 +204,6 @@ def create_app() -> Flask:
 def load_user(alternative_id):
     user = User.get_by(alternative_id=alternative_id)
     if user:
-        sentry_sdk.set_user({"email": user.email, "id": user.id})
         if user.disabled:
             return None
         if not user.is_active():
@@ -298,10 +273,6 @@ def set_index_page(app):
                 res.status_code,
                 time.time() - start_time,
             )
-            newrelic.agent.record_custom_event(
-                "HttpResponseStatus", {"code": res.status_code}
-            )
-            send_version_event("app")
         return res
 
 
@@ -427,11 +398,8 @@ def jinja2_filter(app):
             YEAR=now.year,
             NOW=now,
             URL=URL,
-            SENTRY_DSN=SENTRY_FRONT_END_DSN,
             VERSION=SHA1,
             FIRST_ALIAS_DOMAIN=FIRST_ALIAS_DOMAIN,
-            PLAUSIBLE_HOST=PLAUSIBLE_HOST,
-            PLAUSIBLE_DOMAIN=PLAUSIBLE_DOMAIN,
             GITHUB_CLIENT_ID=GITHUB_CLIENT_ID,
             GOOGLE_CLIENT_ID=GOOGLE_CLIENT_ID,
             FACEBOOK_CLIENT_ID=FACEBOOK_CLIENT_ID,

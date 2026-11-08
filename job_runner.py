@@ -7,7 +7,6 @@ import time
 from typing import List, Optional
 
 import arrow
-import newrelic.agent
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Query
 from sqlalchemy.orm.exc import ObjectDeletedError
@@ -29,7 +28,6 @@ from app.jobs.send_event_job import SendEventToWebhookJob
 from app.jobs.sync_subscription_job import SyncSubscriptionJob
 from app.log import LOG
 from app.models import User, Job, BatchImport, Mailbox, JobState
-from app.monitor_utils import send_version_event
 from app.user_audit_log_utils import emit_user_audit_log, UserAuditLogAction
 from events.event_sink import HttpEventSink
 from server import create_light_app
@@ -202,7 +200,6 @@ SimpleLogin team.
 
 
 def process_job(job: Job):
-    send_version_event("job_runner")
     if job.name == JobType.ONBOARDING_1.value:
         user_id = job.payload.get("user_id")
         user = User.get(user_id)
@@ -357,7 +354,6 @@ def take_job(job: Job, taken_before_time: arrow.Arrow) -> bool:
     return res.rowcount > 0
 
 
-@newrelic.agent.background_task()
 def execute():
     # wrap in an app context to benefit from app setup like database cleanup, sentry integration, etc
     with create_light_app().app_context():
@@ -370,9 +366,7 @@ def execute():
             LOG.d("Take job %s", job)
 
             try:
-                newrelic.agent.record_custom_event("ProcessJob", {"job": job.name})
                 process_job(job)
-                job_result = "success"
 
                 job.state = JobState.done.value
                 jobs_done += 1
@@ -388,13 +382,7 @@ def execute():
                         f"Marking job (id={job.id} name={job.name} attempts={job_attempts}) as ERROR"
                     )
                     job.state = JobState.error.value
-                    job_result = "error"
-                else:
-                    job_result = "retry"
 
-            newrelic.agent.record_custom_event(
-                "JobProcessed", {"job": job.name, "result": job_result}
-            )
             Session.commit()
 
         if jobs_done == 0:
@@ -402,7 +390,6 @@ def execute():
 
 
 if __name__ == "__main__":
-    send_version_event("job_runner")
     while True:
         try:
             execute()

@@ -6,7 +6,6 @@ from wtforms import StringField, validators
 from app.auth.base import auth_bp
 from app.auth.views.login_utils import after_login
 from app.config import CONNECT_WITH_PROTON, CONNECT_WITH_OIDC_ICON, OIDC_CLIENT_ID
-from app.events.auth_event import LoginEvent
 from app.extensions import limiter
 from app.log import LOG
 from app.models import User
@@ -55,28 +54,23 @@ def login():
             g.deduct_limit = True
             form.password.data = None
             flash("Email or password incorrect", "error")
-            LoginEvent(LoginEvent.ActionType.failed).send()
         elif user.disabled:
             flash(
                 "Your account is disabled. Please contact SimpleLogin team to re-enable your account.",
                 "error",
             )
-            LoginEvent(LoginEvent.ActionType.disabled_login).send()
         elif user.delete_on is not None:
             flash(
                 f"Your account is scheduled to be deleted on {user.delete_on}",
                 "error",
             )
-            LoginEvent(LoginEvent.ActionType.scheduled_to_be_deleted).send()
         elif not user.activated:
             show_resend_activation = True
             flash(
                 "Please check your inbox for the activation email. You can also have this email re-sent",
                 "error",
             )
-            LoginEvent(LoginEvent.ActionType.not_activated).send()
         else:
-            LoginEvent(LoginEvent.ActionType.success).send()
             return after_login(user, next_url)
 
     return render_template(

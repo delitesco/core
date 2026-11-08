@@ -93,11 +93,6 @@ print(">>> URL:", URL)
 # Calculate RP_ID for WebAuthn
 RP_ID = urlparse(URL).hostname
 
-SENTRY_DSN = os.environ.get("SENTRY_DSN")
-SENTRY_TRACE_RATE = float(os.environ.get("SENTRY_TRACE_RATE", "0.001"))
-
-# can use another sentry project for the front-end to avoid noises
-SENTRY_FRONT_END_DSN = os.environ.get("SENTRY_FRONT_END_DSN") or SENTRY_DSN
 
 # Email related settings
 NOT_SEND_EMAIL = "NOT_SEND_EMAIL" in os.environ
@@ -411,11 +406,6 @@ ALERT_WARN_MULTIPLE_SUBSCRIPTIONS = "alert_multiple_subscription"
 # Disable onboarding emails
 DISABLE_ONBOARDING = "DISABLE_ONBOARDING" in os.environ
 
-HCAPTCHA_SECRET = os.environ.get("HCAPTCHA_SECRET")
-HCAPTCHA_SITEKEY = os.environ.get("HCAPTCHA_SITEKEY")
-
-PLAUSIBLE_HOST = os.environ.get("PLAUSIBLE_HOST")
-PLAUSIBLE_DOMAIN = os.environ.get("PLAUSIBLE_DOMAIN")
 
 # server host
 HOST = socket.gethostname()

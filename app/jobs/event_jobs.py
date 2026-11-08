@@ -1,5 +1,3 @@
-import newrelic.agent
-
 from app.events.event_dispatcher import EventDispatcher, Dispatcher
 from app.events.generated.event_pb2 import EventContent, AliasCreated, AliasCreatedList
 from app.log import LOG
@@ -37,9 +35,6 @@ def send_alias_creation_events_for_user(
                 EventContent(alias_create_list=AliasCreatedList(events=event_list)),
                 dispatcher=dispatcher,
             )
-            newrelic.agent.record_custom_metric(
-                "Custom/event_alias_created_event", len(event_list)
-            )
             event_list = []
     if len(event_list) > 0:
         LOG.i(f"Sending {len(event_list)} alias create event for {user}")
@@ -47,7 +42,4 @@ def send_alias_creation_events_for_user(
             user,
             EventContent(alias_create_list=AliasCreatedList(events=event_list)),
             dispatcher=dispatcher,
-        )
-        newrelic.agent.record_custom_metric(
-            "Custom/event_alias_created_event", len(event_list)
         )

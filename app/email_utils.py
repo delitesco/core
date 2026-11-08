@@ -21,7 +21,6 @@ from typing import Tuple, List, Optional, Union
 import arrow
 import dkim
 import re2 as re
-import sentry_sdk
 import spf
 from aiosmtpd.smtp import Envelope
 from cachetools import cached, TTLCache
@@ -288,7 +287,6 @@ def send_cannot_create_domain_alias(user, alias, domain):
     )
 
 
-@sentry_sdk.trace
 def send_email(
     to_email,
     subject,

@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
 
-import newrelic.agent
 
 from app import config
 from app.db import Session
@@ -79,8 +78,6 @@ class EventDispatcher:
         serialized = event.SerializeToString()
         dispatcher.send(serialized)
 
-        event_type = content.WhichOneof("content")
-        newrelic.agent.record_custom_event("EventStoredToDb", {"type": event_type})
         LOG.i("Sent event to the dispatcher")
 
     @staticmethod

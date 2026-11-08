@@ -1,7 +1,6 @@
 from datetime import datetime, UTC
 from typing import Optional
 
-import newrelic.agent
 import redis.exceptions
 import werkzeug.exceptions
 from limits.storage import RedisStorage
@@ -32,10 +31,6 @@ def check_bucket_limit(
         if value > max_hits:
             LOG.i(
                 f"Rate limit hit for {lock_name} (bucket id {bucket_id}) -> {value}/{max_hits}"
-            )
-            newrelic.agent.record_custom_event(
-                "BucketRateLimit",
-                {"lock_name": lock_name, "bucket_seconds": bucket_seconds},
             )
             raise werkzeug.exceptions.TooManyRequests()
     except (redis.exceptions.RedisError, AttributeError):

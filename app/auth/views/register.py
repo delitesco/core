@@ -1,4 +1,3 @@
-import requests
 from flask import request, flash, render_template, redirect, url_for
 from flask_login import current_user
 from flask_wtf import FlaskForm
@@ -9,13 +8,12 @@ from app.abuser_utils import check_if_abuser_email
 from app.auth.base import auth_bp
 from app.auth.views.login_utils import get_referral
 from app.config import CONNECT_WITH_PROTON, CONNECT_WITH_OIDC_ICON
-from app.config import URL, HCAPTCHA_SECRET, HCAPTCHA_SITEKEY
+from app.config import URL
 from app.db import Session
 from app.email_utils import (
     email_can_be_used_as_mailbox,
     personal_email_already_used,
 )
-from app.events.auth_event import RegisterEvent
 from app.log import LOG
 from app.models import User, ActivationCode, DailyMetric
 from app.utils import random_string, encode_url, sanitize_email, canonicalize_email
@@ -44,37 +42,9 @@ def register():
     next_url = request.args.get("next")
 
     if form.validate_on_submit():
-        # only check if hcaptcha is enabled
-        if HCAPTCHA_SECRET:
-            # check with hCaptcha
-            token = request.form.get("h-captcha-response")
-            params = {"secret": HCAPTCHA_SECRET, "response": token}
-            hcaptcha_res = requests.post(
-                "https://hcaptcha.com/siteverify", data=params
-            ).json()
-            # return something like
-            # {'success': True,
-            #  'challenge_ts': '2020-07-23T10:03:25',
-            #  'hostname': '127.0.0.1'}
-            if not hcaptcha_res["success"]:
-                LOG.w(
-                    "User put wrong captcha %s %s",
-                    form.email.data,
-                    hcaptcha_res,
-                )
-                flash("Wrong Captcha", "error")
-                RegisterEvent(RegisterEvent.ActionType.catpcha_failed).send()
-                return render_template(
-                    "auth/register.html",
-                    form=form,
-                    next_url=next_url,
-                    HCAPTCHA_SITEKEY=HCAPTCHA_SITEKEY,
-                )
-
         email = canonicalize_email(form.email.data)
         if not email_can_be_used_as_mailbox(email):
             flash("You cannot use this email address as your personal inbox.", "error")
-            RegisterEvent(RegisterEvent.ActionType.email_in_use).send()
         elif check_if_abuser_email(email):
             flash("The email address provided is banned from registration.", "error")
         else:
@@ -83,7 +53,6 @@ def register():
                 sanitized_email
             ):
                 flash(f"Email {email} already used", "error")
-                RegisterEvent(RegisterEvent.ActionType.email_in_use).send()
             else:
                 LOG.d("create user %s", email)
                 user = User.create(
@@ -96,12 +65,10 @@ def register():
 
                 try:
                     send_activation_email(user, next_url)
-                    RegisterEvent(RegisterEvent.ActionType.success).send()
                     DailyMetric.get_or_create_today_metric().nb_new_web_non_proton_user += 1
                     Session.commit()
                 except Exception:
                     flash("Invalid email, are you sure the email is correct?", "error")
-                    RegisterEvent(RegisterEvent.ActionType.invalid_email).send()
                     return redirect(url_for("auth.register"))
 
                 return render_template("auth/register_waiting_activation.html")
@@ -110,7 +77,6 @@ def register():
         "auth/register.html",
         form=form,
         next_url=next_url,
-        HCAPTCHA_SITEKEY=HCAPTCHA_SITEKEY,
         connect_with_proton=CONNECT_WITH_PROTON,
         connect_with_oidc=config.OIDC_CLIENT_ID is not None,
         connect_with_oidc_icon=CONNECT_WITH_OIDC_ICON,
