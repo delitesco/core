@@ -7,7 +7,6 @@ from app.contact_utils import create_contact, ContactCreateError
 from app.db import Session
 from app.models import (
     Alias,
-    User,
 )
 from tests.utils import create_new_user, random_email, random_token
 
@@ -112,31 +111,6 @@ def test_create_contact_empty_name_is_none():
     assert contact_result.contact is not None
     assert contact_result.contact.website_email == email
     assert contact_result.contact.name is None
-
-
-def test_create_contact_free_user():
-    user = create_new_user()
-    user.trial_end = None
-    user.flags = 0
-    alias = Alias.create_new_random(user)
-    Session.flush()
-    # Free users without the FREE_DISABLE_CREATE_CONTACTS
-    result = create_contact(random_email(), alias)
-    assert result.error is None
-    assert result.created
-    assert result.contact is not None
-    assert not result.contact.automatic_created
-    # Free users with the flag should be able to still create automatic emails
-    user.flags = User.FLAG_FREE_DISABLE_CREATE_CONTACTS
-    Session.flush()
-    result = create_contact(random_email(), alias, automatic_created=True)
-    assert result.error is None
-    assert result.created
-    assert result.contact is not None
-    assert result.contact.automatic_created
-    # Free users with the flag cannot create non-automatic emails
-    result = create_contact(random_email(), alias)
-    assert result.error == ContactCreateError.NotAllowed
 
 
 def test_do_not_allow_invalid_email():

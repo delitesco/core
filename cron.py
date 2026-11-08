@@ -8,16 +8,13 @@ import requests
 from sqlalchemy import func, or_, and_
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.orm import joinedload
-from sqlalchemy.orm.exc import ObjectDeletedError
 from sqlalchemy.sql import Insert, text
 
 from app import s3, config
 from app.alias_utils import nb_email_log_for_mailbox
-from app.api.views.apple import verify_receipt
 from app.db import Session
 from app.email_utils import (
     send_email,
-    send_trial_end_soon_email,
     render,
     email_can_be_used_as_mailbox,
     get_email_domain_part,
@@ -26,17 +23,13 @@ from app.email_validation import is_valid_email, normalize_reply_email
 from app.log import LOG
 from app.mail_sender import load_unsent_mails_from_fs_and_resend
 from app.models import (
-    Subscription,
     User,
     Alias,
     EmailLog,
     CustomDomain,
-    ManualSubscription,
     RefusedEmail,
-    AppleSubscription,
     Mailbox,
     Contact,
-    CoinbaseSubscription,
     TransactionalEmail,
     Bounce,
     SLDomain,
@@ -58,23 +51,6 @@ from tasks.cleanup_old_jobs import cleanup_old_jobs
 from tasks.cleanup_old_notifications import cleanup_old_notifications
 
 DELETE_GRACE_DAYS = 30
-
-
-def notify_trial_end():
-    for user in User.filter(
-        User.activated.is_(True),
-        User.trial_end.isnot(None),
-        User.trial_end >= arrow.now().shift(days=2),
-        User.trial_end < arrow.now().shift(days=3),
-        User.lifetime.is_(False),
-    ).all():
-        try:
-            if user.in_trial():
-                LOG.d("Send trial end email to user %s", user)
-                send_trial_end_soon_email(user)
-        # happens if user has been deleted in the meantime
-        except ObjectDeletedError:
-            LOG.i("user has been deleted")
 
 
 def delete_logs():
@@ -138,162 +114,6 @@ def delete_refused_emails():
             Session.commit()
 
     LOG.d("Finish delete_refused_emails")
-
-
-def notify_premium_end():
-    """sent to user who has canceled their subscription and who has their subscription ending soon"""
-    for sub in Subscription.filter_by(cancelled=True).all():
-        if (
-            arrow.now().shift(days=3).date()
-            > sub.next_bill_date
-            >= arrow.now().shift(days=2).date()
-        ):
-            user = sub.user
-
-            if user.lifetime:
-                continue
-
-            LOG.d(f"Send subscription ending soon email to user {user}")
-
-            send_email(
-                user.email,
-                "Your subscription will end soon",
-                render(
-                    "transactional/subscription-end.txt",
-                    user=user,
-                    next_bill_date=sub.next_bill_date.strftime("%Y-%m-%d"),
-                ),
-                render(
-                    "transactional/subscription-end.html",
-                    user=user,
-                    next_bill_date=sub.next_bill_date.strftime("%Y-%m-%d"),
-                ),
-                retries=3,
-            )
-
-
-def notify_manual_sub_end():
-    for manual_sub in ManualSubscription.all():
-        manual_sub: ManualSubscription
-        need_reminder = False
-        if arrow.now().shift(days=14) > manual_sub.end_at > arrow.now().shift(days=13):
-            need_reminder = True
-        elif arrow.now().shift(days=4) > manual_sub.end_at > arrow.now().shift(days=3):
-            need_reminder = True
-
-        user = manual_sub.user
-        if user.lifetime:
-            LOG.d("%s has a lifetime licence", user)
-            continue
-
-        paddle_sub: Subscription = user.get_paddle_subscription()
-        if paddle_sub and not paddle_sub.cancelled:
-            LOG.d("%s has an active Paddle subscription", user)
-            continue
-
-        if need_reminder:
-            # user can have a (free) manual subscription but has taken a paid subscription via
-            # Paddle, Coinbase or Apple since then
-            if manual_sub.is_giveaway:
-                if user.get_paddle_subscription():
-                    LOG.d("%s has a active Paddle subscription", user)
-                    continue
-
-                coinbase_subscription: CoinbaseSubscription = (
-                    CoinbaseSubscription.get_by(user_id=user.id)
-                )
-                if coinbase_subscription and coinbase_subscription.is_active():
-                    LOG.d("%s has a active Coinbase subscription", user)
-                    continue
-
-                apple_sub: AppleSubscription = AppleSubscription.get_by(user_id=user.id)
-                if apple_sub and apple_sub.is_valid():
-                    LOG.d("%s has a active Apple subscription", user)
-                    continue
-
-            LOG.d("Remind user %s that their manual sub is ending soon", user)
-            send_email(
-                user.email,
-                "Your subscription will end soon",
-                render(
-                    "transactional/manual-subscription-end.txt",
-                    user=user,
-                    manual_sub=manual_sub,
-                ),
-                render(
-                    "transactional/manual-subscription-end.html",
-                    user=user,
-                    manual_sub=manual_sub,
-                ),
-                retries=3,
-            )
-
-    extend_subscription_url = config.URL + "/dashboard/coinbase_checkout"
-    for coinbase_subscription in CoinbaseSubscription.all():
-        need_reminder = False
-        if (
-            arrow.now().shift(days=14)
-            > coinbase_subscription.end_at
-            > arrow.now().shift(days=13)
-        ):
-            need_reminder = True
-        elif (
-            arrow.now().shift(days=4)
-            > coinbase_subscription.end_at
-            > arrow.now().shift(days=3)
-        ):
-            need_reminder = True
-
-        if need_reminder:
-            user = coinbase_subscription.user
-            if user.lifetime:
-                continue
-
-            LOG.d(
-                "Remind user %s that their coinbase subscription is ending soon", user
-            )
-            send_email(
-                user.email,
-                "Your SimpleLogin subscription will end soon",
-                render(
-                    "transactional/coinbase/reminder-subscription.txt",
-                    user=user,
-                    coinbase_subscription=coinbase_subscription,
-                    extend_subscription_url=extend_subscription_url,
-                ),
-                render(
-                    "transactional/coinbase/reminder-subscription.html",
-                    user=user,
-                    coinbase_subscription=coinbase_subscription,
-                    extend_subscription_url=extend_subscription_url,
-                ),
-                retries=3,
-            )
-
-
-def poll_apple_subscription():
-    """Poll Apple API to update AppleSubscription"""
-    for apple_sub in (
-        AppleSubscription.filter(
-            AppleSubscription.expires_date < arrow.now().shift(days=15)
-        )
-        .enable_eagerloads(False)
-        .yield_per(100)
-    ):
-        if not apple_sub.is_valid():
-            # Subscription is not valid anymore and hasn't been renewed
-            continue
-        if not apple_sub.product_id:
-            LOG.d("Ignore %s", apple_sub)
-            continue
-
-        user = apple_sub.user
-        if "io.simplelogin.macapp.subscription" in apple_sub.product_id:
-            verify_receipt(apple_sub.receipt_data, user, config.MACAPP_APPLE_API_SECRET)
-        else:
-            verify_receipt(apple_sub.receipt_data, user, config.APPLE_API_SECRET)
-
-    LOG.d("Finish poll_apple_subscription")
 
 
 def migrate_domain_trash():
@@ -648,18 +468,9 @@ def get_alias_to_check_hibp(
     min_alias_id: int,
     max_alias_id: int,
 ):
-    now = arrow.now()
     alias_query = (
         Session.query(Alias)
         .join(User, User.id == Alias.user_id)
-        .join(Subscription, User.id == Subscription.user_id, isouter=True)
-        .join(ManualSubscription, User.id == ManualSubscription.user_id, isouter=True)
-        .join(AppleSubscription, User.id == AppleSubscription.user_id, isouter=True)
-        .join(
-            CoinbaseSubscription,
-            User.id == CoinbaseSubscription.user_id,
-            isouter=True,
-        )
         .filter(
             or_(
                 Alias.hibp_last_check.is_(None),
@@ -672,13 +483,6 @@ def get_alias_to_check_hibp(
             Alias.id < max_alias_id,
             User.disabled == False,  # noqa: E712
             User.enable_data_breach_check,
-            or_(
-                User.lifetime,
-                ManualSubscription.end_at > now,
-                Subscription.next_bill_date > now.date(),
-                AppleSubscription.expires_date > now,
-                CoinbaseSubscription.end_at > now,
-            ),
         )
     )
     for alias in (
@@ -860,24 +664,12 @@ if __name__ == "__main__":
     args = parser.parse_args()
     # wrap in an app context to benefit from app setup like database cleanup, sentry integration, etc
     with create_light_app().app_context():
-        if args.job == "notify_trial_end":
-            LOG.d("Notify users with trial ending soon")
-            notify_trial_end()
-        elif args.job == "notify_manual_subscription_end":
-            LOG.d("Notify users with manual subscription ending soon")
-            notify_manual_sub_end()
-        elif args.job == "notify_premium_end":
-            LOG.d("Notify users with premium ending soon")
-            notify_premium_end()
-        elif args.job == "delete_logs":
+        if args.job == "delete_logs":
             LOG.d("Deleted Logs")
             delete_logs()
         elif args.job == "delete_old_data":
             LOG.d("Delete old data")
             delete_old_data()
-        elif args.job == "poll_apple_subscription":
-            LOG.d("Poll Apple Subscriptions")
-            poll_apple_subscription()
         elif args.job == "sanity_check":
             LOG.d("Check data consistency")
             sanity_check()

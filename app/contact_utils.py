@@ -142,11 +142,11 @@ def create_contact(
 
 def create_contact_for_alias(alias: Alias, contact_address: str) -> Contact:
     """
-    Create a contact for a user. Can be restricted for new free users by enabling DISABLE_CREATE_CONTACTS_FOR_FREE_USERS.
+    Create a contact for an alias.
     Can throw exceptions:
      - ErrAddressInvalid
      - ErrContactAlreadyExists
-     - ErrContactUpgradeNeeded - If DISABLE_CREATE_CONTACTS_FOR_FREE_USERS this exception will be raised for new free users
+     - ErrContactErrorUpgradeNeeded
     """
     if not contact_address:
         raise ErrAddressInvalid("Empty address")

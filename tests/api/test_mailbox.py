@@ -55,20 +55,6 @@ def test_create_mailbox_empty_email(flask_client):
     assert r.json == {"error": "Invalid email"}
 
 
-def test_create_mailbox_fail_for_free_user(flask_client):
-    user = login(flask_client)
-    user.trial_end = None
-    Session.commit()
-
-    r = flask_client.post(
-        "/api/mailboxes",
-        json={"email": "mailbox@gmail.com"},
-    )
-
-    assert r.status_code == 400
-    assert r.json == {"error": "Only available for paid plans"}
-
-
 def test_delete_mailbox(flask_client):
     user = login(flask_client)
 

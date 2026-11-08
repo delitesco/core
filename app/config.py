@@ -124,14 +124,6 @@ TRANSACTIONAL_BOUNCE_SUFFIX = (
     os.environ.get("TRANSACTIONAL_BOUNCE_SUFFIX") or f"+@{EMAIL_DOMAIN}"
 )
 
-try:
-    MAX_NB_EMAIL_FREE_PLAN = int(os.environ["MAX_NB_EMAIL_FREE_PLAN"])
-except Exception:
-    print("MAX_NB_EMAIL_FREE_PLAN is not set, use 5 as default value")
-    MAX_NB_EMAIL_FREE_PLAN = 5
-
-MAX_NB_EMAIL_OLD_FREE_PLAN = int(os.environ.get("MAX_NB_EMAIL_OLD_FREE_PLAN", 15))
-
 # maximum number of directory a premium user can create
 MAX_NB_DIRECTORY = 50
 MAX_NB_SUBDOMAIN = 5
@@ -216,34 +208,6 @@ AWS_ACCESS_KEY_ID = os.environ.get("AWS_ACCESS_KEY_ID")
 AWS_SECRET_ACCESS_KEY = os.environ.get("AWS_SECRET_ACCESS_KEY")
 AWS_ENDPOINT_URL = os.environ.get("AWS_ENDPOINT_URL", None)
 
-# Paddle
-try:
-    PADDLE_VENDOR_ID = int(os.environ["PADDLE_VENDOR_ID"])
-    PADDLE_MONTHLY_PRODUCT_ID = int(os.environ["PADDLE_MONTHLY_PRODUCT_ID"])
-    PADDLE_YEARLY_PRODUCT_ID = int(os.environ["PADDLE_YEARLY_PRODUCT_ID"])
-except (KeyError, ValueError):
-    print("Paddle param not set")
-    PADDLE_VENDOR_ID = -1
-    PADDLE_MONTHLY_PRODUCT_ID = -1
-    PADDLE_YEARLY_PRODUCT_ID = -1
-
-# Other Paddle product IDS
-PADDLE_MONTHLY_PRODUCT_IDS = sl_getenv("PADDLE_MONTHLY_PRODUCT_IDS", list)
-PADDLE_MONTHLY_PRODUCT_IDS.append(PADDLE_MONTHLY_PRODUCT_ID)
-
-PADDLE_YEARLY_PRODUCT_IDS = sl_getenv("PADDLE_YEARLY_PRODUCT_IDS", list)
-PADDLE_YEARLY_PRODUCT_IDS.append(PADDLE_YEARLY_PRODUCT_ID)
-
-PADDLE_PUBLIC_KEY_PATH = get_abs_path(
-    os.environ.get("PADDLE_PUBLIC_KEY_PATH", "local_data/paddle.key.pub")
-)
-
-PADDLE_AUTH_CODE = os.environ.get("PADDLE_AUTH_CODE")
-
-PADDLE_COUPON_ID = os.environ.get("PADDLE_COUPON_ID")
-
-# OpenID keys, used to sign id_token
-
 # Used to generate random email
 # words.txt is a list of English words and doesn't contain any "bad" word
 # words_alpha.txt comes from https://github.com/dwyl/english-words and also contains bad words.
@@ -297,12 +261,6 @@ STATUS_PAGE_URL = os.environ.get("STATUS_PAGE_URL") or "https://status.simplelog
 
 # Loading PGP keys when mail_handler runs. To be used locally when init_app is not called.
 LOAD_PGP_EMAIL_HANDLER = "LOAD_PGP_EMAIL_HANDLER" in os.environ
-
-# Used when querying info on Apple API
-# for iOS App
-APPLE_API_SECRET = os.environ.get("APPLE_API_SECRET")
-# for Mac App
-MACAPP_APPLE_API_SECRET = os.environ.get("MACAPP_APPLE_API_SECRET")
 
 # <<<<< ALERT EMAIL >>>>
 
@@ -391,13 +349,6 @@ NOREPLY = os.environ.get("NOREPLY", f"noreply@{EMAIL_DOMAIN}")
 # list of no reply addresses
 NOREPLIES = sl_getenv("NOREPLIES", list) or [NOREPLY]
 
-COINBASE_WEBHOOK_SECRET = os.environ.get("COINBASE_WEBHOOK_SECRET")
-COINBASE_CHECKOUT_ID = os.environ.get("COINBASE_CHECKOUT_ID")
-COINBASE_API_KEY = os.environ.get("COINBASE_API_KEY")
-try:
-    COINBASE_YEARLY_PRICE = float(os.environ["COINBASE_YEARLY_PRICE"])
-except Exception:
-    COINBASE_YEARLY_PRICE = 30.00
 
 ALIAS_LIMIT = os.environ.get("ALIAS_LIMIT") or "100/day;50/hour;5/minute"
 
@@ -472,10 +423,6 @@ def setup_nameservers():
 
 
 NAMESERVERS = setup_nameservers()
-
-DISABLE_CREATE_CONTACTS_FOR_FREE_USERS = os.environ.get(
-    "DISABLE_CREATE_CONTACTS_FOR_FREE_USERS", False
-)
 
 
 # Expect format hits,seconds:hits,seconds...

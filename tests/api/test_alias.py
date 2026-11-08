@@ -1,4 +1,3 @@
-import arrow
 from flask import url_for
 
 # Need to import directly from config to allow modification from the tests
@@ -6,9 +5,9 @@ from app import config
 from app.alias_delete import move_alias_to_trash
 from app.db import Session
 from app.email_utils import is_reverse_alias
-from app.models import User, Alias, Contact, EmailLog, Mailbox, AliasDeleteReason
+from app.models import Alias, Contact, EmailLog, Mailbox, AliasDeleteReason
 from tests.api.utils import get_new_user_and_api_key
-from tests.utils import login, random_domain
+from tests.utils import login
 
 
 def test_get_aliases_error_without_pagination(flask_client):
@@ -523,51 +522,6 @@ def test_create_contact_route_non_existing_alias(flask_client):
     )
 
     assert r.status_code == 403
-
-
-def test_create_contact_route_free_users(flask_client):
-    user, api_key = get_new_user_and_api_key()
-
-    alias = Alias.create_new_random(user)
-    Session.commit()
-    # On trial, should be ok
-    r = flask_client.post(
-        url_for("api.create_contact_route", alias_id=alias.id),
-        headers={"Authentication": api_key.code},
-        json={"contact": f"First Last <first@{random_domain()}>"},
-    )
-    assert r.status_code == 201
-
-    # End trial but allow via flags for older free users
-    user.trial_end = arrow.now()
-    user.flags = 0
-    Session.commit()
-    r = flask_client.post(
-        url_for("api.create_contact_route", alias_id=alias.id),
-        headers={"Authentication": api_key.code},
-        json={"contact": f"First Last <first@{random_domain()}>"},
-    )
-    assert r.status_code == 201
-
-    # End trial and disallow for new free users. Config should allow it
-    user.flags = User.FLAG_FREE_DISABLE_CREATE_CONTACTS
-    Session.commit()
-    r = flask_client.post(
-        url_for("api.create_contact_route", alias_id=alias.id),
-        headers={"Authentication": api_key.code},
-        json={"contact": f"First Last <first@{random_domain()}>"},
-    )
-    assert r.status_code == 201
-
-    # Set the global config to disable free users from create contacts
-    config.DISABLE_CREATE_CONTACTS_FOR_FREE_USERS = True
-    r = flask_client.post(
-        url_for("api.create_contact_route", alias_id=alias.id),
-        headers={"Authentication": api_key.code},
-        json={"contact": f"First Last <first@{random_domain()}>"},
-    )
-    assert r.status_code == 403
-    config.DISABLE_CREATE_CONTACTS_FOR_FREE_USERS = False
 
 
 def test_create_contact_route_empty_contact_address(flask_client):

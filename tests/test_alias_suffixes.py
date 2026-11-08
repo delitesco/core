@@ -24,7 +24,6 @@ def teardown_module():
 
 def test_get_default_domain_even_if_is_not_allowed():
     user = create_new_user()
-    user.trial_end = None
     default_domain = SLDomain.filter_by(hidden=False, premium_only=False).first()
     user.default_alias_public_domain_id = default_domain.id
     Session.flush()
@@ -35,7 +34,6 @@ def test_get_default_domain_even_if_is_not_allowed():
 
 def test_get_default_domain_hidden():
     user = create_new_user()
-    user.trial_end = None
     default_domain = SLDomain.filter_by(hidden=True, premium_only=False).first()
     user.default_alias_public_domain_id = default_domain.id
     Session.flush()
@@ -47,26 +45,11 @@ def test_get_default_domain_hidden():
     assert suffixes[0].domain != default_domain.domain
 
 
-def test_get_default_domain_is_premium_for_free_user():
-    user = create_new_user()
-    user.trial_end = None
-    default_domain = SLDomain.filter_by(premium_only=True).first()
-    user.default_alias_public_domain_id = default_domain.id
-    Session.flush()
-    options = AliasOptions(show_sl_domains=True)
-    suffixes = get_alias_suffixes(user, alias_options=options)
-    for suffix in suffixes:
-        domain = SLDomain.get_by(domain=suffix.domain)
-        assert not domain.premium_only
-    assert suffixes[0].domain != default_domain.domain
-
-
 def test_suffixes_are_valid():
     user = create_new_user()
     CustomDomain.create(
         user_id=user.id, domain=f"{random_token(10)}.com", verified=True
     )
-    user.trial_end = None
     Session.flush()
     options = AliasOptions(show_sl_domains=True)
     alias_suffixes = get_alias_suffixes(user, alias_options=options)

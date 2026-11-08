@@ -58,7 +58,6 @@ def test_check_alias_prefix(flask_client):
 
 
 def get_auto_create_alias_tests(user: User) -> List:
-    user.lifetime = True
     catchall = CustomDomain.create(
         user_id=user.id,
         catch_all=True,

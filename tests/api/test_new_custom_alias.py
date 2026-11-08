@@ -1,7 +1,7 @@
 from app import config
 from app.alias_delete import delete_alias
 from app.alias_suffix import signer
-from app.config import EMAIL_DOMAIN, MAX_NB_EMAIL_FREE_PLAN
+from app.config import EMAIL_DOMAIN
 from app.db import Session
 from app.models import Alias, CustomDomain, Mailbox, AliasUsedOn
 from app.utils import random_word
@@ -179,14 +179,12 @@ def test_mailbox_ids_is_not_an_array(flask_client):
     assert r.json == {"error": "mailbox_ids must be an array of id"}
 
 
-def test_out_of_quota(flask_client):
+def test_no_alias_quota(flask_client):
+    """There is no free plan: alias creation is not limited by a quota."""
     user = login(flask_client)
-    user.trial_end = None
-    Session.commit()
-
-    # create MAX_NB_EMAIL_FREE_PLAN custom alias to run out of quota
-    for _ in range(MAX_NB_EMAIL_FREE_PLAN):
+    for _ in range(10):
         Alias.create_new(user, prefix="test")
+    Session.commit()
 
     word = random_word()
     suffix = f".{word}@{EMAIL_DOMAIN}"
@@ -197,17 +195,12 @@ def test_out_of_quota(flask_client):
         json={
             "alias_prefix": "prefix",
             "signed_suffix": signed_suffix,
-            "note": "test note",
             "mailbox_ids": [user.default_mailbox_id],
-            "name": "your name",
         },
     )
 
-    assert r.status_code == 400
-    assert r.json == {
-        "error": "You have reached the limitation of a "
-        "free account with the maximum of 3 aliases, please upgrade your plan to create more aliases"
-    }
+    assert r.status_code == 201
+    assert r.json["alias"] == f"prefix{suffix}"
 
 
 def test_cannot_create_alias_in_trash(flask_client):

@@ -9,7 +9,7 @@ from app.api.serializer import (
     get_alias_info_v2,
     serialize_alias_info_v2,
 )
-from app.config import MAX_NB_EMAIL_FREE_PLAN, ALIAS_LIMIT
+from app.config import ALIAS_LIMIT
 from app.db import Session
 from app.errors import AliasInTrashError
 from app.extensions import limiter
@@ -36,8 +36,7 @@ def new_random_alias():
         LOG.d("user %s cannot create new random alias", user)
         return (
             jsonify(
-                error=f"You have reached the limitation of a free account with the maximum of "
-                f"{MAX_NB_EMAIL_FREE_PLAN} aliases, please upgrade your plan to create more aliases"
+                error="This account cannot create aliases: it is disabled or scheduled for deletion"
             ),
             400,
         )

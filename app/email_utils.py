@@ -84,7 +84,6 @@ def render(template_name: str, user: Optional[User], **kwargs) -> str:
         kwargs["user"] = user
 
     return template.render(
-        MAX_NB_EMAIL_FREE_PLAN=config.MAX_NB_EMAIL_FREE_PLAN,
         URL=config.URL,
         LANDING_PAGE_URL=config.LANDING_PAGE_URL,
         YEAR=arrow.now().year,
@@ -107,16 +106,6 @@ def send_welcome_email(user):
         render("com/welcome.html", user=user, alias=alias),
         unsubscribe_link,
         via_email,
-    )
-
-
-def send_trial_end_soon_email(user):
-    send_email(
-        user.email,
-        "Your trial will end soon",
-        render("transactional/trial-end.txt.jinja2", user=user),
-        render("transactional/trial-end.html", user=user),
-        ignore_smtp_error=True,
     )
 
 
