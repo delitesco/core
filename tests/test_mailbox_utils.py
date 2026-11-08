@@ -650,3 +650,29 @@ def test_verification_email_without_frontend_url_has_only_the_code():
         assert "mailbox_id=" not in mail_contents
     finally:
         config.MAILBOX_VERIFY_URL = previous
+
+
+def test_pending_email_change_is_unique_per_user_only():
+    target = random_email()
+    first = create_new_user()
+    second = create_new_user()
+    mb1 = Mailbox.create(user_id=first.id, email=random_email(), verified=True)
+    mb2 = Mailbox.create(user_id=second.id, email=random_email(), verified=True)
+    mb3 = Mailbox.create(user_id=first.id, email=random_email(), verified=True)
+    Session.commit()
+
+    mailbox_utils.request_mailbox_email_change(
+        first, mb1, target, email_ownership_verified=False, send_email=False
+    )
+    # another user can request the same address: it does not block or reveal anything
+    mailbox_utils.request_mailbox_email_change(
+        second, mb2, target, email_ownership_verified=False, send_email=False
+    )
+    assert Mailbox.get(mb1.id).new_email == target
+    assert Mailbox.get(mb2.id).new_email == target
+
+    # but the same user cannot have it pending on two mailboxes
+    with pytest.raises(mailbox_utils.MailboxError):
+        mailbox_utils.request_mailbox_email_change(
+            first, mb3, target, email_ownership_verified=False, send_email=False
+        )

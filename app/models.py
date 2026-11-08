@@ -1825,7 +1825,9 @@ class Mailbox(Base, ModelMixin):
     force_spf = sa.Column(sa.Boolean, default=True, server_default="1", nullable=False)
 
     # used when user wants to update mailbox email
-    new_email = sa.Column(sa.String(256), unique=True)
+    # pending address change; unique per user, not globally, so users cannot
+    # block or probe each other's pending changes
+    new_email = sa.Column(sa.String(256), nullable=True)
 
     pgp_public_key = sa.Column(sa.Text, nullable=True)
     pgp_finger_print = sa.Column(sa.String(512), nullable=True)
@@ -1847,6 +1849,7 @@ class Mailbox(Base, ModelMixin):
 
     __table_args__ = (
         sa.UniqueConstraint("user_id", "email", name="uq_mailbox_user"),
+        sa.UniqueConstraint("user_id", "new_email", name="uq_mailbox_user_new_email"),
         sa.Index("ix_mailbox_pgp_finger_print", "pgp_finger_print"),
         # index on email column using pg_trgm
         Index(
