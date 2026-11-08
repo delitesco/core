@@ -30,86 +30,6 @@ from tasks.delete_custom_domain_job import DeleteCustomDomainJob
 _MAX_JOBS_PER_BATCH = 50
 
 
-def onboarding_send_from_alias(user):
-    comm_email, unsubscribe_link, via_email = user.get_communication_email()
-    if not comm_email:
-        return
-
-    send_email(
-        comm_email,
-        "SimpleLogin Tip: Send emails from your alias",
-        render(
-            "com/onboarding/send-from-alias.txt.j2",
-            user=user,
-            to_email=comm_email,
-        ),
-        render("com/onboarding/send-from-alias.html", user=user, to_email=comm_email),
-        unsubscribe_link,
-        via_email,
-        retries=3,
-        ignore_smtp_error=True,
-    )
-
-
-def onboarding_pgp(user):
-    comm_email, unsubscribe_link, via_email = user.get_communication_email()
-    if not comm_email:
-        return
-
-    send_email(
-        comm_email,
-        "SimpleLogin Tip: Secure your emails with PGP",
-        render("com/onboarding/pgp.txt", user=user, to_email=comm_email),
-        render("com/onboarding/pgp.html", user=user, to_email=comm_email),
-        unsubscribe_link,
-        via_email,
-        retries=3,
-        ignore_smtp_error=True,
-    )
-
-
-def onboarding_browser_extension(user):
-    comm_email, unsubscribe_link, via_email = user.get_communication_email()
-    if not comm_email:
-        return
-
-    send_email(
-        comm_email,
-        "SimpleLogin Tip: Chrome/Firefox/Safari extensions and Android/iOS apps",
-        render(
-            "com/onboarding/browser-extension.txt",
-            user=user,
-            to_email=comm_email,
-        ),
-        render(
-            "com/onboarding/browser-extension.html",
-            user=user,
-            to_email=comm_email,
-        ),
-        unsubscribe_link,
-        via_email,
-        retries=3,
-        ignore_smtp_error=True,
-    )
-
-
-def onboarding_mailbox(user):
-    comm_email, unsubscribe_link, via_email = user.get_communication_email()
-    if not comm_email:
-        return
-
-    send_email(
-        comm_email,
-        "SimpleLogin Tip: Multiple mailboxes",
-        render("com/onboarding/mailbox.txt", user=user, to_email=comm_email),
-        render("com/onboarding/mailbox.html", user=user, to_email=comm_email),
-        unsubscribe_link,
-        via_email,
-        retries=3,
-        ignore_smtp_error=True,
-    )
-
-
 def delete_mailbox_job(job: Job):
     mailbox_id = job.payload.get("mailbox_id")
     mailbox: Optional[Mailbox] = Mailbox.get(mailbox_id)
@@ -171,35 +91,7 @@ SimpleLogin team.
 
 
 def process_job(job: Job):
-    if job.name == JobType.ONBOARDING_1.value:
-        user_id = job.payload.get("user_id")
-        user = User.get(user_id)
-
-        # user might delete their account in the meantime
-        # or disable the notification
-        if user and user.notification and user.activated:
-            LOG.d("send onboarding send-from-alias email to user %s", user)
-            onboarding_send_from_alias(user)
-    elif job.name == JobType.ONBOARDING_2.value:
-        user_id = job.payload.get("user_id")
-        user = User.get(user_id)
-
-        # user might delete their account in the meantime
-        # or disable the notification
-        if user and user.notification and user.activated:
-            LOG.d("send onboarding mailbox email to user %s", user)
-            onboarding_mailbox(user)
-    elif job.name == JobType.ONBOARDING_4.value:
-        user_id = job.payload.get("user_id")
-        user: User = User.get(user_id)
-
-        # user might delete their account in the meantime
-        # or disable the notification
-        if user and user.notification and user.activated:
-            LOG.d("send onboarding pgp email to user %s", user)
-            onboarding_pgp(user)
-
-    elif job.name == JobType.DELETE_ACCOUNT.value:
+    if job.name == JobType.DELETE_ACCOUNT.value:
         user_id = job.payload.get("user_id")
         user = User.get(user_id)
 

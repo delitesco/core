@@ -9,7 +9,7 @@ from typing import Optional, Dict
 import jinja2
 
 from app.db import Session
-from app.models import ApiKey, User, UserAliasDeleteAction
+from app.models import Alias, ApiKey, User, UserAliasDeleteAction
 from app.utils import random_string
 
 
@@ -31,6 +31,10 @@ def create_new_user(
         flush=True,
     )
     user.alias_delete_action = alias_delete_action
+    Session.flush()
+    # Upstream users got a "newsletter" alias on creation and many tests are written
+    # against a user that owns exactly one alias. Keep that starting state explicit here.
+    Alias.create_new(user, prefix="first-alias", mailbox_id=user.default_mailbox_id)
     Session.flush()
 
     return user

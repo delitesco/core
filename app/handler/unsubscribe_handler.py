@@ -58,7 +58,8 @@ class UnsubscribeHandler:
         elif unsub_data.action == UnsubscribeAction.DisableContact:
             return self._disable_contact(unsub_data.data, mailbox.user, mailbox)
         elif unsub_data.action == UnsubscribeAction.UnsubscribeNewsletter:
-            return self._unsubscribe_user_from_newsletter(unsub_data.data, mailbox.user)
+            # newsletters are gone; old unsubscribe links are accepted and ignored
+            return status.E202
         elif unsub_data.action == UnsubscribeAction.OriginalUnsubscribeMailto:
             return self._unsubscribe_original_behaviour(unsub_data.data, mailbox.user)
         else:
@@ -76,9 +77,8 @@ class UnsubscribeHandler:
         elif unsub_data.action == UnsubscribeAction.DisableContact:
             response_code = self._disable_contact(unsub_data.data, user)
         elif unsub_data.action == UnsubscribeAction.UnsubscribeNewsletter:
-            response_code = self._unsubscribe_user_from_newsletter(
-                unsub_data.data, user
-            )
+            # newsletters are gone; old unsubscribe links are accepted and ignored
+            response_code = status.E202
         elif unsub_data.action == UnsubscribeAction.OriginalUnsubscribeMailto:
             response_code = self._unsubscribe_original_behaviour(unsub_data.data, user)
         else:
@@ -161,35 +161,6 @@ class UnsubscribeHandler:
                     unblock_contact_url=unblock_contact_url,
                 ),
             )
-        return status.E202
-
-    def _unsubscribe_user_from_newsletter(
-        self, user_id: int, request_user: User
-    ) -> str:
-        """return the SMTP status"""
-        user = User.get(user_id)
-        if not user:
-            LOG.w("No such user %s", user_id)
-            return status.E510
-
-        if user.id != request_user.id:
-            LOG.w("Unauthorized unsubscribe user from", request_user)
-            return status.E511
-        user.notification = False
-        Session.commit()
-
-        send_email(
-            user.email,
-            "You have been unsubscribed from SimpleLogin newsletter",
-            render(
-                "transactional/unsubscribe-newsletter.txt",
-                user=user,
-            ),
-            render(
-                "transactional/unsubscribe-newsletter.html",
-                user=user,
-            ),
-        )
         return status.E202
 
     def _check_email_is_authorized_for_alias(

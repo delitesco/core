@@ -16,7 +16,6 @@ from app.models import (
 
 def setting_to_dict(user: User):
     ret = {
-        "notification": user.notification,
         "alias_generator": "word"
         if user.alias_generator == AliasGeneratorEnum.word.value
         else "uuid",
@@ -47,15 +46,11 @@ def update_setting():
     """
     Update user setting
     Input:
-    - notification: bool
     - alias_generator: word|uuid
     - random_alias_default_domain: str
     """
     user = g.user
     data = request.get_json() or {}
-
-    if "notification" in data:
-        user.notification = data["notification"]
 
     if "alias_generator" in data:
         alias_generator = data["alias_generator"]

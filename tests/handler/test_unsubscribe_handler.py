@@ -60,13 +60,13 @@ def test_old_subject_block_contact():
 
 
 @mail_sender.store_emails_test_decorator
-def test_old_subject_disable_newsletter():
+def test_old_subject_disable_newsletter_is_ignored():
     user = create_new_user()
     envelope, message = _get_envelope_and_message(user, f"{user.id}*")
     response = UnsubscribeHandler().handle_unsubscribe_from_message(envelope, message)
     assert status.E202 == response
-    assert not User.get(user.id).notification
-    assert 1 == len(mail_sender.get_stored_emails())
+    # newsletters are gone: the request is accepted but nothing is sent
+    assert 0 == len(mail_sender.get_stored_emails())
 
 
 @mail_sender.store_emails_test_decorator
@@ -106,7 +106,7 @@ def test_new_subject_block_contact():
 
 
 @mail_sender.store_emails_test_decorator
-def test_new_subject_disable_newsletter():
+def test_new_subject_disable_newsletter_is_ignored():
     user = create_new_user()
     header = UnsubscribeEncoder.encode_subject(
         UnsubscribeAction.UnsubscribeNewsletter, user.id
@@ -114,8 +114,8 @@ def test_new_subject_disable_newsletter():
     envelope, message = _get_envelope_and_message(user, header)
     response = UnsubscribeHandler().handle_unsubscribe_from_message(envelope, message)
     assert status.E202 == response
-    assert not User.get(user.id).notification
-    assert 1 == len(mail_sender.get_stored_emails())
+    # newsletters are gone: the request is accepted but nothing is sent
+    assert 0 == len(mail_sender.get_stored_emails())
 
 
 @mail_sender.store_emails_test_decorator
