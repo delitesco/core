@@ -43,6 +43,8 @@ def create_mailbox():
 
     try:
         new_mailbox = mailbox_utils.create_mailbox(user, mailbox_email).mailbox
+    except mailbox_utils.TooManyVerificationEmails as e:
+        return jsonify(error=e.msg), 429
     except mailbox_utils.MailboxError as e:
         return jsonify(error=e.msg), 400
 
@@ -152,6 +154,8 @@ def update_mailbox(mailbox_id):
         new_email = sanitize_email(data.get("email"))
         try:
             mailbox_utils.request_mailbox_email_change(user, mailbox, new_email)
+        except mailbox_utils.TooManyVerificationEmails as e:
+            return jsonify(error=e.msg), 429
         except mailbox_utils.MailboxError as e:
             return jsonify(error=e.msg), 400
         except SMTPRecipientsRefused:

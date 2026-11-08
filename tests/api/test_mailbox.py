@@ -1,6 +1,9 @@
+import pytest
 from flask import url_for
 
+from app import config
 from app.db import Session
+from app.dns_utils import InMemoryDNSClient, set_global_dns_client
 from app.models import Mailbox, MailboxActivation
 from tests.utils import login, random_token
 
@@ -201,6 +204,17 @@ def test_get_mailboxes_v2(flask_client):
         assert "verified" in mb
 
 
+@pytest.fixture(autouse=True)
+def offline_dns():
+    """Mailbox domains need MX records: answer DNS from memory so the tests don't
+    depend on the network."""
+    dns_client = InMemoryDNSClient()
+    dns_client.set_mx_records("gmail.com", {10: ["gmail-smtp-in.l.google.com."]})
+    set_global_dns_client(dns_client)
+    yield
+    set_global_dns_client(None)
+
+
 def _mailbox_address() -> str:
     # mailbox domains must have MX records
     return f"mb_{random_token(10)}@gmail.com"
@@ -288,3 +302,18 @@ def test_verify_mailbox_email_change(flask_client):
     assert r.status_code == 200
     assert r.json["email"] == new_email
     assert Mailbox.get(mailbox.id).new_email is None
+
+
+def test_verification_emails_are_limited_per_address(flask_client):
+    """Several users cannot flood one address with verification emails."""
+    target = _mailbox_address()
+    max_hits = config.MAILBOX_VERIFICATION_EMAIL_LIMITS[0][0]
+    for _ in range(max_hits):
+        login(flask_client)  # a different user each time
+        r = flask_client.post("/api/mailboxes", json={"email": target})
+        assert r.status_code == 201
+
+    login(flask_client)
+    r = flask_client.post("/api/mailboxes", json={"email": target})
+    assert r.status_code == 429
+    assert Mailbox.filter_by(email=target).count() == max_hits
