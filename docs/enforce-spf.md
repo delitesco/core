@@ -5,10 +5,11 @@ breaking therefore the SPF.
 A malicious hacker could use this security fail to impersonate your alias via the reverse-alias. This rarely happens
 as the reverse-alias is generated randomly and is unique for each sender.
 
-However if you want to prevent this kind of attack, you can enforce the SPF policy even if your mailbox uses a "soft" policy.
+To prevent this kind of attack, the mail handler enforces the SPF policy even if your mailbox uses a "soft" policy.
+`ENFORCE_SPF` is on unless set to `false`, but it needs Postfix to record the client IP.
 
-The Docker Compose setup in `deploy/` does all of this already (`deploy/postfix/client_ip_header.pcre`,
-`ENFORCE_SPF=true` in `.env.example`). For another Postfix:
+The Docker Compose setup in `deploy/` does all of this already (`deploy/postfix/client_ip_header.pcre`).
+For another Postfix:
 
 1) Install `postfix-pcre`
 
@@ -34,10 +35,7 @@ smtpd_client_restrictions =
     permit
 ```
 
-4) Enable `ENFORCE_SPF` in your config file
+4) Restart Postfix and the mail handler.
 
-```
-ENFORCE_SPF=true
-```
-
-5) Restart Postfix and the mail handler.
+Without the header the check is skipped and a warning is logged for each reply, so add it before
+relying on `ENFORCE_SPF`. Set `ENFORCE_SPF=false` only if Postfix can't see the real client address.
