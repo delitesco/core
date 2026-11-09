@@ -7,45 +7,37 @@ as the reverse-alias is generated randomly and is unique for each sender.
 
 However if you want to prevent this kind of attack, you can enforce the SPF policy even if your mailbox uses a "soft" policy.
 
+The Docker Compose setup in `deploy/` does all of this already (`deploy/postfix/client_ip_header.pcre`,
+`ENFORCE_SPF=true` in `.env.example`). For another Postfix:
+
 1) Install `postfix-pcre`
 
 ```bash
 apt install -y postfix-pcre
 ```
 
-2) Add `/etc/postfix/body_checks.pcre` file with the following content
+2) Add `/etc/postfix/client_ip_header.pcre` with the following content
 
 ```
-/^X-SimpleLogin-Client-IP:/    IGNORE
+/^([0-9]{1,3}(\.[0-9]{1,3}){3})$/      PREPEND X-SimpleLogin-Client-IP: $1
+/^([0-9a-fA-F]*:[0-9a-fA-F:.]+)$/       PREPEND X-SimpleLogin-Client-IP: $1
 ```
 
-3) Add `/etc/postfix/client_headers.pcre` with the following content
+The header is prepended, so it is always the first `X-SimpleLogin-Client-IP` header of the message, and the mail
+handler only reads the first one: a copy sent by the client is never used.
+
+3) Add the following lines to your Postfix config file at `/etc/postfix/main.cf`
 
 ```
-/^([0-9a-f:.]+)$/ prepend X-SimpleLogin-Client-IP: $1
+smtpd_client_restrictions =
+    check_client_access pcre:/etc/postfix/client_ip_header.pcre,
+    permit
 ```
 
-4) Add the following lines to your Postfix config file at `/etc/postfix/main.cf`
-
-```
-body_checks = pcre:/etc/postfix/body_checks.pcre
-smtpd_client_restrictions = pcre:/etc/postfix/client_headers.pcre
-```
-
-5) Enable `ENFORCE_SPF` in your SimpleLogin config file
+4) Enable `ENFORCE_SPF` in your config file
 
 ```
 ENFORCE_SPF=true
 ```
 
-6) Restart Postfix
-
-```bash
-systemctl restart postfix
-```
-
-7) Restart SimpleLogin mail handler
-
-```bash
-sudo docker restart sl-email
-```
+5) Restart Postfix and the mail handler.

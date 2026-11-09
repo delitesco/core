@@ -1,7 +1,7 @@
 # delitesco-core
 
 Mail backend for delitesco email aliases: a hard fork of
-[SimpleLogin](https://github.com/simple-login/app) v4.70.0 (MIT) reduced to the parts that deliver mail.
+[SimpleLogin](https://github.com/simple-login/app) v4.70.0 (AGPL-3.0, like this fork) reduced to the parts that deliver mail.
 
 It keeps the mail handler (forward, reply, bounces, DMARC/SPF, spam), aliases, mailboxes, reverse-alias
 contacts, PGP, DKIM, custom domains, the alias/mailbox HTTP API and the cleanup jobs. It has no web UI,
@@ -452,10 +452,11 @@ docker run --rm \
     -v $(pwd)/dkim.pub.key:/dkim.pub.key \
     -v $(pwd)/simplelogin.env:/code/.env \
     --network="sl-network" \
-    simplelogin/app:3.4.0 flask db upgrade
+    delitesco-core alembic upgrade head
 ```
 
-This command could take a while to download the `simplelogin/app` docker image.
+The image is built from this repository first: `docker build -t delitesco-core .` (the containers run as
+uid 10001: `sudo chown -R 10001:10001 sl`).
 
 Init data
 
@@ -467,7 +468,7 @@ docker run --rm \
     -v $(pwd)/dkim.key:/dkim.key \
     -v $(pwd)/dkim.pub.key:/dkim.pub.key \
     --network="sl-network" \
-    simplelogin/app:3.4.0 python init_app.py
+    delitesco-core python init_app.py
 ```
 
 Now run the API container. Only the backend in front of it should be able to reach it.
@@ -482,7 +483,7 @@ docker run -d \
     -p 127.0.0.1:7777:7777 \
     --restart always \
     --network="sl-network" \
-    simplelogin/app:3.4.0
+    delitesco-core
 ```
 
 Next run the `email handler`
@@ -497,7 +498,7 @@ docker run -d \
     -p 127.0.0.1:20381:20381 \
     --restart always \
     --network="sl-network" \
-    simplelogin/app:3.4.0 python email_handler.py
+    delitesco-core python email_handler.py
 ```
 
 And finally the `job runner`
@@ -511,7 +512,7 @@ docker run -d \
     -v $(pwd)/dkim.pub.key:/dkim.pub.key \
     --restart always \
     --network="sl-network" \
-    simplelogin/app:3.4.0 python job_runner.py
+    delitesco-core python job_runner.py
 ```
 
 ### Misc
