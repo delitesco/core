@@ -11,6 +11,8 @@ from app.config import MAX_ALERT_24H, ROOT_DIR
 from app.db import Session
 from app.dns_utils import InMemoryDNSClient, set_global_dns_client
 from app.email import headers
+from app.mail_sender import mail_sender
+from app.email_utils import send_email
 from app.email_utils import (
     get_email_domain_part,
     can_create_directory_for_address,
@@ -929,3 +931,21 @@ def test_add_header_to_invalid_multipart():
     msg = add_header(msg, "test", "test")
     data = msg.as_string()
     assert data != ""
+
+
+@mail_sender.store_emails_test_decorator
+def test_service_email_from_another_domain(monkeypatch):
+    monkeypatch.setattr(config, "NOREPLY", "noreply@notify.example.com")
+    send_email("someone@example.org", "Confirm", "text", retries=0)
+
+    sent = mail_sender.get_stored_emails()[0]
+    from email.utils import parseaddr
+
+    assert parseaddr(sent.msg[headers.FROM]) == (
+        config.BRAND_NAME,
+        "noreply@notify.example.com",
+    )
+    # signed by the From domain, which DMARC needs
+    assert "d=notify.example.com" in sent.msg[headers.DKIM_SIGNATURE]
+    # bounces come back to this server, on the alias domain
+    assert sent.envelope_from.endswith(f"@{config.EMAIL_DOMAIN}")
