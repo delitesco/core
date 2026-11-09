@@ -450,3 +450,23 @@ def test_forward_keeps_trackers_by_default(flask_client):
     sent = mail_sender.get_stored_emails()[0].msg
     assert sent[headers.TRACKERS_BLOCKED] is None
     assert "utm_source=news" in sent.get_payload(decode=True).decode()
+
+
+@mail_sender.store_emails_test_decorator
+def test_alias_setting_overrides_account_for_trackers(flask_client):
+    user = create_new_user()
+    user.block_trackers = True
+    alias_off = Alias.create_new_random(user)
+    alias_off.block_trackers = False
+    account_off = create_new_user()
+    alias_on = Alias.create_new_random(account_off)
+    alias_on.block_trackers = True
+    Session.commit()
+
+    for alias in (alias_off, alias_on):
+        envelope, msg = _html_email(alias, TRACKED_HTML)
+        assert email_handler.handle(envelope, msg) == status.E200
+
+    sent_off, sent_on = (m.msg for m in mail_sender.get_stored_emails())
+    assert sent_off[headers.TRACKERS_BLOCKED] is None
+    assert sent_on[headers.TRACKERS_BLOCKED] == "2"

@@ -74,6 +74,8 @@ def serialize_alias_info_v2(alias_info: AliasInfo) -> dict:
         ],
         "support_pgp": alias_info.alias.mailbox_support_pgp(),
         "disable_pgp": alias_info.alias.disable_pgp,
+        # null: follows the account's block_trackers setting
+        "block_trackers": alias_info.alias.block_trackers,
         "latest_activity": None,
         "pinned": alias_info.alias.pinned,
     }

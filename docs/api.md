@@ -491,6 +491,8 @@ Input:
 - (optional) `mailbox_ids` in request body: array of mailbox_id
 - (optional) `disable_pgp` in request body: boolean
 - (optional) `pinned` in request body: boolean
+- (optional) `block_trackers` in request body: `true` or `false` for this alias, `null` to follow the account's
+  `block_trackers` setting (default). Aliases return the same field.
 
 Output:
 If success, return 200

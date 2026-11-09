@@ -277,6 +277,7 @@ def update_alias(alias_id):
         name (optional): in body
         mailbox_id (optional): in body
         disable_pgp (optional): in body
+        block_trackers (optional): in body, true, false or null (follow the account)
     Output:
         200
     """
@@ -338,6 +339,14 @@ def update_alias(alias_id):
             new_name = new_name.replace("\n", "")
         alias.name = new_name
         changed_fields.append("name")
+        changed = True
+
+    if "block_trackers" in data:
+        value = data.get("block_trackers")
+        if value is not None and not isinstance(value, bool):
+            return jsonify(error="Invalid block_trackers"), 400
+        alias.block_trackers = value
+        changed_fields.append("block_trackers")
         changed = True
 
     if "disable_pgp" in data:
