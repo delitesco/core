@@ -26,8 +26,10 @@ x-app: &app
     UPLOAD_DIR: /sl/upload
     MAILBOX_VERIFY_URL: ${MAILBOX_VERIFY_URL:-}
     UNSUBSCRIBER: ${UNSUBSCRIBER:-}
-    # who may call /api/provision/*; by default the same addresses as the whole API
-    PROVISIONING_ALLOWED_IPS: ${PROVISIONING_ALLOWED_IPS:-${API_ALLOWED_IPS}}
+    # Who may call /api/provision/*. Default: the "delitesco" Docker network, which the
+    # frontend backend joins to reach sl-app directly (CORE_URL=http://sl-app:7777).
+    # Requests through Traefik are seen with the visitor's address, so they are refused.
+    PROVISIONING_ALLOWED_IPS: ${PROVISIONING_ALLOWED_IPS:-10.77.0.0/24}
   volumes:
     - sl-data:/sl
   networks: [delitesco, mail-out]
