@@ -18,6 +18,7 @@ from app.email_utils import (
     send_email,
     render,
     get_email_domain_part,
+    has_aligned_dkim_signature,
 )
 from app.email_validation import is_valid_email
 from app.log import LOG
@@ -503,10 +504,17 @@ def __get_alias_mailbox_from_email_or_canonical_email(
 
 
 def get_mailbox_for_reply_phase(
-    envelope_mail_from: str, header_mail_from: str, alias
+    envelope_mail_from: str,
+    header_mail_from: str,
+    alias,
+    raw_message: Optional[bytes] = None,
 ) -> Optional[Mailbox]:
     """return the corresponding mailbox given the mail_from and alias
     Usually the mail_from=mailbox.email but it can also be one of the authorized address
+
+    When only the header From matches a mailbox (VERP senders), the message must carry a
+    valid DKIM signature of the header From's domain: the envelope sender's SPF says
+    nothing about who wrote the From header.
     """
     mbox = __get_alias_mailbox_from_email_or_canonical_email(envelope_mail_from, alias)
     if mbox is not None:
@@ -519,7 +527,19 @@ def get_mailbox_for_reply_phase(
         return None
     # For services that use VERP sending (envelope from has encoded data to account for bounces)
     # if the domain is the same in the header from as the envelope from we can use the header from
-    return __get_alias_mailbox_from_email_or_canonical_email(header_mail_from, alias)
+    mailbox = __get_alias_mailbox_from_email_or_canonical_email(header_mail_from, alias)
+    if mailbox is None:
+        return None
+    if raw_message is None or not has_aligned_dkim_signature(
+        raw_message, header_from_domain
+    ):
+        LOG.w(
+            "Header From %s matches a mailbox of %s but has no valid DKIM signature",
+            header_mail_from,
+            alias,
+        )
+        return None
+    return mailbox
 
 
 def count_mailbox_aliases(mailbox: Mailbox) -> int:
