@@ -399,7 +399,8 @@ def test_not_send_to_pending_to_delete_users(flask_client):
     envelope.rcpt_tos = [alias.email]
     msg = EmailMessage()
     result = email_handler.handle(envelope, msg)
-    assert result == status.E504
+    # a user scheduled for deletion is no longer active
+    assert result == status.E502
 
 
 def _html_email(alias, html):

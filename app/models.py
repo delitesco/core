@@ -584,9 +584,8 @@ class User(Base, ModelMixin):
         return res
 
     def is_active(self) -> bool:
-        if self.delete_on is None:
-            return True
-        return self.delete_on < arrow.now()
+        # a user scheduled for deletion is not active, whatever the date
+        return self.delete_on is None
 
     def is_premium(self) -> bool:
         """Every account is premium: billing is handled by the backend in front of this service."""
