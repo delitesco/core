@@ -14,7 +14,7 @@ x-app: &app
     SUPPORT_EMAIL: ${SUPPORT_EMAIL}
     # custom domains point their MX here: the mail server's own name
     EMAIL_SERVERS_WITH_PRIORITY: '[(10, "${MAIL_HOSTNAME:-mail.${EMAIL_DOMAIN:-${DOMAIN}}}.")]'
-    DB_URI: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@sl-db:5432/${POSTGRES_DB}
+    DB_URI: postgresql://${POSTGRES_USER:?}:${POSTGRES_PASSWORD:?}@sl-db:5432/${POSTGRES_DB:?}
     MEM_STORE_URI: redis://sl-redis:6379
     POSTFIX_SERVER: postfix
     # paths inside the sl-data volume; fixed so that values from an old SimpleLogin .env
@@ -24,6 +24,8 @@ x-app: &app
     UPLOAD_DIR: /sl/upload
     MAILBOX_VERIFY_URL: ${MAILBOX_VERIFY_URL:-}
     UNSUBSCRIBER: ${UNSUBSCRIBER:-}
+    # who may call /api/provision/*; by default the same addresses as the whole API
+    PROVISIONING_ALLOWED_IPS: ${PROVISIONING_ALLOWED_IPS:-${API_ALLOWED_IPS}}
   volumes:
     - sl-data:/sl
   networks: [delitesco]
@@ -55,10 +57,12 @@ services:
     restart: unless-stopped
     networks: [delitesco]
 
-  # migrations, DKIM key, alias domains; runs once on each `up`
+  # migrations, DKIM key, alias domains; runs once on each `up`. The only service that
+  # runs as root: it hands the data volume over to the unprivileged user of the image.
   sl-init:
     <<: *app
     restart: "no"
+    user: "0:0"
     command: ["sh", "/code/deploy/init.sh"]
     depends_on:
       sl-db:
@@ -79,7 +83,7 @@ services:
       - traefik.http.routers.sl-app.entrypoints=websecure
       - traefik.http.routers.sl-app.tls.certresolver=le
       - traefik.http.routers.sl-app.middlewares=sl-app-allow
-      - traefik.http.middlewares.sl-app-allow.ipallowlist.sourcerange=${API_ALLOWED_IPS:-0.0.0.0/0,::/0}
+      - traefik.http.middlewares.sl-app-allow.ipallowlist.sourcerange=${API_ALLOWED_IPS:?set API_ALLOWED_IPS in .env to the frontend backend address}
       - traefik.http.services.sl-app.loadbalancer.server.port=7777
 
   sl-email:
@@ -126,10 +130,26 @@ services:
       sl-email:
         condition: service_started
 
+  # Gives Traefik read-only access to the container list, instead of the Docker socket
+  # itself (which is root on the host). Reachable only from Traefik.
+  docker-socket-proxy:
+    image: tecnativa/docker-socket-proxy:0.3.0
+    restart: unless-stopped
+    environment:
+      CONTAINERS: 1
+      POST: 0
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks: [docker-api]
+
   traefik:
     image: traefik:v3.6.2
     restart: unless-stopped
-    env_file: ${ENV_FILE:-.env}
+    # Only Traefik's own settings: the DNS provider credentials for LE_CHALLENGE=dns go in
+    # traefik.env (see traefik.env.example). The app secrets in .env never reach Traefik.
+    env_file:
+      - path: ${TRAEFIK_ENV_FILE:-traefik.env}
+        required: false
     entrypoint: ["/bin/sh", "-c"]
     command:
       - |
@@ -141,6 +161,7 @@ services:
         fi
         exec traefik \
           --providers.docker=true \
+          --providers.docker.endpoint=tcp://docker-socket-proxy:2375 \
           --providers.docker.exposedbydefault=false \
           --providers.docker.network=delitesco \
           --entrypoints.web.address=:80 \
@@ -151,6 +172,8 @@ services:
           $$CHALLENGE
     environment:
       LE_EMAIL: ${LE_EMAIL:-${SUPPORT_EMAIL}}
+      LE_CHALLENGE: ${LE_CHALLENGE:-tls}
+      LE_DNS_PROVIDER: ${LE_DNS_PROVIDER:-}
     # a router that serves nothing, only so that Traefik gets a certificate for the
     # mail server's name (Postfix STARTTLS, via certs-dumper)
     labels:
@@ -163,9 +186,10 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
       - traefik-acme:/letsencrypt
-    networks: [delitesco]
+    networks: [delitesco, docker-api]
+    depends_on:
+      - docker-socket-proxy
 
   # copies Traefik's certificate to files Postfix uses for STARTTLS
   certs-dumper:
@@ -181,6 +205,9 @@ services:
       - traefik
 
 networks:
+  # no outside access: only Traefik and the socket proxy
+  docker-api:
+    internal: true
   delitesco:
     name: delitesco
     ipam:

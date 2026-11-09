@@ -16,4 +16,8 @@ htmlcov
 .git/
 /data/
 **/.env
+**/.env.*
+**/traefik.env
+.pytest-output.log
+.ruff_cache
 deploy/tls

@@ -30,6 +30,12 @@ relay_domains = pgsql:/etc/postfix/pgsql-relay-domains.cf
 transport_maps = pgsql:/etc/postfix/pgsql-transport-maps.cf
 
 smtpd_delay_reject = yes
+# Tell the mail handler the client's IP for its SPF check on replies (ENFORCE_SPF).
+# The header is prepended, so it is always the first X-SimpleLogin-Client-IP header of
+# the message; the mail handler reads the first one, a copy sent by the client is never used.
+smtpd_client_restrictions =
+    check_client_access pcre:/etc/postfix/client_ip_header.pcre,
+    permit
 smtpd_helo_required = yes
 smtpd_helo_restrictions =
     permit_mynetworks,

@@ -397,11 +397,12 @@ sudo systemctl restart postfix
 To run SimpleLogin, you need a config file at `$(pwd)/simplelogin.env`. Below is an example that you can use right away, make sure to
 
 - replace `mydomain.com` by your domain,
-- set `FLASK_SECRET` to a secret string,
+- set `FLASK_SECRET` to a random string of at least 32 characters (`openssl rand -hex 32`),
 - update 'myuser' and 'mypassword' with your database credentials used in previous step.
 
 All possible parameters can be found in [config example](example.env). Some are optional and are commented out by default.
-Set `PROVISIONING_API_KEY`, `MAILBOX_VERIFY_URL` and `UNSUBSCRIBER` for the backend in front of this service.
+Set `PROVISIONING_API_KEY`, `MAILBOX_VERIFY_URL` and `UNSUBSCRIBER` for the backend in front of this service. Provisioning only answers
+loopback and private addresses unless `PROVISIONING_ALLOWED_IPS` says otherwise.
 
 ```.env
 # URL of this service (used in emails for the logo only)
@@ -426,14 +427,14 @@ DKIM_PRIVATE_KEY_PATH=/dkim.key
 # DB Connection
 DB_URI=postgresql://myuser:mypassword@sl-db:5432/simplelogin
 
-FLASK_SECRET=put_something_secret_here
+FLASK_SECRET=paste-output-of-openssl-rand-hex-32
 
 GNUPGHOME=/sl/pgp
 
 # refused/quarantined emails, must not be served over HTTP
 UPLOAD_DIR=/sl/upload
 
-PROVISIONING_API_KEY=put_another_long_secret_here
+PROVISIONING_API_KEY=paste-another-output-of-openssl-rand-hex-32
 MAILBOX_VERIFY_URL=https://mydomain.com/mailbox/verify
 UNSUBSCRIBER=unsubscribe@mydomain.com
 

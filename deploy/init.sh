@@ -3,8 +3,27 @@
 # database migrations and alias domains.
 set -eu
 
+# Refuse to start with values copied unchanged from .env.example. FLASK_SECRET and
+# PROVISIONING_API_KEY are checked by the app itself (length, placeholders).
+for name in POSTGRES_USER POSTGRES_PASSWORD DOMAIN FLASK_SECRET PROVISIONING_API_KEY; do
+    eval "value=\${$name:-}"
+    case "$value" in
+        paste-*|put_*|"")
+            echo "ERROR: $name in .env is empty or still the example value" >&2
+            exit 1
+            ;;
+    esac
+done
+case ",${API_ALLOWED_IPS:-}," in
+    *,0.0.0.0/0,*|*,::/0,*)
+        echo "WARNING: API_ALLOWED_IPS lets the whole internet reach the API." >&2
+        echo "WARNING: restrict it to the frontend backend; provisioning stays closed unless" >&2
+        echo "WARNING: PROVISIONING_EMERGENCY_OPEN=true is set (emergency only)." >&2
+        ;;
+esac
+
 mkdir -p /sl/pgp /sl/upload
-chmod 700 /sl/pgp
+chmod 700 /sl/pgp /sl/upload
 
 if [ ! -f /sl/dkim.key ]; then
     echo "Generating a DKIM key in the data volume"
@@ -12,6 +31,10 @@ if [ ! -f /sl/dkim.key ]; then
         || openssl genrsa -out /sl/dkim.key 1024
     openssl rsa -in /sl/dkim.key -pubout -out /sl/dkim.pub.key 2>/dev/null
 fi
+chmod 600 /sl/dkim.key
+
+# the other services run as the unprivileged user of the image
+chown -R "${APP_UID:-10001}:${APP_GID:-10001}" /sl
 
 alembic upgrade head
 python init_app.py

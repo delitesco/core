@@ -13,6 +13,7 @@ The layout follows the community SimpleLogin Docker Compose setup (same `.env` f
 | `sl-cron`       | periodic cleanup jobs from `../crontab.yml`                           |
 | `postfix`       | SMTP on port 25: receives mail for the alias and custom domains, sends forwarded mail |
 | `traefik`       | HTTPS with Let's Encrypt (ports 80 and 443)                           |
+| `docker-socket-proxy` | read-only Docker API for Traefik, instead of the Docker socket  |
 | `certs-dumper`  | gives Traefik's certificate to Postfix for STARTTLS                   |
 
 ## 1. DNS
@@ -39,13 +40,21 @@ On every start `sl-init` prints these records and a `WARNING` line for each one 
 git clone https://github.com/delitesco/core.git
 cd core/deploy
 cp .env.example .env
+chmod 600 .env
 # fill in .env; secrets: openssl rand -hex 32
+# LE_CHALLENGE=dns only: cp traefik.env.example traefik.env, put the DNS provider token there
 ```
+
+`sl-init` refuses to start while a value is still the example one, and the app refuses a `FLASK_SECRET` or
+`PROVISIONING_API_KEY` shorter than 32 characters. `API_ALLOWED_IPS` is required: the address of the frontend
+backend. `/api/provision/*` only answers `PROVISIONING_ALLOWED_IPS` (default: `API_ALLOWED_IPS`); allowing
+any address (`0.0.0.0/0`) also needs `PROVISIONING_EMERGENCY_OPEN=true`, and every provisioning request then
+logs an error — for emergencies only.
 
 Coming from a SimpleLogin `.env`: keep `DOMAIN`, `SUBDOMAIN`, `POSTGRES_*`, `FLASK_SECRET`, `LE_*`, DNS provider
 tokens and `SPAMHAUS_DQS_KEY`. `LOCAL_FILE_UPLOAD`, `DISABLE_REGISTRATION`, `DISABLE_ONBOARDING`, `SL_VERSION`
 and `SL_IMAGE` are not used; set the new `PROVISIONING_API_KEY`, `MAILBOX_VERIFY_URL`, `UNSUBSCRIBER` and
-`API_ALLOWED_IPS`.
+`API_ALLOWED_IPS`, and move the DNS provider tokens to `traefik.env`.
 
 ## 3. Existing DKIM key (optional)
 
@@ -74,6 +83,7 @@ docker compose ps               # sl-init exited (0), the others are running
 
 ```bash
 curl https://app.mydomain.com/health
+# from the frontend backend (other addresses get 404):
 curl -X POST https://app.mydomain.com/api/provision/users -H "X-Provisioning-Key: $PROVISIONING_API_KEY"
 docker compose logs -f postfix sl-email
 ```
@@ -85,6 +95,10 @@ Send an email from an outside mailbox to any address of the domain: Postfix shou
 
 - Firewall: open 25, 80 and 443. Port 25 outbound must not be blocked by the host. Restrict the API to the
   frontend backend with `API_ALLOWED_IPS`.
+- Client addresses: Traefik's allow list, the provisioning allow list and the SPF check of replies
+  (`ENFORCE_SPF`) all need the real client IP. With Docker's default iptables port publishing it is kept;
+  check that `docker compose logs postfix` shows outside IPs in `connect from`, not `10.77.0.1`.
+- The app containers run as an unprivileged user (uid 10001); `sl-init` gives it the data volume.
 - Backups: volumes `deploy_sl-db-data` and `deploy_sl-data` (DKIM key, PGP keyring, stored refused emails).
 - Update: `git pull && docker compose up -d --build` (`sl-init` applies new migrations first).
 - Postfix switches from its self-signed certificate to the Let's Encrypt one within 5 minutes of it being

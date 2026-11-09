@@ -17,3 +17,5 @@ adhoc
 /data/
 deploy/tls/
 !.env.example
+.pytest-output.log
+traefik.env

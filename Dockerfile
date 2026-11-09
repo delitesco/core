@@ -9,6 +9,8 @@ ARG UV_SYNC_ARGS="--no-dev"
 ENV PYTHONDONTWRITEBYTECODE=1
 # Turns off buffering for easier container logging
 ENV PYTHONUNBUFFERED=1
+# outside /root, so that the unprivileged user can run the interpreter
+ENV UV_PYTHON_INSTALL_DIR=/opt/uv-python
 
 
 WORKDIR /code
@@ -39,6 +41,14 @@ RUN apt-get update \
 COPY . .
 
 ENV PATH="/code/.venv/bin:$PATH"
+
+# run as an unprivileged user; the data volume (/sl) is handed over by deploy/init.sh
+RUN groupadd --system --gid 10001 delitesco \
+    && useradd --system --uid 10001 --gid 10001 --home-dir /code --no-create-home delitesco \
+    && mkdir -p /sl \
+    && chown delitesco:delitesco /sl
+USER delitesco
+
 EXPOSE 7777
 
 #gunicorn wsgi:app -b 0.0.0.0:7777 -w 2 --timeout 15 --log-level DEBUG
