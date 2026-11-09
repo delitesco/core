@@ -887,6 +887,35 @@ def decode_text(text: str, encoding: EmailEncoding = EmailEncoding.NO) -> str:
         return text
 
 
+def has_aligned_dkim_signature(raw_message: bytes, domain: str, dnsfunc=None) -> bool:
+    """Whether the message has a valid DKIM signature from `domain`, or from a domain it
+    is a subdomain or parent of (relaxed alignment)."""
+    domain = domain.lower().rstrip(".")
+    try:
+        checker = dkim.DKIM(raw_message)
+        signatures = sum(
+            1 for name, _ in checker.headers if name.lower() == b"dkim-signature"
+        )
+        for index in range(signatures):
+            verified = (
+                checker.verify(idx=index, dnsfunc=dnsfunc)
+                if dnsfunc
+                else checker.verify(idx=index)
+            )
+            if not verified:
+                continue
+            signer = checker.domain.decode().lower().rstrip(".")
+            if (
+                signer == domain
+                or domain.endswith("." + signer)
+                or signer.endswith("." + domain)
+            ):
+                return True
+    except Exception:
+        LOG.w("Cannot verify the DKIM signature of a message from %s", domain)
+    return False
+
+
 def add_header(
     msg: Message, text_header, html_header=None, subject_prefix=None
 ) -> Message:

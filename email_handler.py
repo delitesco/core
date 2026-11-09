@@ -1093,7 +1093,10 @@ def handle_reply(envelope, msg: Message, rcpt_to: str) -> (bool, str):
 
     # Anti-spoofing
     mailbox = get_mailbox_for_reply_phase(
-        envelope.mail_from, get_header_unicode(msg[headers.FROM]), alias
+        envelope.mail_from,
+        get_header_unicode(msg[headers.FROM]),
+        alias,
+        raw_message=envelope.original_content,
     )
     if not mailbox:
         if alias.disable_email_spoofing_check:

@@ -15,6 +15,7 @@ from app.mailbox_utils import (
     request_mailbox_email_change,
     count_mailbox_aliases,
 )
+from app import mailbox_utils
 from app.models import (
     Mailbox,
     MailboxActivation,
@@ -413,7 +414,7 @@ def test_get_mailbox_from_mail_from_for_canonical_email(flask_client):
 
 
 def test_get_mailbox_from_mail_from_coming_from_header_if_domain_is_aligned(
-    flask_client,
+    flask_client, monkeypatch
 ):
     domain = f"{random_string(10)}.com"
     envelope_from = f"envelope_verp@{domain}"
@@ -423,7 +424,16 @@ def test_get_mailbox_from_mail_from_coming_from_header_if_domain_is_aligned(
     alias = Alias.create(user_id=user.id, email=random_email(), mailbox_id=mbox.id)
     Session.flush()
 
-    mb = get_mailbox_for_reply_phase(envelope_from, mail_from, alias)
+    # only with a DKIM signature of the header From's domain
+    assert get_mailbox_for_reply_phase(envelope_from, mail_from, alias) is None
+    monkeypatch.setattr(
+        mailbox_utils, "has_aligned_dkim_signature", lambda raw, domain: False
+    )
+    assert get_mailbox_for_reply_phase(envelope_from, mail_from, alias, b"raw") is None
+    monkeypatch.setattr(
+        mailbox_utils, "has_aligned_dkim_signature", lambda raw, domain: True
+    )
+    mb = get_mailbox_for_reply_phase(envelope_from, mail_from, alias, b"raw")
     assert mb.email == mail_from
 
 
@@ -702,3 +712,32 @@ def test_first_verified_mailbox_replaces_placeholder_default():
         placeholder_user, second.mailbox.id, second.activation.code
     )
     assert placeholder_user.default_mailbox_id == output.mailbox.id
+
+
+def _signed_message(domain: str) -> bytes:
+    import dkim
+
+    with open("local_data/dkim.key", "rb") as f:
+        key = f.read()
+    raw = (
+        f"From: someone@{domain}\r\nTo: a@b.c\r\nSubject: hi\r\n\r\nhello\r\n"
+    ).encode()
+    signature = dkim.sign(raw, b"sel", domain.encode(), key, include_headers=[b"from", b"subject"])
+    return signature + raw
+
+
+def _dns_with_key(name, timeout=5):
+    with open("local_data/dkim.pub.key") as f:
+        pub = "".join(line.strip() for line in f if "-----" not in line)
+    return f"v=DKIM1; k=rsa; p={pub}".encode()
+
+
+def test_has_aligned_dkim_signature():
+    from app.email_utils import has_aligned_dkim_signature
+
+    raw = _signed_message("mail.example.com")
+    assert has_aligned_dkim_signature(raw, "mail.example.com", _dns_with_key)
+    assert has_aligned_dkim_signature(raw, "example.com", _dns_with_key)
+    assert not has_aligned_dkim_signature(raw, "other.com", _dns_with_key)
+    tampered = raw.replace(b"hello", b"evil!")
+    assert not has_aligned_dkim_signature(tampered, "mail.example.com", _dns_with_key)
