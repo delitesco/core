@@ -9,7 +9,5 @@
   {{ render_text("An email has been sent to the alias <b>"|safe ~ alias ~ "</b> that would be created automatically as you own the directory <b>"|safe ~ directory ~ "</b>."|safe) }}
   {{ render_text("However you have reached the alias limit in your current plan, this creation cannot happen.") }}
   {{ render_text("Please upgrade to premium plan in order to use this feature.") }}
-  {{ render_text('Thanks,
-    <br />
-    ' ~ BRAND_NAME ~ ' Team.') }}
+  {{ signature(BRAND_NAME) }}
 {% endblock %}

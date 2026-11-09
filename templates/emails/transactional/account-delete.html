@@ -10,7 +10,5 @@
     Thank you for having used {{ BRAND_NAME }}.
   {% endcall %}
 
-  {{ render_text('Best,
-    <br />
-    ' ~ BRAND_NAME ~ ' Team.') }}
+  {{ signature(BRAND_NAME) }}
 {% endblock %}

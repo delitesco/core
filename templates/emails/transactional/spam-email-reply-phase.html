@@ -22,8 +22,6 @@
     Please let us know if you have any question by replying to this email.
   {% endcall %}
 
-  {{ render_text('Thanks,
-    <br />
-    ' ~ BRAND_NAME ~ ' Team.') }}
+  {{ signature(BRAND_NAME) }}
   {% if disable_alias_link %}{{ raw_url(disable_alias_link) }}{% endif %}
 {% endblock %}

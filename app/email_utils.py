@@ -87,6 +87,7 @@ def render(template_name: str, user: Optional[User], **kwargs) -> str:
         URL=config.URL,
         LANDING_PAGE_URL=config.LANDING_PAGE_URL,
         BRAND_NAME=config.BRAND_NAME,
+        SUPPORT_EMAIL=config.SUPPORT_EMAIL,
         YEAR=arrow.now().year,
         **kwargs,
     )
