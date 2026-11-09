@@ -925,7 +925,9 @@ Return user setting.
   "notification": true,
   "random_alias_default_domain": "sl.lan",
   "sender_format": "AT",
-  "random_alias_suffix": "random_string"
+  "random_alias_suffix": "random_string",
+  "unsubscribe_behaviour": "preserve_original",
+  "block_trackers": false
 }
 ```
 
@@ -941,6 +943,10 @@ Input:
 - random_alias_suffix (string): possible values are `word`, `random_string`
 - unsubscribe_behaviour (string): what the "Unsubscribe" button of the mail client does on forwarded emails:
   `disable_alias`, `block_contact` (block the sender) or `preserve_original` (the sender's own unsubscribe link)
+- block_trackers (boolean): remove tracking pixels and link tracking parameters (`utm_*`, `fbclid`, ...) from
+  the HTML of forwarded emails; the number removed is in the `X-Trackers-Blocked` header. Off by default.
+  **Warning for users: this can change how some emails look** (a 1-pixel layout image is removed like a
+  pixel). It does not hide the IP address from other remote images: the mail client still loads them.
 
 Output: same as `GET /api/setting`
 

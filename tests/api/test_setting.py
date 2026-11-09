@@ -19,6 +19,7 @@ def test_get_setting(flask_client):
         "sender_format": "AT",
         "random_alias_suffix": "word",
         "unsubscribe_behaviour": "preserve_original",
+        "block_trackers": False,
     }
 
 
@@ -121,4 +122,17 @@ def test_update_unsubscribe_behaviour(flask_client):
         assert user.unsub_behaviour == value
 
     r = flask_client.patch("/api/setting", json={"unsubscribe_behaviour": "nope"})
+    assert r.status_code == 400
+
+
+def test_block_trackers_setting(flask_client):
+    login(flask_client)
+    r = flask_client.get("/api/setting")
+    assert r.json["block_trackers"] is False
+
+    r = flask_client.patch("/api/setting", json={"block_trackers": True})
+    assert r.status_code == 200
+    assert r.json["block_trackers"] is True
+
+    r = flask_client.patch("/api/setting", json={"block_trackers": "yes"})
     assert r.status_code == 400

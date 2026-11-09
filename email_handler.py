@@ -31,9 +31,9 @@ It should contain the following info:
 
 """
 
-from html import escape as html_escape
 import argparse
 import email
+from html import escape as html_escape
 import time
 import uuid
 from email import encoders
@@ -177,6 +177,7 @@ from app.pgp_utils import (
     sign_data,
     load_public_key_and_check,
 )
+from app.tracker_blocker import strip_trackers_from_message
 from app.utils import sanitize_email
 from init_app import load_pgp_public_keys
 from server import create_light_app
@@ -855,6 +856,19 @@ def forward_email_to_mailbox(
     if user.include_header_email_header:
         headers_to_keep.append(headers.AUTHENTICATION_RESULTS)
     delete_all_headers_except(msg, headers_to_keep)
+
+    # before PGP: the message is still readable here
+    if user.block_trackers:
+        try:
+            tracker_stats = strip_trackers_from_message(msg)
+        except Exception:
+            LOG.e("Tracker blocking failed for %s, forward the email unchanged", alias)
+        else:
+            if tracker_stats.total:
+                LOG.d("Removed %s trackers for %s", tracker_stats, alias)
+                add_or_replace_header(
+                    msg, headers.TRACKERS_BLOCKED, str(tracker_stats.total)
+                )
 
     if mailbox.generic_subject:
         LOG.d("Use a generic subject for %s", mailbox)

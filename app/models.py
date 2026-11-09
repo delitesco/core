@@ -467,6 +467,12 @@ class User(Base, ModelMixin):
         sa.Boolean, default=True, nullable=False, server_default="1"
     )
 
+    # remove tracking pixels and link tracking parameters from forwarded emails
+    # (app/tracker_blocker.py); opt-in, as it can change how an email looks
+    block_trackers = sa.Column(
+        sa.Boolean, default=False, nullable=False, server_default="0"
+    )
+
     # user opted in for data breach check
     enable_data_breach_check = sa.Column(
         sa.Boolean, default=False, nullable=False, server_default="0"

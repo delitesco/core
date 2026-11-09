@@ -35,6 +35,7 @@ def setting_to_dict(user: User):
         or SenderFormatEnum.AT.name,
         "random_alias_suffix": AliasSuffixEnum.get_name(user.random_alias_suffix),
         "unsubscribe_behaviour": _UNSUB_BEHAVIOUR_NAMES[user.unsub_behaviour],
+        "block_trackers": user.block_trackers,
     }
 
     return ret
@@ -71,6 +72,11 @@ def update_setting():
     ):
         if field in data and not isinstance(data[field], str):
             return jsonify(error=f"Invalid {field}"), 400
+
+    if "block_trackers" in data:
+        if not isinstance(data["block_trackers"], bool):
+            return jsonify(error="Invalid block_trackers"), 400
+        user.block_trackers = data["block_trackers"]
 
     if "unsubscribe_behaviour" in data:
         behaviour = _UNSUB_BEHAVIOURS.get(data["unsubscribe_behaviour"])

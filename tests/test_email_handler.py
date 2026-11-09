@@ -400,3 +400,53 @@ def test_not_send_to_pending_to_delete_users(flask_client):
     msg = EmailMessage()
     result = email_handler.handle(envelope, msg)
     assert result == status.E504
+
+
+def _html_email(alias, html):
+    from email.mime.text import MIMEText
+
+    envelope = Envelope()
+    envelope.mail_from = "news@shop.example"
+    envelope.rcpt_tos = [alias.email]
+    msg = MIMEText(html, "html", "utf-8")
+    msg[headers.FROM] = "Shop <news@shop.example>"
+    msg[headers.TO] = alias.email
+    msg[headers.SUBJECT] = "News"
+    return envelope, msg
+
+
+TRACKED_HTML = (
+    '<p>Sale</p><img src="https://t.shop.example/o.gif" width="1" height="1">'
+    '<a href="https://shop.example/?id=1&utm_source=news">Buy</a>'
+)
+
+
+@mail_sender.store_emails_test_decorator
+def test_forward_blocks_trackers_when_enabled(flask_client):
+    user = create_new_user()
+    user.block_trackers = True
+    alias = Alias.create_new_random(user)
+    Session.commit()
+
+    envelope, msg = _html_email(alias, TRACKED_HTML)
+    assert email_handler.handle(envelope, msg) == status.E200
+
+    sent = mail_sender.get_stored_emails()[0].msg
+    assert sent[headers.TRACKERS_BLOCKED] == "2"
+    body = sent.get_payload(decode=True).decode()
+    assert "o.gif" not in body
+    assert 'href="https://shop.example/?id=1"' in body
+
+
+@mail_sender.store_emails_test_decorator
+def test_forward_keeps_trackers_by_default(flask_client):
+    user = create_new_user()
+    alias = Alias.create_new_random(user)
+    Session.commit()
+
+    envelope, msg = _html_email(alias, TRACKED_HTML)
+    assert email_handler.handle(envelope, msg) == status.E200
+
+    sent = mail_sender.get_stored_emails()[0].msg
+    assert sent[headers.TRACKERS_BLOCKED] is None
+    assert "utm_source=news" in sent.get_payload(decode=True).decode()
