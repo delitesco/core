@@ -2,10 +2,10 @@
 name = "SimpleLogin"
 version = "0.1.0"
 description = "Delitesco mail alias backend (fork of SimpleLogin)"
-authors = [ {name="SimpleLogin", email="dev@simplelogin.io"}]
-license = "MIT"
-repository = "https://github.com/simple-login/app"
-keywords = ["email", "alias", "privacy", "oauth2", "openid"]
+authors = [ {name="delitesco", email="github@delitesco.net"}, {name="SimpleLogin contributors"} ]
+license = "AGPL-3.0-only"
+repository = "https://github.com/delitesco/core"
+keywords = ["email", "alias", "privacy"]
 packages = [
     { include = "app/" },
     { include = "migrations/" },
