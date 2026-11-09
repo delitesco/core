@@ -69,7 +69,9 @@ legacy_mail_or_link_test_data = [
 @pytest.mark.parametrize(
     "expected_link, via_mail, unsub_data", legacy_mail_or_link_test_data
 )
-def test_encode_legacy_link(expected_link, via_mail, unsub_data):
+def test_encode_legacy_link(monkeypatch, expected_link, via_mail, unsub_data):
+    # the expected links were signed with FLASK_SECRET=secret
+    monkeypatch.setattr(config, "UNSUBSCRIBE_SECRET", "secretunsub")
     if via_mail:
         config.UNSUBSCRIBER = "me@nowhere.net"
     else:

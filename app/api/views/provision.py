@@ -4,10 +4,12 @@ Each account of that backend gets its own user here, with its own API key, so th
 ownership checks of every other endpoint isolate accounts from each other.
 These endpoints are authenticated with a separate provisioning key
 (config.PROVISIONING_API_KEY, header X-Provisioning-Key) and are disabled
-(404) when no provisioning key is configured.
+(404) when no provisioning key is configured. They only answer requests from
+config.PROVISIONING_ALLOWED_NETWORKS (404 for everyone else).
 """
 
 import hmac
+import ipaddress
 import uuid
 from functools import wraps
 
@@ -33,6 +35,15 @@ def require_provisioning_key(f):
         expected = config.PROVISIONING_API_KEY
         if not expected:
             return jsonify(error="No such endpoint"), 404
+        if not _client_allowed(request.remote_addr):
+            LOG.w("Provisioning request from a non allowed address %s", request.remote_addr)
+            return jsonify(error="No such endpoint"), 404
+        if config.PROVISIONING_EMERGENCY_OPEN:
+            LOG.e(
+                "EMERGENCY: the provisioning API accepts requests from any IP "
+                "(PROVISIONING_EMERGENCY_OPEN). Request from %s",
+                request.remote_addr,
+            )
         given = request.headers.get(PROVISIONING_KEY_HEADER) or ""
         if not hmac.compare_digest(given.encode(), expected.encode()):
             LOG.w("Wrong provisioning key from %s", request.remote_addr)
@@ -40,6 +51,16 @@ def require_provisioning_key(f):
         return f(*args, **kwargs)
 
     return decorated
+
+
+def _client_allowed(remote_addr) -> bool:
+    try:
+        address = ipaddress.ip_address(remote_addr or "")
+    except ValueError:
+        return False
+    if address.version == 6 and address.ipv4_mapped:
+        address = address.ipv4_mapped
+    return any(address in network for network in config.PROVISIONING_ALLOWED_NETWORKS)
 
 
 def _service_email() -> str:
