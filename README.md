@@ -527,6 +527,18 @@ Below are pointers to different topics:
 - [Enforce SPF](docs/enforce-spf.md)
 - [Postfix TLS](docs/postfix-tls.md)
 
+## License and changes
+
+delitesco-core is free software under the GNU Affero General Public License v3 (see [LICENSE](LICENSE)).
+It is a modified version of [SimpleLogin](https://github.com/simple-login/app) v4.70.0, copyright
+SimpleLogin and its contributors, changed from 8 November 2026 by delitesco. The git history lists every
+change, starting with the removal of the parts that deliver no mail (web dashboard, logins, billing,
+telemetry).
+
+The AGPL also covers use over a network: whoever uses a running copy of this service, directly or through
+an app that talks to it, can get its source code. This repository is the source of what runs
+behind [delitesco.net](https://delitesco.net).
+
 ## Upstream contributors
 
 This fork builds on the work of the SimpleLogin team and contributors:
