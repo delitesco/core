@@ -1019,7 +1019,7 @@ class Alias(Base, ModelMixin):
 
         # handle the case a SLDomain is also a CustomDomain
         if SLDomain.get_by(domain=alias_domain) is None:
-            custom_domain = CustomDomain.get_by(domain=alias_domain)
+            custom_domain = CustomDomain.get_by_domain(alias_domain)
             if custom_domain:
                 return custom_domain
 
@@ -1536,7 +1536,9 @@ class CustomDomain(Base, ModelMixin):
     __tablename__ = "custom_domain"
 
     user_id = sa.Column(sa.ForeignKey(User.id, ondelete="cascade"), nullable=False)
-    domain = sa.Column(sa.String(128), unique=True, nullable=False)
+    # Unique among the domains whose ownership is verified (ix_unique_domain): until then
+    # several users may claim the same domain, so that a claim cannot lock out the owner.
+    domain = sa.Column(sa.String(128), nullable=False)
 
     # default name to use when user replies/sends from alias
     name = sa.Column(sa.String(128), nullable=True, default=None)
@@ -1599,9 +1601,23 @@ class CustomDomain(Base, ModelMixin):
         ),  # The condition
         Index("ix_custom_domain_user_id", "user_id"),
         Index("ix_custom_domain_pending_deletion", "pending_deletion"),
+        Index("ix_custom_domain_domain", "domain"),
+        Index("ix_custom_domain_user_id_domain", "user_id", "domain", unique=True),
     )
 
     user = orm.relationship(User, foreign_keys=[user_id], backref="custom_domains")
+
+    @classmethod
+    def get_by_domain(cls, domain: str) -> Optional["CustomDomain"]:
+        """The domain's row that routes mail: the one whose ownership is verified.
+
+        Without one, the MX-verified row, then the oldest claim (domains from before
+        ownership verification existed)."""
+        return (
+            cls.filter_by(domain=domain, ownership_verified=True).first()
+            or cls.filter_by(domain=domain, verified=True).order_by(cls.id).first()
+            or cls.filter_by(domain=domain).order_by(cls.id).first()
+        )
 
     @property
     def mailboxes(self):

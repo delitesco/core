@@ -30,10 +30,51 @@ def test_create_custom_domain(flask_client, dns):
     assert r.json["ownership_verified"] is False
     assert r.json["is_verified"] is False
 
-    # the same domain cannot be added twice, by anyone
+    # not twice by the same user
+    r = flask_client.post("/api/custom_domains", json={"domain": domain})
+    assert r.status_code == 400
+
+
+def test_unverified_claim_does_not_lock_out_the_owner(flask_client, dns):
+    domain = _domain()
+    login(flask_client)
+    squatter_id = flask_client.post(
+        "/api/custom_domains", json={"domain": domain}
+    ).json["id"]
+
+    # the real owner can still add the domain, and wins by proving ownership
+    login(flask_client)
+    r = flask_client.post("/api/custom_domains", json={"domain": domain})
+    assert r.status_code == 201
+    owner_id = r.json["id"]
+    token = flask_client.get(f"/api/custom_domains/{owner_id}/dns").json["ownership"][
+        "value"
+    ]
+    dns.set_txt_record(domain, [token])
+    r = flask_client.post(
+        f"/api/custom_domains/{owner_id}/dns", json={"check": "ownership"}
+    )
+    assert r.status_code == 200
+    assert "ownership" not in r.json["errors"]
+    assert CustomDomain.get(owner_id).ownership_verified
+    assert CustomDomain.get_by_domain(domain).id == owner_id
+
+    # once verified, nobody else can add or verify it
     login(flask_client)
     r = flask_client.post("/api/custom_domains", json={"domain": domain})
     assert r.status_code == 400
+
+    squatter = CustomDomain.get(squatter_id)
+    login(flask_client, squatter.user)
+    squatter_token = flask_client.get(f"/api/custom_domains/{squatter_id}/dns").json[
+        "ownership"
+    ]["value"]
+    dns.set_txt_record(domain, [token, squatter_token])
+    r = flask_client.post(
+        f"/api/custom_domains/{squatter_id}/dns", json={"check": "ownership"}
+    )
+    assert "ownership" in r.json["errors"]
+    assert not CustomDomain.get(squatter_id).ownership_verified
 
 
 def test_create_custom_domain_rejects_alias_domains(flask_client, dns):

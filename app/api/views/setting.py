@@ -115,7 +115,7 @@ def update_setting():
             user.default_alias_public_domain_id = sl_domain.id
             user.default_alias_custom_domain_id = None
         else:
-            custom_domain = CustomDomain.get_by(domain=default_domain)
+            custom_domain = CustomDomain.get_by_domain(default_domain)
             if not custom_domain:
                 return jsonify(error="invalid domain"), 400
 
