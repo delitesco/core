@@ -679,3 +679,20 @@ def test_get_aliases_does_not_return_trashed_aliases(flask_client):
     aliases = r.json["aliases"]
     assert len(aliases) == 1  # Newsletter
     assert aliases[0]["id"] == newsletter_alias_id
+
+
+def test_alias_block_trackers(flask_client):
+    user = login(flask_client)
+    alias = Alias.create_new_random(user)
+    Session.commit()
+
+    r = flask_client.get(f"/api/aliases/{alias.id}")
+    assert r.json["block_trackers"] is None
+
+    for value in (True, False, None):
+        r = flask_client.patch(f"/api/aliases/{alias.id}", json={"block_trackers": value})
+        assert r.status_code == 200
+        assert flask_client.get(f"/api/aliases/{alias.id}").json["block_trackers"] is value
+
+    r = flask_client.patch(f"/api/aliases/{alias.id}", json={"block_trackers": "on"})
+    assert r.status_code == 400

@@ -917,6 +917,9 @@ class Alias(Base, ModelMixin):
         sa.Boolean, nullable=False, default=False, server_default="0"
     )
 
+    # tracker blocking for this alias: None follows the user's block_trackers setting
+    block_trackers = sa.Column(sa.Boolean, nullable=True, default=None)
+
     # a way to bypass the bounce automatic disable mechanism
     cannot_be_disabled = sa.Column(
         sa.Boolean, nullable=False, default=False, server_default="0"
