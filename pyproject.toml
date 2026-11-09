@@ -41,7 +41,7 @@ dependencies = [
     # Git dependency until pyspf creates a new release
     #"pyspf @ git+https://github.com/sdgathman/pyspf.git@665a6df079485a9824be0829e7d71088453db7f6",
     "pyspf ~= 2.0.14",
-    "cachetools ~= 4.1.1",
+    "cachetools~=7.3.0",
     "memory_profiler ~= 0.57.0",
     "email-validator ~= 2.2.0",
     "requests ~= 2.32",
