@@ -16,8 +16,11 @@ from app.models import (
     Mailbox,
     CustomDomain,
     DomainDeletedAlias,
+    DeletedDirectory,
+    Directory,
+    User,
 )
-from tests.utils import create_new_user, random_domain
+from tests.utils import create_new_user, random_domain, random_token
 
 
 def ensure_alias_is_trashed(
@@ -259,3 +262,37 @@ def test_clear_trash():
     deleted_alias = DeletedAlias.get_by(email=alias2.email)
     assert deleted_alias is not None
     assert deleted_alias.reason == AliasDeleteReason.MailboxDeleted
+
+
+# Deleting a whole account
+@pytest.mark.parametrize(
+    "action",
+    [UserAliasDeleteAction.MoveToTrash, UserAliasDeleteAction.DeleteImmediately],
+)
+def test_deleting_a_user_keeps_its_alias_addresses_and_directory_names_taken(action):
+    user = create_new_user(alias_delete_action=action)
+    alias = Alias.create_new_random(user)
+    alias_email = alias.email
+    directory_name = f"dir{random_token(8)}"
+    Directory.create(name=directory_name, user_id=user.id, flush=True)
+    Session.commit()
+
+    User.delete(user.id, commit=True)
+
+    # The rows are gone with the account, but nobody can be given them again.
+    assert Alias.get_by(email=alias_email) is None
+    assert DeletedAlias.get_by(email=alias_email) is not None
+    assert Directory.get_by(name=directory_name) is None
+    assert DeletedDirectory.get_by(name=directory_name) is not None
+
+
+def test_deleting_a_user_with_a_trashed_alias_keeps_its_address_taken():
+    user = create_new_user(alias_delete_action=UserAliasDeleteAction.MoveToTrash)
+    alias = Alias.create_new_random(user)
+    alias_email = alias.email
+    move_alias_to_trash(alias, user, commit=True)
+    assert DeletedAlias.get_by(email=alias_email) is None
+
+    User.delete(user.id, commit=True)
+
+    assert DeletedAlias.get_by(email=alias_email) is not None

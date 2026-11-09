@@ -571,11 +571,18 @@ class User(Base, ModelMixin):
 
         user: User = cls.get(obj_id)
 
-        # Manually delete all aliases for the user that is about to be deleted
-        from app.alias_delete import delete_alias
+        # The user's addresses and directory names must never reach anyone else, or mail meant
+        # for them would arrive at a stranger. An alias moved to the trash would vanish with the
+        # user, and so would a directory, so both are recorded as taken for good whatever the
+        # user's trash preference was.
+        from app.alias_delete import perform_alias_deletion
 
         for alias in Alias.filter_by(user_id=user.id):
-            delete_alias(alias, user, AliasDeleteReason.UserHasBeenDeleted)
+            perform_alias_deletion(alias, user, AliasDeleteReason.UserHasBeenDeleted)
+
+        for directory in Directory.filter_by(user_id=user.id):
+            if not DeletedDirectory.get_by(name=directory.name):
+                DeletedDirectory.create(name=directory.name)
 
         res = super(User, cls).delete(obj_id)
         if commit:
