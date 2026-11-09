@@ -119,8 +119,11 @@ Send an email from an outside mailbox to any address of the domain: Postfix shou
   frontend backend with `API_ALLOWED_IPS`.
 - Client addresses: Traefik's allow list, the provisioning allow list and the SPF check of replies
   (`ENFORCE_SPF`) all need the real client IP. With Docker's default iptables port publishing it is kept;
-  check that `docker compose logs postfix` shows outside IPs in `connect from`, not `10.77.0.1`.
+  check that `docker compose logs postfix` shows outside IPs in `connect from`, not `10.77.0.1` or
+  `10.78.0.1`.
 - The app containers run as an unprivileged user (uid 10001); `sl-init` gives it the data volume.
+- Postfix relays outgoing mail only for the app containers, which reach it on the separate `mail-out` network
+  (`10.78.0.0/24`); Traefik and the socket proxy are not on that network.
 - Backups: volumes `deploy_sl-db-data` and `deploy_sl-data` (DKIM key, PGP keyring, stored refused emails).
 - Update: `git pull && docker compose up -d --build` (`sl-init` applies new migrations first).
 - Postfix switches from its self-signed certificate to the Let's Encrypt one within 5 minutes of it being

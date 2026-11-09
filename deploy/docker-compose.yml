@@ -16,7 +16,9 @@ x-app: &app
     EMAIL_SERVERS_WITH_PRIORITY: '[(10, "${MAIL_HOSTNAME:-mail.${EMAIL_DOMAIN:-${DOMAIN}}}.")]'
     DB_URI: postgresql://${POSTGRES_USER:?}:${POSTGRES_PASSWORD:?}@sl-db:5432/${POSTGRES_DB:?}
     MEM_STORE_URI: redis://sl-redis:6379
-    POSTFIX_SERVER: postfix
+    # Postfix's name on the mail-out network: mail sent there comes from this
+    # container's mail-out address, the only one Postfix relays for
+    POSTFIX_SERVER: postfix-relay
     # paths inside the sl-data volume; fixed so that values from an old SimpleLogin .env
     # (e.g. DKIM_PRIVATE_KEY_PATH=/dkim.key) cannot point outside it
     DKIM_PRIVATE_KEY_PATH: /sl/dkim.key
@@ -28,7 +30,7 @@ x-app: &app
     PROVISIONING_ALLOWED_IPS: ${PROVISIONING_ALLOWED_IPS:-${API_ALLOWED_IPS}}
   volumes:
     - sl-data:/sl
-  networks: [delitesco]
+  networks: [delitesco, mail-out]
   depends_on:
     sl-init:
       condition: service_completed_successfully
@@ -112,8 +114,10 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
       EMAIL_HANDLER: sl-email:20381
-      DOCKER_SUBNET: 10.77.0.0/24
-      DOCKER_GATEWAY: 10.77.0.1
+      # Postfix relays outgoing mail only for the app containers, on the mail-out network
+      # (Traefik, the socket proxy etc. are not on it). Keep in sync with "networks" below.
+      DOCKER_SUBNET: 10.78.0.0/24
+      DOCKER_GATEWAY: 10.78.0.1
       SPAMHAUS_DQS_KEY: ${SPAMHAUS_DQS_KEY:-}
       # written by certs-dumper from Traefik's Let's Encrypt certificate
       TLS_CERT: /certs/${MAIL_HOSTNAME:-mail.${EMAIL_DOMAIN:-${DOMAIN}}}/certificate.pem
@@ -123,7 +127,10 @@ services:
     volumes:
       - postfix-queue:/var/spool/postfix
       - certs:/certs:ro
-    networks: [delitesco]
+    networks:
+      delitesco: {}
+      mail-out:
+        aliases: [postfix-relay]
     depends_on:
       sl-db:
         condition: service_healthy
@@ -208,6 +215,13 @@ networks:
   # no outside access: only Traefik and the socket proxy
   docker-api:
     internal: true
+  # the app containers and Postfix: Postfix relays outgoing mail for this subnet only
+  mail-out:
+    name: delitesco-mail-out
+    ipam:
+      config:
+        - subnet: 10.78.0.0/24
+          gateway: 10.78.0.1
   delitesco:
     name: delitesco
     ipam:
