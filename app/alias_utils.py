@@ -87,7 +87,7 @@ def check_if_alias_can_be_auto_created_for_custom_domain(
     If there's no rule it's a catchall creation
     """
     alias_domain = get_email_domain_part(address)
-    custom_domain: CustomDomain = CustomDomain.get_by(domain=alias_domain)
+    custom_domain: CustomDomain = CustomDomain.get_by_domain(alias_domain)
 
     if not custom_domain:
         LOG.i(
@@ -191,7 +191,7 @@ def check_if_alias_can_be_auto_created_for_a_directory(
 def owner_of_auto_create_address(address: str) -> Optional[User]:
     """The user whose custom domain or directory the address belongs to, if any,
     whether or not an alias would actually be created for it."""
-    custom_domain = CustomDomain.get_by(domain=get_email_domain_part(address))
+    custom_domain = CustomDomain.get_by_domain(get_email_domain_part(address))
     if custom_domain:
         return custom_domain.user
     if can_create_directory_for_address(address):

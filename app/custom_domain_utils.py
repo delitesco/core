@@ -95,7 +95,11 @@ def can_domain_be_used(user: User, domain: str) -> Optional[CannotUseDomainReaso
         return CannotUseDomainReason.InvalidDomain
     elif SLDomain.get_by(domain=domain):
         return CannotUseDomainReason.BuiltinDomain
-    elif CustomDomain.get_by(domain=domain):
+    elif CustomDomain.get_by(domain=domain, ownership_verified=True):
+        # an unverified claim by someone else does not block the domain: whoever
+        # proves ownership first gets it
+        return CannotUseDomainReason.DomainAlreadyUsed
+    elif CustomDomain.get_by(domain=domain, user_id=user.id):
         return CannotUseDomainReason.DomainAlreadyUsed
     elif get_email_domain_part(user.email) == domain:
         return CannotUseDomainReason.DomainPartOfUserEmail

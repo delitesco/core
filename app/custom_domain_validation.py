@@ -8,6 +8,7 @@ from app.dns_utils import (
     DNSClient,
     get_network_dns_client,
 )
+from app.log import LOG
 from app.models import CustomDomain
 from app.user_audit_log_utils import emit_user_audit_log, UserAuditLogAction
 from app.utils import random_string
@@ -177,6 +178,16 @@ class CustomDomainValidation:
                 found = True
                 break
         if found:
+            if CustomDomain.filter(
+                CustomDomain.domain == custom_domain.domain,
+                CustomDomain.ownership_verified.is_(True),
+                CustomDomain.id != custom_domain.id,
+            ).first():
+                LOG.w("%s: ownership already verified by another user", custom_domain)
+                return DomainValidationResult(
+                    success=False,
+                    errors=["This domain is already used by another account"],
+                )
             custom_domain.ownership_verified = True
             emit_user_audit_log(
                 user=custom_domain.user,

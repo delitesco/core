@@ -37,7 +37,7 @@ def set_default_alias_domain(user: User, domain_name: Optional[str]):
         user.default_alias_custom_domain_id = None
         Session.flush()
         return
-    custom_domain = CustomDomain.get_by(domain=domain_name)
+    custom_domain = CustomDomain.get_by_domain(domain_name)
     if not custom_domain:
         LOG.i(
             f"User {user} has tried to set up an non existing domain as default domain"
