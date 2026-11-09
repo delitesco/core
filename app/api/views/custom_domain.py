@@ -170,11 +170,14 @@ def create_custom_domain_route():
     Input: domain
     Output: 201 and the custom domain, 400 with an error message
     """
+    user = g.user
+    if not user.can_create_new_alias():
+        return jsonify(error="This account cannot create new domains right now"), 400
     domain = json_body().get("domain")
     if not isinstance(domain, str) or not domain.strip():
         return jsonify(error="Invalid domain"), 400
 
-    result = create_custom_domain(g.user, domain)
+    result = create_custom_domain(user, domain)
     if not result.success:
         return jsonify(error=result.message), 400
     Session.commit()

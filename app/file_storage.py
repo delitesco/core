@@ -23,8 +23,10 @@ def upload_email_from_bytesio(path: str, bs: BytesIO, filename: str = ""):
     """Store an email. `filename` is kept for API compatibility with the old S3 backend."""
     bs.seek(0)
     full_path = _full_path(path)
-    os.makedirs(os.path.dirname(full_path), exist_ok=True)
-    with open(full_path, "wb") as f:
+    # private emails: readable by the service user only
+    os.makedirs(os.path.dirname(full_path), mode=0o700, exist_ok=True)
+    fd = os.open(full_path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "wb") as f:
         f.write(bs.read())
 
 

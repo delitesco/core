@@ -1,3 +1,4 @@
+import hmac
 from urllib.parse import urlencode
 import dataclasses
 import secrets
@@ -57,13 +58,30 @@ class TooManyVerificationEmails(MailboxError):
 MAX_ACTIVATION_TRIES = 3
 
 
+# providers where dots in the local part do not matter
+_DOTLESS_DOMAINS = {"gmail.com", "googlemail.com"}
+
+
+def normalize_email_for_limit(email: str) -> str:
+    """The inbox an address delivers to: user+tag@ and (Gmail) u.s.e.r@ are user@."""
+    local, _, domain = email.strip().lower().rpartition("@")
+    if not local:
+        return email.strip().lower()
+    local = local.split("+", 1)[0]
+    if domain in _DOTLESS_DOMAINS:
+        local = local.replace(".", "")
+        domain = "gmail.com"
+    return f"{local}@{domain}"
+
+
 def check_verification_email_limit(email: str):
-    """Limit verification emails per recipient address, across all users, so the
+    """Limit verification emails per recipient inbox, across all users, so the
     service cannot be used to flood an address with verification emails."""
+    inbox = normalize_email_for_limit(email)
     for max_hits, bucket_seconds in config.MAILBOX_VERIFICATION_EMAIL_LIMITS:
         try:
             rate_limiter.check_bucket_limit(
-                f"mailbox_verification:{email.lower()}", max_hits, bucket_seconds
+                f"mailbox_verification:{inbox}", max_hits, bucket_seconds
             )
         except werkzeug.exceptions.TooManyRequests:
             LOG.i(f"Too many verification emails sent to {email}")
@@ -231,9 +249,11 @@ def verify_mailbox_code(user: User, mailbox_id: int, code: str) -> Mailbox:
         clear_activation_codes_for_mailbox(mailbox)
         return mailbox
 
+    # locked until commit: concurrent guesses wait and see the updated tries count
     activation = (
         MailboxActivation.filter(MailboxActivation.mailbox_id == mailbox_id)
         .order_by(MailboxActivation.created_at.desc())
+        .with_for_update()
         .first()
     )
     if not activation:
@@ -254,7 +274,7 @@ def verify_mailbox_code(user: User, mailbox_id: int, code: str) -> Mailbox:
         )
         clear_activation_codes_for_mailbox(mailbox)
         raise CannotVerifyError("Invalid activation code. Please request another code.")
-    if code != activation.code:
+    if not hmac.compare_digest(str(code).encode(), str(activation.code).encode()):
         LOG.i(
             f"User {user} failed to verify mailbox {mailbox_id} because code does not match"
         )

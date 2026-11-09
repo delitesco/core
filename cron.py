@@ -96,21 +96,26 @@ def delete_logs():
 
 
 def delete_refused_emails():
+    # also the ones whose date passed: a run that did not happen must not keep them forever
     for refused_email in (
-        RefusedEmail.filter_by(deleted=False).order_by(RefusedEmail.id).all()
+        RefusedEmail.filter(
+            RefusedEmail.deleted.is_(False),
+            RefusedEmail.delete_at < arrow.now().shift(days=1),
+        )
+        .order_by(RefusedEmail.id)
+        .all()
     ):
-        if arrow.now().shift(days=1) > refused_email.delete_at >= arrow.now():
-            LOG.d("Delete refused email %s", refused_email)
-            if refused_email.path:
-                file_storage.delete(refused_email.path)
+        LOG.d("Delete refused email %s", refused_email)
+        if refused_email.path:
+            file_storage.delete(refused_email.path)
 
-            file_storage.delete(refused_email.full_report_path)
+        file_storage.delete(refused_email.full_report_path)
 
-            # do not set path and full_report_path to null
-            # so we can check later that the files are indeed deleted
-            refused_email.delete_at = arrow.now()
-            refused_email.deleted = True
-            Session.commit()
+        # do not set path and full_report_path to null
+        # so we can check later that the files are indeed deleted
+        refused_email.delete_at = arrow.now()
+        refused_email.deleted = True
+        Session.commit()
 
     LOG.d("Finish delete_refused_emails")
 
