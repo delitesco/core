@@ -395,6 +395,8 @@ MAILBOX_VERIFY_URL: Optional[str] = os.environ.get("MAILBOX_VERIFY_URL") or None
 MAILBOX_VERIFICATION_EMAIL_LIMITS = [(3, 3600), (10, 86400)]
 # Users have no email of their own: their email is a random address on this domain.
 # Keep it a reserved, non-deliverable domain (.invalid, RFC 2606).
+# notifications kept per user (the oldest are deleted)
+MAX_NOTIFICATIONS_PER_USER = int(os.environ.get("MAX_NOTIFICATIONS_PER_USER") or 200)
 PROVISIONED_USER_EMAIL_DOMAIN = (
     os.environ.get("PROVISIONED_USER_EMAIL_DOMAIN") or "users.invalid"
 )

@@ -47,6 +47,8 @@ def create_mailbox():
         the new mailbox dict
     """
     user = g.user
+    if not user.can_create_new_alias():
+        return jsonify(error="This account cannot create new mailboxes right now"), 400
     email = json_body().get("email")
     if not email or not isinstance(email, str):
         return jsonify(error="Invalid email"), 400

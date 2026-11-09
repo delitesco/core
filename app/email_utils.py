@@ -195,8 +195,19 @@ def notify_user_by_placeholder_email(to_email: str, subject: str, plaintext: str
         user_id=user.id,
         title=subject[:512],
         message=plaintext_to_notification_html(plaintext),
-        commit=True,
     )
+    # outside senders can trigger notifications: keep only the most recent ones
+    Session.flush()
+    keep = (
+        Session.query(Notification.id)
+        .filter(Notification.user_id == user.id)
+        .order_by(Notification.id.desc())
+        .limit(config.MAX_NOTIFICATIONS_PER_USER)
+    )
+    Notification.filter(
+        Notification.user_id == user.id, Notification.id.notin_(keep.subquery())
+    ).delete(synchronize_session=False)
+    Session.commit()
     LOG.d("Notification '%s' stored for %s", subject, user)
 
 

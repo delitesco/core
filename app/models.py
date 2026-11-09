@@ -795,7 +795,9 @@ class User(Base, ModelMixin):
         return random_words(1)
 
     def can_create_contacts(self) -> bool:
-        return True
+        # same rule as aliases: nothing new outside of an active subscription. Contacts
+        # of incoming mail are still created (automatic_created).
+        return self.can_create_new_alias()
 
     def __repr__(self):
         return f"<User {self.id} {self.name} {self.email}>"
