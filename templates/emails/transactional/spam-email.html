@@ -24,8 +24,6 @@
 
   {% if disable_alias_link %}{{ render_button("Disable alias", disable_alias_link) }}{% endif %}
   {{ render_text("Please let us know if you have any question by replying to this email.") }}
-  {{ render_text('Thanks,
-    <br />
-    ' ~ BRAND_NAME ~ ' Team.') }}
+  {{ signature(BRAND_NAME) }}
   {% if disable_alias_link %}{{ raw_url(disable_alias_link) }}{% endif %}
 {% endblock %}

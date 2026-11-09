@@ -19,7 +19,5 @@
     The email is automatically deleted in 7 days.
   {% endcall %}
 
-  {{ render_text('Thanks,
-    <br />
-    ' ~ BRAND_NAME ~ ' Team.') }}
+  {{ signature(BRAND_NAME) }}
 {% endblock %}

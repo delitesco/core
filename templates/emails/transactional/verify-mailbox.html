@@ -12,8 +12,6 @@
     {{ render_text("Please enter <b>"|safe ~ code ~ "</b> as your verification code"|safe) }}
   {% endif %}
   {{ render_text("This email will only be valid for the next 15 minutes.") }}
-  {{ render_text('Thanks,
-    <br />
-    ' ~ BRAND_NAME ~ ' Team.') }}
+  {{ signature(BRAND_NAME) }}
   {% if link %}{{ raw_url(link) }}{% endif %}
 {% endblock %}
