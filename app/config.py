@@ -171,7 +171,7 @@ TRANSACTIONAL_BOUNCE_SUFFIX = (
 MAX_NB_DIRECTORY = 50
 MAX_NB_SUBDOMAIN = 5
 
-ENFORCE_SPF = "ENFORCE_SPF" in os.environ
+ENFORCE_SPF = env_flag("ENFORCE_SPF")
 
 # override postfix server locally
 POSTFIX_SERVERS = get_env_csv("POSTFIX_SERVER", "240.0.0.1")
