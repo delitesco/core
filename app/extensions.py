@@ -14,9 +14,9 @@ def __key_func():
     api_code = request.headers.get("Authentication")
     if api_code:
         # imported here to avoid a circular import with app.models
-        from app.models import ApiKey
+        from app.api.base import lookup_api_key
 
-        api_key = ApiKey.get_by(code=api_code)
+        api_key = lookup_api_key(api_code)
         if api_key:
             return f"userid:{api_key.user_id}"
     ip_addr = get_remote_address()

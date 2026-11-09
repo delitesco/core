@@ -43,3 +43,28 @@ def test_emails_to_invalid_domain_are_not_sent(flask_client):
     assert len(mail_sender.get_stored_emails()) == 0
     send_email("someone@mailbox.lan", "subject", "body")
     assert len(mail_sender.get_stored_emails()) == 1
+
+
+def test_failed_api_key_attempts_are_limited(flask_client, monkeypatch):
+    from app.api import base
+
+    monkeypatch.setattr(base, "MAX_FAILED_API_KEY_ATTEMPTS", 3)
+    address = {"REMOTE_ADDR": "198.51.100.77"}
+    codes = [
+        flask_client.get(
+            "/api/user_info",
+            headers={"Authentication": f"wrong-{i}"},
+            environ_base=address,
+        ).status_code
+        for i in range(5)
+    ]
+    assert codes[:3] == [401, 401, 401]
+    assert codes[3:] == [429, 429]
+
+    # a valid key from the same address still works
+    user = create_new_user()
+    key = ApiKey.create(user.id, name="ok", commit=True)
+    r = flask_client.get(
+        "/api/user_info", headers={"Authentication": key.code}, environ_base=address
+    )
+    assert r.status_code == 200
