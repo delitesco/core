@@ -16,9 +16,18 @@ legacy_subject_test_data = [
 
 
 @pytest.mark.parametrize("expected_subject, expected_deco", legacy_subject_test_data)
-def test_legacy_unsub_subject(expected_subject, expected_deco):
-    info = UnsubscribeEncoder.decode_subject(expected_subject)
-    assert info == expected_deco
+def test_unsigned_subjects_are_refused(expected_subject, expected_deco):
+    # anyone could forge them: only signed subjects are accepted
+    assert UnsubscribeEncoder.decode_subject(expected_subject) is None
+    assert UnsubscribeEncoder.decode_subject(expected_subject.rstrip("=_*")) is None
+
+
+def test_tampered_signed_subject_is_refused():
+    subject = UnsubscribeEncoder.encode_subject(UnsubscribeAction.DisableAlias, 3)
+    assert UnsubscribeEncoder.decode_subject(subject).data == 3
+    forged = UnsubscribeEncoder.encode_subject(UnsubscribeAction.DisableAlias, 4)
+    tampered = forged.rsplit(".", 1)[0] + "." + subject.rsplit(".", 1)[1]
+    assert UnsubscribeEncoder.decode_subject(tampered) is None
 
 
 legacy_mail_or_link_test_data = [

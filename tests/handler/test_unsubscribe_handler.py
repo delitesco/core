@@ -28,19 +28,7 @@ def _get_envelope_and_message(user: User, subject: str) -> (Envelope, Message):
 
 
 @mail_sender.store_emails_test_decorator
-def test_old_subject_disable_alias():
-    user = create_new_user()
-    alias = Alias.create_new_random(user)
-    Session.commit()
-    envelope, message = _get_envelope_and_message(user, f"{alias.id}=")
-    response = UnsubscribeHandler().handle_unsubscribe_from_message(envelope, message)
-    assert status.E202 == response
-    assert not Alias.get(alias.id).enabled
-    assert 1 == len(mail_sender.get_stored_emails())
-
-
-@mail_sender.store_emails_test_decorator
-def test_old_subject_block_contact():
+def test_old_unsigned_subject_is_refused():
     user = create_new_user()
     alias = Alias.create_new_random(user)
     Session.commit()
@@ -52,20 +40,71 @@ def test_old_subject_block_contact():
         block_forward=False,
         commit=True,
     )
-    envelope, message = _get_envelope_and_message(user, f"{contact.id}_")
-    response = UnsubscribeHandler().handle_unsubscribe_from_message(envelope, message)
-    assert status.E202 == response
-    assert Contact.get(contact.id).block_forward
-    assert 1 == len(mail_sender.get_stored_emails())
+    for subject in (f"{alias.id}=", f"{alias.id}", f"{contact.id}_"):
+        envelope, message = _get_envelope_and_message(user, subject)
+        response = UnsubscribeHandler().handle_unsubscribe_from_message(
+            envelope, message
+        )
+        assert status.E507 == response
+    assert Alias.get(alias.id).enabled
+    assert not Contact.get(contact.id).block_forward
+    assert 0 == len(mail_sender.get_stored_emails())
 
 
 @mail_sender.store_emails_test_decorator
-def test_old_subject_disable_newsletter_is_ignored():
-    user = create_new_user()
-    envelope, message = _get_envelope_and_message(user, f"{user.id}*")
+def test_request_from_another_users_mailbox_is_refused():
+    owner = create_new_user()
+    alias = Alias.create_new_random(owner)
+    Session.commit()
+    other = create_new_user()
+    header = UnsubscribeEncoder.encode_subject(UnsubscribeAction.DisableAlias, alias.id)
+    envelope, message = _get_envelope_and_message(other, header)
     response = UnsubscribeHandler().handle_unsubscribe_from_message(envelope, message)
-    assert status.E202 == response
-    # newsletters are gone: the request is accepted but nothing is sent
+    assert status.E507 == response
+    assert Alias.get(alias.id).enabled
+
+
+@mail_sender.store_emails_test_decorator
+def test_spf_failure_is_refused(monkeypatch):
+    from app import config
+    from app.handler import unsubscribe_handler
+
+    user = create_new_user()
+    alias = Alias.create_new_random(user)
+    Session.commit()
+    monkeypatch.setattr(config, "ENFORCE_SPF", True)
+    monkeypatch.setattr(
+        unsubscribe_handler.spf, "check2", lambda i, s, h: ("fail", 550, "")
+    )
+    header = UnsubscribeEncoder.encode_subject(UnsubscribeAction.DisableAlias, alias.id)
+    envelope, message = _get_envelope_and_message(user, header)
+    message[headers.SL_CLIENT_IP] = "198.51.100.7"
+    response = UnsubscribeHandler().handle_unsubscribe_from_message(envelope, message)
+    assert status.E507 == response
+    assert Alias.get(alias.id).enabled
+
+
+@mail_sender.store_emails_test_decorator
+def test_original_unsub_refused_when_account_not_active():
+    from app.models import AccountState
+
+    for state, disabled in ((AccountState.paused, False), (AccountState.grace, False), (AccountState.active, True)):
+        user = create_new_user()
+        alias = Alias.create_new_random(user)
+        user.account_state = state
+        user.disabled = disabled
+        Session.commit()
+        envelope, message = _get_envelope_and_message(
+            user,
+            UnsubscribeEncoder.encode_subject(
+                UnsubscribeAction.OriginalUnsubscribeMailto,
+                UnsubscribeOriginalData(alias.id, "list@out.com", "unsubscribe"),
+            ),
+        )
+        response = UnsubscribeHandler().handle_unsubscribe_from_message(
+            envelope, message
+        )
+        assert status.E509 == response
     assert 0 == len(mail_sender.get_stored_emails())
 
 
