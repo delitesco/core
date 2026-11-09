@@ -127,6 +127,13 @@ else:
     load_dotenv()
 
 COLOR_LOG = "COLOR_LOG" in os.environ
+# Debug lines carry addresses, names and header values of every message (including which
+# mailbox an alias forwards to), so they stay off unless asked for.
+LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO").upper()
+if LOG_LEVEL not in ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"):
+    raise ValueError(
+        f"LOG_LEVEL must be DEBUG, INFO, WARNING, ERROR or CRITICAL, not {LOG_LEVEL}"
+    )
 
 # Allow user to have 1 year of premium: set the expiration_date to 1 year more
 PROMO_CODE = "SIMPLEISBETTER"
