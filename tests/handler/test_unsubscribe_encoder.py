@@ -1,3 +1,7 @@
+import time
+
+import arrow
+import itsdangerous
 import pytest
 
 from app import config
@@ -78,20 +82,45 @@ legacy_mail_or_link_test_data = [
 @pytest.mark.parametrize(
     "expected_link, via_mail, unsub_data", legacy_mail_or_link_test_data
 )
-def test_encode_legacy_link(monkeypatch, expected_link, via_mail, unsub_data):
-    # the expected links were signed with FLASK_SECRET=secret
-    monkeypatch.setattr(config, "UNSUBSCRIBE_SECRET", "secretunsub")
-    if via_mail:
-        config.UNSUBSCRIBER = "me@nowhere.net"
-    else:
-        config.UNSUBSCRIBER = None
-    link_info = UnsubscribeEncoder.encode(unsub_data.action, unsub_data.data)
+def test_untimed_links_until_cutoff(monkeypatch, expected_link, via_mail, unsub_data):
     if expected_link is None:
-        # no web unsubscribe: without UNSUBSCRIBER there is no link at all
-        assert link_info is None
         return
-    assert via_mail == link_info.via_email
-    assert expected_link == link_info.link
+    # the expected links were signed without a timestamp, with FLASK_SECRET=secret
+    monkeypatch.setattr(config, "UNSUBSCRIBE_SECRET", "secretunsub")
+    subject = expected_link.split("subject=", 1)[1]
+
+    monkeypatch.setattr(
+        config, "UNSUBSCRIBE_UNTIMED_LINKS_UNTIL", arrow.now().shift(days=1)
+    )
+    decoded = UnsubscribeEncoder.decode_subject(subject)
+    assert (decoded.action, decoded.data) == (unsub_data.action, unsub_data.data)
+
+    monkeypatch.setattr(
+        config, "UNSUBSCRIBE_UNTIMED_LINKS_UNTIL", arrow.now().shift(days=-1)
+    )
+    assert UnsubscribeEncoder.decode_subject(subject) is None
+
+
+def test_no_link_without_unsubscriber(monkeypatch):
+    monkeypatch.setattr(config, "UNSUBSCRIBER", None)
+    assert UnsubscribeEncoder.encode(UnsubscribeAction.DisableAlias, 3) is None
+
+
+def test_new_links_are_timed_and_expire(monkeypatch):
+    monkeypatch.setattr(config, "UNSUBSCRIBER", "me@nowhere.net")
+    link = UnsubscribeEncoder.encode(UnsubscribeAction.DisableAlias, 9)
+    assert link.via_email
+    subject = link.link.split("subject=", 1)[1]
+    assert subject.startswith("un2.")
+    assert UnsubscribeEncoder.decode_subject(subject).data == 9
+    # also found when the mail client prefixes the subject
+    assert UnsubscribeEncoder.decode_subject("Re: " + subject).data == 9
+
+    old = int(time.time()) - 400 * 86400
+    monkeypatch.setattr(itsdangerous.TimestampSigner, "get_timestamp", lambda self: old)
+    expired = UnsubscribeEncoder.encode_subject(UnsubscribeAction.DisableAlias, 9)
+    monkeypatch.undo()
+    assert UnsubscribeEncoder.decode_subject(expired) is None
 
 
 encode_decode_test_data = [
