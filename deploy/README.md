@@ -31,6 +31,11 @@ server being `mail.myaliases.com` (`MAIL_HOSTNAME`, default `mail.$EMAIL_DOMAIN`
   (custom domains CNAME all three) → printed by `sl-init`
 - `TXT _dmarc.myaliases.com` → `v=DMARC1; p=quarantine; adkim=s; aspf=s`
 
+Service emails (mailbox confirmation, alerts) come from `NOREPLY` (default `noreply@$EMAIL_DOMAIN`). To send
+them from a subdomain of your main domain, e.g. `NOREPLY=noreply@notify.mydomain.com`, publish the same DKIM key
+there (`TXT dkim._domainkey.notify.mydomain.com`, printed by `sl-init`). Nothing else changes for that domain:
+its MX and SPF can stay with another mail provider, as bounces and SPF use the alias domain.
+
 On every start `sl-init` prints these records and a `WARNING` line for each one that is missing or wrong:
 `docker compose logs sl-init`. Custom domains get their records from `GET /api/custom_domains/<id>/dns`.
 

@@ -233,9 +233,8 @@ def send_email(
 
     LOG.d("send email to %s, subject '%s'", to_email, subject)
 
-    from_name = from_name or config.NOREPLY
+    from_name = from_name or config.BRAND_NAME
     from_addr = from_addr or config.NOREPLY
-    from_domain = get_email_domain_part(from_addr)
 
     if html:
         msg = MIMEMultipart("alternative")
@@ -265,9 +264,14 @@ def send_email(
 
     transaction = TransactionalEmail.create(email=to_email, commit=True)
 
-    # use a different envelope sender for each transactional email (aka VERP)
+    # Use a different envelope sender for each transactional email (aka VERP), always on
+    # the alias domain: bounces come back to this server and SPF is checked there, even
+    # when NOREPLY is on another domain whose mail is handled elsewhere. DMARC passes with
+    # the DKIM signature of the From domain above.
     sl_sendmail(
-        generate_verp_email(VerpType.transactional, transaction.id, from_domain),
+        generate_verp_email(
+            VerpType.transactional, transaction.id, config.EMAIL_DOMAIN
+        ),
         to_email,
         msg,
         retries=retries,

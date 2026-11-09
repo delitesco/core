@@ -13,6 +13,7 @@ from app.config import (
     DKIM_SELECTORS,
     EMAIL_DOMAIN,
     EMAIL_SERVERS_WITH_PRIORITY,
+    NOREPLY,
 )
 
 resolver = dns.resolver.Resolver(configure=False)
@@ -37,6 +38,13 @@ expected = {
     },
     f"TXT   _dmarc.{EMAIL_DOMAIN}": "v=DMARC1; p=quarantine; adkim=s; aspf=s",
 }
+# Service emails (mailbox confirmation, alerts) are sent from NOREPLY. On another domain they
+# only need the DKIM key there: bounces and SPF stay on the alias domain.
+NOREPLY_DOMAIN = NOREPLY.split("@", 1)[1].lower()
+if NOREPLY_DOMAIN != EMAIL_DOMAIN:
+    expected[
+        f"TXT   {SIGNING_SELECTOR}._domainkey.{NOREPLY_DOMAIN}"
+    ] = f"v=DKIM1; k=rsa; p={dkim_pub}  (service emails from {NOREPLY})"
 print("DNS records for mail:")
 for name, value in expected.items():
     print(f"  {name}  ->  {value}")
@@ -81,6 +89,15 @@ for key in DKIM_KEYS:
             )
     elif not [r for r in published if r.startswith("v=DKIM1")]:
         problems.append(f"{key}._domainkey.{EMAIL_DOMAIN} has no DKIM key")
+if NOREPLY_DOMAIN != EMAIL_DOMAIN and not [
+    r
+    for r in txt(f"{SIGNING_SELECTOR}._domainkey.{NOREPLY_DOMAIN}")
+    if dkim_pub in r.replace(" ", "")
+]:
+    problems.append(
+        f"{SIGNING_SELECTOR}._domainkey.{NOREPLY_DOMAIN} does not publish this server's DKIM "
+        f"key: service emails from {NOREPLY} fail DKIM and DMARC"
+    )
 if not [r for r in txt(f"_dmarc.{EMAIL_DOMAIN}") if r.startswith("v=DMARC1")]:
     problems.append(f"_dmarc.{EMAIL_DOMAIN} has no DMARC record")
 
