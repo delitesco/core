@@ -47,7 +47,8 @@ chmod 600 .env
 
 `sl-init` refuses to start while a value is still the example one, and the app refuses a `FLASK_SECRET` or
 `PROVISIONING_API_KEY` shorter than 32 characters. `API_ALLOWED_IPS` is required: the address of the frontend
-backend. `/api/provision/*` only answers `PROVISIONING_ALLOWED_IPS` (default: `API_ALLOWED_IPS`); allowing
+backend. `/api/provision/*` only answers `PROVISIONING_ALLOWED_IPS` (default: `10.77.0.0/24`, the `delitesco`
+Docker network: a frontend on the same host joins it and calls `http://sl-app:7777` directly); allowing
 any address (`0.0.0.0/0`) also needs `PROVISIONING_EMERGENCY_OPEN=true`, and every provisioning request then
 logs an error — for emergencies only.
 
