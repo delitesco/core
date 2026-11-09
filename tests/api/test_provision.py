@@ -256,3 +256,60 @@ def test_transfer_needs_provisioning_key(flask_client, provisioning_key):
     )
     assert r.status_code == 401
     assert Alias.get(alias.id).user_id == old_user.id
+
+
+@pytest.fixture
+def allowed_networks():
+    previous = config.PROVISIONING_ALLOWED_NETWORKS
+    previous_open = config.PROVISIONING_EMERGENCY_OPEN
+    yield
+    config.PROVISIONING_ALLOWED_NETWORKS = previous
+    config.PROVISIONING_EMERGENCY_OPEN = previous_open
+
+
+def test_refused_from_non_allowed_address(flask_client, provisioning_key, allowed_networks):
+    config.PROVISIONING_ALLOWED_NETWORKS = config.parse_networks("X", ["10.0.0.0/8"])
+    r = flask_client.post(
+        url_for("api.provision_create_user"),
+        headers=provisioning_key,
+        environ_base={"REMOTE_ADDR": "203.0.113.7"},
+    )
+    assert r.status_code == 404
+
+
+def test_forwarded_for_from_internet_is_refused(
+    flask_client, provisioning_key, allowed_networks
+):
+    # behind the proxy the client IP is the last X-Forwarded-For entry
+    r = flask_client.post(
+        url_for("api.provision_create_user"),
+        headers={**provisioning_key, "X-Forwarded-For": "203.0.113.7"},
+    )
+    assert r.status_code == 404
+
+
+def test_accepted_from_allowed_public_address(
+    flask_client, provisioning_key, allowed_networks
+):
+    config.PROVISIONING_ALLOWED_NETWORKS = config.parse_networks(
+        "X", ["203.0.113.10/32"]
+    )
+    r = flask_client.post(
+        url_for("api.provision_create_user"),
+        headers=provisioning_key,
+        environ_base={"REMOTE_ADDR": "203.0.113.10"},
+    )
+    assert r.status_code == 201
+
+
+def test_emergency_open_accepts_any_address(
+    flask_client, provisioning_key, allowed_networks
+):
+    config.PROVISIONING_ALLOWED_NETWORKS = config.parse_networks("X", ["0.0.0.0/0"])
+    config.PROVISIONING_EMERGENCY_OPEN = True
+    r = flask_client.post(
+        url_for("api.provision_create_user"),
+        headers=provisioning_key,
+        environ_base={"REMOTE_ADDR": "198.51.100.1"},
+    )
+    assert r.status_code == 201

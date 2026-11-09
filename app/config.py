@@ -1,3 +1,4 @@
+import ipaddress
 import os
 import random
 import socket
@@ -71,6 +72,49 @@ def get_env_csv(env_var: str, default: Optional[str]) -> list[str]:
     if not value:
         return []
     return [field.strip() for field in value.split(",") if field.strip()]
+
+
+def env_flag(env_var: str) -> bool:
+    """True when the variable is set to a "yes" value: 1, true, yes or on.
+
+    "FLAG=0" or "FLAG=false" mean off, unlike a plain `"FLAG" in os.environ`."""
+    return (os.environ.get(env_var) or "").strip().lower() in ("1", "true", "yes", "on")
+
+
+MIN_SECRET_LENGTH = 32
+# values from example files and docs, which must never reach production
+_PLACEHOLDER_SECRETS = {"secret", "changeme", "change-me", "password", "test"}
+_PLACEHOLDER_PREFIXES = ("paste-", "paste_", "put_", "put-", "your-", "your_", "<")
+
+
+def check_secret(name: str, value: Optional[str]) -> None:
+    """Refuse to start with an empty, placeholder or short secret."""
+    if not value:
+        raise RuntimeError(f"{name} is empty. Please define it.")
+    lowered = value.strip().lower()
+    if lowered in _PLACEHOLDER_SECRETS or lowered.startswith(_PLACEHOLDER_PREFIXES):
+        raise RuntimeError(
+            f"{name} is still a placeholder value. Generate one with: openssl rand -hex 32"
+        )
+    if len(value) < MIN_SECRET_LENGTH:
+        raise RuntimeError(
+            f"{name} must be at least {MIN_SECRET_LENGTH} characters long. "
+            "Generate one with: openssl rand -hex 32"
+        )
+
+
+def parse_networks(env_var: str, values: list[str]) -> list:
+    networks = []
+    for value in values:
+        try:
+            networks.append(ipaddress.ip_network(value, strict=False))
+        except ValueError:
+            raise RuntimeError(f"{env_var}: {value!r} is not an IP address or network")
+    return networks
+
+
+def is_open_to_any_ip(networks: list) -> bool:
+    return any(network.prefixlen == 0 for network in networks)
 
 
 config_file = os.environ.get("CONFIG")
@@ -188,9 +232,9 @@ DB_URI = os.environ["DB_URI"]
 DB_CONN_NAME = os.environ.get("DB_CONN_NAME", "webapp")
 
 # Flask secret
-FLASK_SECRET = os.environ["FLASK_SECRET"]
-if not FLASK_SECRET:
-    raise RuntimeError("FLASK_SECRET is empty. Please define it.")
+FLASK_SECRET = os.environ.get("FLASK_SECRET")
+# every other secret (signed links, alias suffixes, encryption keys) derives from it
+check_secret("FLASK_SECRET", FLASK_SECRET)
 MAILBOX_SECRET = FLASK_SECRET + "mailbox"
 CUSTOM_ALIAS_SECRET = FLASK_SECRET + "custom_alias"
 UNSUBSCRIBE_SECRET = FLASK_SECRET + "unsub"
@@ -323,6 +367,25 @@ ALIAS_LIMIT = os.environ.get("ALIAS_LIMIT") or "100/day;50/hour;5/minute"
 # User provisioning (/api/provision/*), used by the backend in front of this service
 # to create one user, with its own API key, per account. Disabled when not set.
 PROVISIONING_API_KEY: Optional[str] = os.environ.get("PROVISIONING_API_KEY") or None
+if PROVISIONING_API_KEY:
+    check_secret("PROVISIONING_API_KEY", PROVISIONING_API_KEY)
+# Networks allowed to call /api/provision/* (client IP as seen behind the reverse proxy).
+# Default: loopback and private networks only. Requests from elsewhere get a 404.
+PROVISIONING_ALLOWED_NETWORKS = parse_networks(
+    "PROVISIONING_ALLOWED_IPS",
+    get_env_csv(
+        "PROVISIONING_ALLOWED_IPS",
+        "127.0.0.0/8,::1/128,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,fc00::/7",
+    ),
+)
+# Opening provisioning to any IP (0.0.0.0/0 or ::/0) is an emergency measure: it must be
+# confirmed with PROVISIONING_EMERGENCY_OPEN=true, and then every request logs an error.
+PROVISIONING_EMERGENCY_OPEN = env_flag("PROVISIONING_EMERGENCY_OPEN")
+if is_open_to_any_ip(PROVISIONING_ALLOWED_NETWORKS) and not PROVISIONING_EMERGENCY_OPEN:
+    raise RuntimeError(
+        "PROVISIONING_ALLOWED_IPS allows any IP address. Restrict it to the frontend "
+        "backend, or set PROVISIONING_EMERGENCY_OPEN=true to confirm (emergency only)."
+    )
 PROVISIONING_RATE_LIMIT = os.environ.get("PROVISIONING_RATE_LIMIT") or "100/minute"
 # Page of the frontend that confirms a mailbox: verification emails link to
 # MAILBOX_VERIFY_URL?mailbox_id=..&code=.. and the page calls POST /api/mailboxes/<id>/verify.
@@ -479,7 +542,7 @@ if ENABLE_ALL_REVERSE_ALIAS_REPLACEMENT:
 # Only used for tests
 SKIP_MX_LOOKUP_ON_CHECK = False
 
-DISABLE_RATE_LIMIT = "DISABLE_RATE_LIMIT" in os.environ
+DISABLE_RATE_LIMIT = env_flag("DISABLE_RATE_LIMIT")
 
 MAX_API_KEYS = int(os.environ.get("MAX_API_KEYS", 30))
 
