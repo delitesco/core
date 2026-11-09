@@ -1,27 +1,22 @@
-Thanks for taking the time to contribute! 🎉👍
+Thanks for taking the time to contribute!
 
-Before working on a new feature, please get in touch with us at dev[at]simplelogin.io to avoid duplication.
-We can also discuss the best way to implement it.
+Before working on a new feature, please open an issue first to discuss it and avoid duplicated work.
+Security issues: see [SECURITY.md](SECURITY.md), never a public issue.
 
-The project uses Flask, Python3.7+ and requires Postgres 12+ as dependency.
+The project uses Flask, Python 3.12 and Postgres.
 
 ## General Architecture
 
-<p align="center">
-    <img src="./docs/archi.png" height="450px">
-</p>
+delitesco-core has 2 main components:
 
-SimpleLogin backend consists of 2 main components:
-
-- the `webapp` used by several clients: the web app, the browser extensions (Chrome & Firefox for now), OAuth clients (apps that integrate "Sign in with SimpleLogin" button) and mobile apps.
-
-- the `email handler`: implements the email forwarding (i.e. alias receiving email) and email sending (i.e. alias sending email).
+- the HTTP API (`server.py`), used by the backend in front of this service with per-user API keys and the
+  provisioning key;
+- the `email handler` (`email_handler.py`): forwards mail received by aliases and sends replies from them.
 
 ## Install dependencies
 
 The project requires:
 - Python 3.10 and uv to manage dependencies
-- Node v10 for front-end.
 - Postgres 13+
 
 First, install all dependencies by running the following command.
@@ -91,13 +86,13 @@ cp example.env .env
 You need to edit your .env to reflect the postgres exposed port, edit the `DB_URI` to:
 
 ```
-DB_URI=postgresql://myuser:mypassword@localhost:35432/simplelogin
+DB_URI=postgresql://myuser:mypassword@localhost:35432/delitesco
 ```
 
 Run the postgres database:
 
 ```bash
-docker run -e POSTGRES_PASSWORD=mypassword -e POSTGRES_USER=myuser -e POSTGRES_DB=simplelogin -p 15432:5432 postgres:13
+docker run -e POSTGRES_PASSWORD=mypassword -e POSTGRES_USER=myuser -e POSTGRES_DB=delitesco -p 15432:5432 postgres:13
 ```
 
 To run the server:

@@ -1,20 +1,13 @@
 ---
 name: Bug report
-about: Create a report to help us improve SimpleLogin.
+about: Report a bug in delitesco-core
 title: ''
 labels: ''
 assignees: ''
 
 ---
 
-Please note that this is only for bug report.
-
-For help on your account, please reach out to us at hi[at]simplelogin.io. Please make sure to check out [our FAQ](https://simplelogin.io/faq/) that contains  frequently asked questions.
-
-
-For feature request, you can use our [forum](https://github.com/simple-login/app/discussions/categories/feature-request).
-
-For self-hosted question/issue, please ask in [self-hosted forum](https://github.com/simple-login/app/discussions/categories/self-hosting-question)
+Security issues: please do not report them here, see [SECURITY.md](../../SECURITY.md).
 
 ## Prerequisites
 - [ ] I have searched open and closed issues to make sure that the bug has not yet been reported.
@@ -24,16 +17,16 @@ For self-hosted question/issue, please ask in [self-hosted forum](https://github
 **Describe the bug**
 A clear and concise description of what the bug is.
 
+**Steps to reproduce**
+API calls, emails sent, configuration.
+
 **Expected behavior**
 A clear and concise description of what you expected to happen.
 
-**Screenshots**
-If applicable, add screenshots to help explain your problem.
-
-**Environment (If applicable):**
- - OS: Linux, Mac, Windows
- - Browser: Firefox, Chrome, Brave, Safari
- - Version [e.g. 78]
+**Environment**
+ - delitesco-core commit or version:
+ - Deployment: docker compose (deploy/) or other
+ - Logs (without secrets or personal data):
 
 **Additional context**
 Add any other context about the problem here.
