@@ -32,7 +32,7 @@ from email_validator import (
 )
 from flanker.addresslib import address
 from flanker.addresslib.address import EmailAddress
-from jinja2 import Environment, FileSystemLoader
+from jinja2 import Environment, FileSystemLoader, select_autoescape
 from sqlalchemy import func
 
 from app import config
@@ -72,7 +72,11 @@ VERP_HMAC_ALGO = "sha3-224"
 
 def render(template_name: str, user: Optional[User], **kwargs) -> str:
     templates_dir = os.path.join(config.ROOT_DIR, "templates", "emails")
-    env = Environment(loader=FileSystemLoader(templates_dir))
+    # values such as subjects and sender addresses come from outside: escape them
+    env = Environment(
+        loader=FileSystemLoader(templates_dir),
+        autoescape=select_autoescape(["html"], default_for_string=False),
+    )
 
     template = env.get_template(template_name)
 

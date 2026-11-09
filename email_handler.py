@@ -31,6 +31,7 @@ It should contain the following info:
 
 """
 
+from html import escape as html_escape
 import argparse
 import email
 import time
@@ -865,7 +866,7 @@ def forward_email_to_mailbox(
         msg = add_header(
             msg,
             f"""Forwarded by {config.BRAND_NAME} to {alias.email} from "{sender}" with "{orig_subject}" as subject""",
-            f"""Forwarded by {config.BRAND_NAME} to {alias.email} from "{sender}" with <b>{orig_subject}</b> as subject""",
+            f"""Forwarded by {config.BRAND_NAME} to {alias.email} from "{html_escape(sender)}" with <b>{html_escape(orig_subject)}</b> as subject""",
         )
 
     # create PGP email if needed
