@@ -75,11 +75,15 @@ def get_env_csv(env_var: str, default: Optional[str]) -> list[str]:
     return [field.strip() for field in value.split(",") if field.strip()]
 
 
-def env_flag(env_var: str) -> bool:
-    """True when the variable is set to a "yes" value: 1, true, yes or on.
+def env_flag(env_var: str, default: bool = False) -> bool:
+    """True when the variable is set to a "yes" value: 1, true, yes or on; `default` when
+    it is unset or empty.
 
     "FLAG=0" or "FLAG=false" mean off, unlike a plain `"FLAG" in os.environ`."""
-    return (os.environ.get(env_var) or "").strip().lower() in ("1", "true", "yes", "on")
+    value = (os.environ.get(env_var) or "").strip().lower()
+    if not value:
+        return default
+    return value in ("1", "true", "yes", "on")
 
 
 MIN_SECRET_LENGTH = 32
@@ -179,7 +183,9 @@ TRANSACTIONAL_BOUNCE_SUFFIX = (
 MAX_NB_DIRECTORY = 50
 MAX_NB_SUBDOMAIN = 5
 
-ENFORCE_SPF = env_flag("ENFORCE_SPF")
+# Without it, anyone who learns a reverse alias can send from the alias by forging the
+# mailbox as envelope sender, so it is on unless explicitly turned off.
+ENFORCE_SPF = env_flag("ENFORCE_SPF", default=True)
 
 # override postfix server locally
 POSTFIX_SERVERS = get_env_csv("POSTFIX_SERVER", "240.0.0.1")
