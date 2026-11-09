@@ -24,6 +24,8 @@ LIST_UNSUBSCRIBE_POST = "List-Unsubscribe-Post"
 RETURN_PATH = "Return-Path"
 AUTHENTICATION_RESULTS = "Authentication-Results"
 SL_QUEUE_ID = "X-SL-Queue-Id"
+# number of trackers removed from a forwarded email (setting block_trackers)
+TRACKERS_BLOCKED = "X-Trackers-Blocked"
 
 # headers used to DKIM sign in order of preference
 DKIM_HEADERS = [
