@@ -7,8 +7,8 @@ set -eu
 : "${POSTGRES_USER:?}" "${POSTGRES_PASSWORD:?}" "${POSTGRES_DB:?}"
 export POSTGRES_HOST="${POSTGRES_HOST:-sl-db}"
 export EMAIL_HANDLER="${EMAIL_HANDLER:-sl-email:20381}"
-export DOCKER_SUBNET="${DOCKER_SUBNET:-10.77.0.0/24}"
-export DOCKER_GATEWAY="${DOCKER_GATEWAY:-10.77.0.1}"
+export DOCKER_SUBNET="${DOCKER_SUBNET:-10.78.0.0/24}"
+export DOCKER_GATEWAY="${DOCKER_GATEWAY:-10.78.0.1}"
 
 # Spamhaus: the Data Query Service needs a (free) key; the public zones refuse queries
 # made through public DNS resolvers.

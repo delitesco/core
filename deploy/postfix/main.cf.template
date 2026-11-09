@@ -15,9 +15,10 @@ smtp_tls_security_level = may
 smtp_tls_CAfile = /etc/ssl/certs/ca-certificates.crt
 
 alias_maps = hash:/etc/aliases
-# The delitesco containers send their outgoing mail through this Postfix. The network
-# gateway is excluded: connections through published ports can come from it, and
-# trusting it would make this an open relay.
+# The app containers send their outgoing mail through this Postfix, from the mail-out
+# network: only that network is trusted (not the one Traefik is on). Its gateway is
+# excluded: connections through published ports can come from it, and trusting it would
+# make this an open relay.
 mynetworks = 127.0.0.0/8 [::1]/128 !${DOCKER_GATEWAY} ${DOCKER_SUBNET}
 
 mydestination =
