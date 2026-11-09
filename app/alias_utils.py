@@ -7,6 +7,7 @@ from typing import List, Optional, Tuple
 from email_validator import validate_email, EmailNotValidError
 from flask import make_response
 from sqlalchemy.exc import IntegrityError, DataError
+from sqlalchemy import or_
 
 from app.alias_audit_log_utils import AliasAuditLogAction, emit_alias_audit_log
 from app.config import (
@@ -496,6 +497,16 @@ def transfer_alias(alias: Alias, new_user: User, new_mailboxes: List[Mailbox]):
             )
 
     old_user = alias.user
+
+    # The new owner gets the contacts (replies keep working) but nothing of the old
+    # owner's private data: the mail history (which also points to the old owner's
+    # mailboxes), the note and the display name.
+    contact_ids = Session.query(Contact.id).filter(Contact.alias_id == alias.id)
+    Session.query(EmailLog).filter(
+        or_(EmailLog.alias_id == alias.id, EmailLog.contact_id.in_(contact_ids))
+    ).delete(synchronize_session=False)
+    alias.note = None
+    alias.name = None
 
     Session.query(Contact).filter(Contact.alias_id == alias.id).update(
         {"user_id": new_user.id}
