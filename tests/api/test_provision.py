@@ -283,7 +283,9 @@ def allowed_networks():
     config.PROVISIONING_EMERGENCY_OPEN = previous_open
 
 
-def test_refused_from_non_allowed_address(flask_client, provisioning_key, allowed_networks):
+def test_refused_from_non_allowed_address(
+    flask_client, provisioning_key, allowed_networks
+):
     config.PROVISIONING_ALLOWED_NETWORKS = config.parse_networks("X", ["10.0.0.0/8"])
     r = flask_client.post(
         url_for("api.provision_create_user"),

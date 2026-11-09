@@ -36,7 +36,10 @@ def require_provisioning_key(f):
         if not expected:
             return jsonify(error="No such endpoint"), 404
         if not _client_allowed(request.remote_addr):
-            LOG.w("Provisioning request from a non allowed address %s", request.remote_addr)
+            LOG.w(
+                "Provisioning request from a non allowed address %s",
+                request.remote_addr,
+            )
             return jsonify(error="No such endpoint"), 404
         if config.PROVISIONING_EMERGENCY_OPEN:
             LOG.e(

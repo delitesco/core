@@ -105,7 +105,12 @@ class UnsubscribeHandler:
             LOG.w("SPF error for unsubscribe from %s %s", envelope.mail_from, ip)
             return True
         if result in ("fail", "softfail"):
-            LOG.w("Unsubscribe from %s refused: SPF %s for %s", envelope.mail_from, result, ip)
+            LOG.w(
+                "Unsubscribe from %s refused: SPF %s for %s",
+                envelope.mail_from,
+                result,
+                ip,
+            )
             return False
         return True
 

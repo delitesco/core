@@ -15,7 +15,6 @@ from app.mailbox_utils import (
     request_mailbox_email_change,
     count_mailbox_aliases,
 )
-from app import mailbox_utils
 from app.models import (
     Mailbox,
     MailboxActivation,
@@ -722,7 +721,9 @@ def _signed_message(domain: str) -> bytes:
     raw = (
         f"From: someone@{domain}\r\nTo: a@b.c\r\nSubject: hi\r\n\r\nhello\r\n"
     ).encode()
-    signature = dkim.sign(raw, b"sel", domain.encode(), key, include_headers=[b"from", b"subject"])
+    signature = dkim.sign(
+        raw, b"sel", domain.encode(), key, include_headers=[b"from", b"subject"]
+    )
     return signature + raw
 
 

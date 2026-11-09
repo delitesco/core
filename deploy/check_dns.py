@@ -27,7 +27,7 @@ with open("/sl/dkim.pub.key") as f:
 
 expected = {
     f"A     {mail_host}": "<this server's IPv4 address>",
-    f"PTR   <server IP>": f"{mail_host}  (set at the hosting provider)",
+    "PTR   <server IP>": f"{mail_host}  (set at the hosting provider)",
     f"MX    {EMAIL_DOMAIN}": f"10 {mail_host}.",
     f"TXT   {EMAIL_DOMAIN}": "v=spf1 mx -all",
     # custom domains CNAME all three selectors here; the server signs with DKIM_SELECTOR
@@ -63,7 +63,9 @@ for ip in addresses:
     if mail_host not in ptr:
         problems.append(f"PTR of {ip} is {ptr or 'missing'}, should be {mail_host}")
 if lookup(mail_host, "AAAA"):
-    problems.append(f"{mail_host} has an AAAA record; Postfix only uses IPv4, remove it")
+    problems.append(
+        f"{mail_host} has an AAAA record; Postfix only uses IPv4, remove it"
+    )
 mx = [r.split()[-1].rstrip(".") for r in lookup(EMAIL_DOMAIN, "MX")]
 if mail_host not in mx:
     problems.append(f"MX of {EMAIL_DOMAIN} is {mx or 'missing'}, should be {mail_host}")

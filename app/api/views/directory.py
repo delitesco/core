@@ -82,7 +82,9 @@ def create_directory():
     """
     user = g.user
     if not user.can_create_new_alias():
-        return jsonify(error="This account cannot create new directories right now"), 400
+        return jsonify(
+            error="This account cannot create new directories right now"
+        ), 400
     data = json_body()
     name = data.get("name")
     if not isinstance(name, str) or not _NAME_RE.match(name.lower()):
