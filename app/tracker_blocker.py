@@ -41,13 +41,17 @@ TRACKING_IMAGE_URLS = (
     "google-analytics.com/collect",
 )
 
-_IMG_TAG = re.compile(r"<img\b[^>]*>", re.I)
+# A tag ends at the first ">" and may not contain "<": a scan for a tag then never goes
+# past the next "<", so every character is looked at a bounded number of times and a
+# crafted email ("<a <a <a ...") cannot make this quadratic.
+MAX_TAG_LENGTH = 4000
+_IMG_TAG = re.compile(r"<img\b[^<>]{0,%d}>" % MAX_TAG_LENGTH, re.I)
+_A_TAG = re.compile(r"<a\b[^<>]{0,%d}>" % MAX_TAG_LENGTH, re.I)
 _ATTR = re.compile(
     r"""([a-zA-Z_:][-a-zA-Z0-9_:.]*)\s*=\s*("[^"]*"|'[^']*'|[^\s"'>]+)"""
 )
-_HREF = re.compile(
-    r"""(<a\b[^>]*?\shref\s*=\s*)("[^"]*"|'[^']*'|[^\s"'>]+)""", re.I | re.S
-)
+# applied to a single <a> tag only
+_HREF = re.compile(r"""(\shref\s*=\s*)("[^"]*"|'[^']*'|[^\s"'>]+)""", re.I)
 _HIDDEN_STYLE = re.compile(
     r"display\s*:\s*none|visibility\s*:\s*hidden|opacity\s*:\s*0(?![.\d])", re.I
 )
@@ -143,8 +147,11 @@ def strip_trackers(html: str) -> Tuple[str, TrackerStats]:
         stats.links += 1
         return f"{match.group(1)}{quote}{cleaned}{quote}"
 
+    def clean_link(match):
+        return _HREF.sub(clean_href, match.group(0), count=1)
+
     html = _IMG_TAG.sub(remove_pixel, html)
-    html = _HREF.sub(clean_href, html)
+    html = _A_TAG.sub(clean_link, html)
     return html, stats
 
 

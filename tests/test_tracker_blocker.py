@@ -117,3 +117,13 @@ def test_attached_html_is_not_changed():
     attachment.add_header("Content-Disposition", "attachment", filename="page.html")
     msg.attach(attachment)
     assert strip_trackers_from_message(msg).total == 0
+
+
+def test_crafted_html_is_processed_in_linear_time():
+    import time
+
+    for unit in ("<img ", "<a ", '<a href="', "<a\thref="):
+        html = unit * 200_000
+        start = time.monotonic()
+        strip_trackers(html)
+        assert time.monotonic() - start < 2, unit
