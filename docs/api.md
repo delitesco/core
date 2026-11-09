@@ -139,7 +139,8 @@ Output: 200 `{"ok": true}`, 404 if the user does not exist or is already being d
 
 #### POST /api/provision/aliases/:alias_id/transfer
 
-Give an alias, with its contacts, to another user. This backend decides who may transfer what (for example
+Give an alias, with its contacts, to another user. The previous owner's mail history of the alias, its note
+and its display name are deleted. This backend decides who may transfer what (for example
 after the receiving account accepted a transfer link).
 
 Input (body):

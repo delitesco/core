@@ -10,6 +10,7 @@ from app.models import (
     ApiKey,
     Contact,
     CustomDomain,
+    EmailLog,
     Job,
     Mailbox,
     Notification,
@@ -183,6 +184,16 @@ def test_transfer_alias(flask_client, provisioning_key):
         commit=True,
     )
 
+    alias.note = "private note of the old owner"
+    alias.name = "Old Owner"
+    EmailLog.create(
+        user_id=old_user.id,
+        contact_id=contact.id,
+        alias_id=alias.id,
+        mailbox_id=old_user.default_mailbox_id,
+        commit=True,
+    )
+
     r = _transfer(
         flask_client, provisioning_key, alias.id, new_user.id, [new_mailbox.id]
     )
@@ -190,6 +201,11 @@ def test_transfer_alias(flask_client, provisioning_key):
     assert r.status_code == 200
     alias = Alias.get(alias.id)
     assert alias.user_id == new_user.id
+    # nothing of the old owner's private data goes with the alias
+    assert alias.note is None
+    assert alias.name is None
+    assert EmailLog.filter_by(alias_id=alias.id).count() == 0
+    assert EmailLog.filter_by(contact_id=contact.id).count() == 0
     assert alias.original_owner_id == old_user.id
     assert alias.mailbox_id == new_mailbox.id
     assert Contact.get(contact.id).user_id == new_user.id
