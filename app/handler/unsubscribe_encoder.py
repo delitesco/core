@@ -2,15 +2,20 @@ import base64
 import enum
 import hashlib
 import json
+import re
 from dataclasses import dataclass
 from typing import Optional, Union
 
+import arrow
 import itsdangerous
 
 from app import config
 from app.log import LOG
 
 UNSUB_PREFIX = "un"
+# signed with a timestamp: expires after config.UNSUBSCRIBE_LINK_MAX_AGE_DAYS
+TIMED_PREFIX = "un2"
+_TOKEN = re.compile(r"\b(un2?)\.([A-Za-z0-9_\-.]+)")
 
 
 class UnsubscribeAction(enum.Enum):
@@ -76,8 +81,8 @@ class UnsubscribeEncoder:
             .rstrip(b"=")
             .decode("utf-8")
         )
-        signed_data = cls._get_signer().sign(serialized_data).decode("utf-8")
-        encoded_request = f"{UNSUB_PREFIX}.{signed_data}"
+        signed_data = cls._get_timed_signer().sign(serialized_data).decode("utf-8")
+        encoded_request = f"{TIMED_PREFIX}.{signed_data}"
         if len(encoded_request) > 512:
             LOG.w("Encoded request is longer than 512 chars")
         return encoded_request
@@ -95,17 +100,33 @@ class UnsubscribeEncoder:
             config.UNSUBSCRIBE_SECRET, digest_method=hashlib.sha3_224
         )
 
+    @staticmethod
+    def _get_timed_signer() -> itsdangerous.TimestampSigner:
+        return itsdangerous.TimestampSigner(
+            config.UNSUBSCRIBE_SECRET, digest_method=hashlib.sha3_224
+        )
+
     @classmethod
     def decode_subject(cls, data: str) -> Optional[UnsubscribeData]:
         # Only signed subjects: the old unsigned formats ("123=", "45_") let anyone who
         # knows a mailbox address disable its aliases by guessing ids.
-        if data.find(UNSUB_PREFIX) == -1:
+        match = _TOKEN.search(data)
+        if not match:
             return None
+        prefix, token = match.groups()
 
-        signer = cls._get_signer()
         try:
-            verified_data = signer.unsign(data[len(UNSUB_PREFIX) + 1 :])
+            if prefix == TIMED_PREFIX:
+                verified_data = cls._get_timed_signer().unsign(
+                    token, max_age=config.UNSUBSCRIBE_LINK_MAX_AGE_DAYS * 86400
+                )
+            elif arrow.now() < config.UNSUBSCRIBE_UNTIMED_LINKS_UNTIL:
+                # links sent before they expired; accepted for a transition period
+                verified_data = cls._get_signer().unsign(token)
+            else:
+                return None
         except itsdangerous.BadSignature:
+            # includes SignatureExpired
             return None
         try:
             padded_data = verified_data + (b"=" * (-len(verified_data) % 4))

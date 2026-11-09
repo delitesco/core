@@ -1,3 +1,4 @@
+import re
 from email.message import Message
 from typing import Iterable
 
@@ -16,6 +17,18 @@ from app.models import Alias, Contact, UnsubscribeBehaviourEnum
 from tests.utils import create_new_user, random_email
 
 TEST_UNSUB_EMAIL = "unsub@sl.com"
+
+
+def assert_same_unsub_header(expected, actual):
+    """Signed subjects carry the time they were made: compare what they decode to."""
+    if not expected or "subject=un2." not in expected:
+        assert expected == actual
+        return
+    token = re.compile(r"subject=(un2\.[^>]+)>")
+    assert token.sub("subject=TOKEN>", expected) == token.sub("subject=TOKEN>", actual)
+    assert UnsubscribeEncoder.decode_subject(
+        token.search(expected).group(1)
+    ) == UnsubscribeEncoder.decode_subject(token.search(actual).group(1))
 
 
 def generate_unsub_block_contact_data() -> Iterable:
@@ -70,7 +83,7 @@ def test_unsub_disable_contact(
     message = Message()
     message[headers.LIST_UNSUBSCRIBE] = original_header
     message = UnsubscribeGenerator().add_header_to_message(alias, contact, message)
-    assert expected_header == message[headers.LIST_UNSUBSCRIBE]
+    assert_same_unsub_header(expected_header, message[headers.LIST_UNSUBSCRIBE])
     if not expected_header or expected_header.find("<http") == -1:
         assert message[headers.LIST_UNSUBSCRIBE_POST] is None
     else:
@@ -130,7 +143,7 @@ def test_unsub_disable_alias(
     message = Message()
     message[headers.LIST_UNSUBSCRIBE] = original_header
     message = UnsubscribeGenerator().add_header_to_message(alias, contact, message)
-    assert expected_header == message[headers.LIST_UNSUBSCRIBE]
+    assert_same_unsub_header(expected_header, message[headers.LIST_UNSUBSCRIBE])
     if not expected_header or expected_header.find("<http") == -1:
         assert message[headers.LIST_UNSUBSCRIBE_POST] is None
     else:
@@ -200,7 +213,7 @@ def test_unsub_preserve_original(
     message = Message()
     message[headers.LIST_UNSUBSCRIBE] = original_header
     message = UnsubscribeGenerator().add_header_to_message(alias, contact, message)
-    assert expected_header == message[headers.LIST_UNSUBSCRIBE]
+    assert_same_unsub_header(expected_header, message[headers.LIST_UNSUBSCRIBE])
     if not expected_header or expected_header.find("<http") == -1:
         assert message[headers.LIST_UNSUBSCRIBE_POST] is None
     else:

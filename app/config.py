@@ -7,6 +7,7 @@ from ast import literal_eval
 from typing import Callable, List, Optional
 from urllib.parse import urlparse
 
+import arrow
 from dotenv import load_dotenv
 
 ROOT_DIR = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
@@ -244,6 +245,12 @@ check_secret("FLASK_SECRET", FLASK_SECRET)
 MAILBOX_SECRET = FLASK_SECRET + "mailbox"
 CUSTOM_ALIAS_SECRET = FLASK_SECRET + "custom_alias"
 UNSUBSCRIBE_SECRET = FLASK_SECRET + "unsub"
+# signed unsubscribe links (mailto: actions in emails) expire after this many days
+UNSUBSCRIBE_LINK_MAX_AGE_DAYS = int(os.environ.get("UNSUBSCRIBE_LINK_MAX_AGE_DAYS") or 365)
+# links signed without a timestamp (sent before expiry existed) work until this date
+UNSUBSCRIBE_UNTIMED_LINKS_UNTIL = arrow.get(
+    os.environ.get("UNSUBSCRIBE_UNTIMED_LINKS_UNTIL") or "2027-11-09"
+)
 
 # Used to generate random email
 # words.txt is a list of English words and doesn't contain any "bad" word
