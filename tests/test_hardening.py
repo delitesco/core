@@ -51,7 +51,9 @@ def test_inactive_account_cannot_create_resources(flask_client, state):
     assert r.status_code == 400
     r = flask_client.post("/api/custom_domains", json={"domain": "example-new.com"})
     assert r.status_code == 400
-    r = flask_client.post("/api/directories", json={"name": "newdir", "mailbox_ids": []})
+    r = flask_client.post(
+        "/api/directories", json={"name": "newdir", "mailbox_ids": []}
+    )
     assert r.status_code == 400
     r = flask_client.post(
         f"/api/aliases/{alias.id}/contacts", json={"contact": "c@example.com"}

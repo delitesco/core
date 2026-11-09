@@ -859,7 +859,9 @@ def forward_email_to_mailbox(
 
     # before PGP: the message is still readable here
     block_trackers = (
-        alias.block_trackers if alias.block_trackers is not None else user.block_trackers
+        alias.block_trackers
+        if alias.block_trackers is not None
+        else user.block_trackers
     )
     if block_trackers:
         try:

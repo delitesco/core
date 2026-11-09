@@ -14,8 +14,10 @@ env:
   UV_VERSION: 0.7.13
 
 jobs:
+  # Ubuntu 22.04 like the Dockerfile: pyre2 0.3.6 does not build against the newer
+  # libre2/abseil of 24.04, which need C++17.
   lint:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - name: Check out repo
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
@@ -40,7 +42,7 @@ jobs:
         run: uv run pre-commit run --all-files
 
   audit:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - name: Check out repo
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
@@ -58,7 +60,7 @@ jobs:
           uvx pip-audit -r requirements-audit.txt --no-deps --disable-pip
 
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     services:
       postgres:
@@ -113,7 +115,7 @@ jobs:
           GITHUB_ACTIONS_TEST: true
 
   docker:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - name: Check out repo
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0

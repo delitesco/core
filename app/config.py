@@ -246,7 +246,9 @@ MAILBOX_SECRET = FLASK_SECRET + "mailbox"
 CUSTOM_ALIAS_SECRET = FLASK_SECRET + "custom_alias"
 UNSUBSCRIBE_SECRET = FLASK_SECRET + "unsub"
 # signed unsubscribe links (mailto: actions in emails) expire after this many days
-UNSUBSCRIBE_LINK_MAX_AGE_DAYS = int(os.environ.get("UNSUBSCRIBE_LINK_MAX_AGE_DAYS") or 365)
+UNSUBSCRIBE_LINK_MAX_AGE_DAYS = int(
+    os.environ.get("UNSUBSCRIBE_LINK_MAX_AGE_DAYS") or 365
+)
 # links signed without a timestamp (sent before expiry existed) work until this date
 UNSUBSCRIBE_UNTIMED_LINKS_UNTIL = arrow.get(
     os.environ.get("UNSUBSCRIBE_UNTIMED_LINKS_UNTIL") or "2027-11-09"

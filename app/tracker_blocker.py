@@ -55,7 +55,9 @@ _HREF = re.compile(r"""(\shref\s*=\s*)("[^"]*"|'[^']*'|[^\s"'>]+)""", re.I)
 _HIDDEN_STYLE = re.compile(
     r"display\s*:\s*none|visibility\s*:\s*hidden|opacity\s*:\s*0(?![.\d])", re.I
 )
-_STYLE_SIZE = re.compile(r"(?:^|[;\s])(width|height)\s*:\s*([0-9.]+)\s*(px)?\s*(?=;|$)", re.I)
+_STYLE_SIZE = re.compile(
+    r"(?:^|[;\s])(width|height)\s*:\s*([0-9.]+)\s*(px)?\s*(?=;|$)", re.I
+)
 _TINY_VALUES = {"0", "1", "0px", "1px"}
 _QUERY_SEPARATOR = re.compile(r"(&amp;|&#38;|&)", re.I)
 

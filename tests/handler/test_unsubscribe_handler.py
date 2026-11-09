@@ -88,7 +88,11 @@ def test_spf_failure_is_refused(monkeypatch):
 def test_original_unsub_refused_when_account_not_active():
     from app.models import AccountState
 
-    for state, disabled in ((AccountState.paused, False), (AccountState.grace, False), (AccountState.active, True)):
+    for state, disabled in (
+        (AccountState.paused, False),
+        (AccountState.grace, False),
+        (AccountState.active, True),
+    ):
         user = create_new_user()
         alias = Alias.create_new_random(user)
         user.account_state = state
