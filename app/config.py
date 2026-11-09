@@ -219,7 +219,13 @@ UNSUBSCRIBER = os.environ.get("UNSUBSCRIBER")
 # due to a typo, both UNSUBSCRIBER and OLD_UNSUBSCRIBER are supported
 OLD_UNSUBSCRIBER = os.environ.get("OLD_UNSUBSCRIBER")
 
-DKIM_SELECTOR = b"dkim"
+# Selector the server signs with. Custom domains CNAME all three to the alias domain, so
+# a new key can be published on another selector before switching (key rotation).
+DKIM_SELECTORS = ("dkim", "dkim02", "dkim03")
+_dkim_selector = os.environ.get("DKIM_SELECTOR") or "dkim"
+if _dkim_selector not in DKIM_SELECTORS:
+    raise RuntimeError(f"DKIM_SELECTOR must be one of {', '.join(DKIM_SELECTORS)}")
+DKIM_SELECTOR = _dkim_selector.encode()
 DKIM_PRIVATE_KEY = None
 
 if "DKIM_PRIVATE_KEY_PATH" in os.environ:
