@@ -27,8 +27,8 @@ chmod 700 /sl/pgp /sl/upload
 
 if [ ! -f /sl/dkim.key ]; then
     echo "Generating a DKIM key in the data volume"
-    openssl genrsa -traditional -out /sl/dkim.key 1024 2>/dev/null \
-        || openssl genrsa -out /sl/dkim.key 1024
+    openssl genrsa -traditional -out /sl/dkim.key 2048 2>/dev/null \
+        || openssl genrsa -out /sl/dkim.key 2048
     openssl rsa -in /sl/dkim.key -pubout -out /sl/dkim.pub.key 2>/dev/null
 fi
 chmod 600 /sl/dkim.key

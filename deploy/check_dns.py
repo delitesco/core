@@ -8,14 +8,20 @@ import re
 import dns.resolver
 import dns.reversename
 
-from app.config import DKIM_SELECTOR, EMAIL_DOMAIN, EMAIL_SERVERS_WITH_PRIORITY
+from app.config import (
+    DKIM_SELECTOR,
+    DKIM_SELECTORS,
+    EMAIL_DOMAIN,
+    EMAIL_SERVERS_WITH_PRIORITY,
+)
 
 resolver = dns.resolver.Resolver(configure=False)
 resolver.nameservers = ["1.1.1.1", "8.8.8.8"]
 resolver.lifetime = 5
 
 mail_host = EMAIL_SERVERS_WITH_PRIORITY[0][1].rstrip(".")
-DKIM_KEYS = [DKIM_SELECTOR.decode(), "dkim02", "dkim03"]
+SIGNING_SELECTOR = DKIM_SELECTOR.decode()
+DKIM_KEYS = list(DKIM_SELECTORS)
 with open("/sl/dkim.pub.key") as f:
     dkim_pub = "".join(line.strip() for line in f if "-----" not in line)
 
@@ -24,7 +30,7 @@ expected = {
     f"PTR   <server IP>": f"{mail_host}  (set at the hosting provider)",
     f"MX    {EMAIL_DOMAIN}": f"10 {mail_host}.",
     f"TXT   {EMAIL_DOMAIN}": "v=spf1 mx -all",
-    # custom domains CNAME all three selectors here; the server signs with the first
+    # custom domains CNAME all three selectors here; the server signs with DKIM_SELECTOR
     **{
         f"TXT   {key}._domainkey.{EMAIL_DOMAIN}": f"v=DKIM1; k=rsa; p={dkim_pub}"
         for key in DKIM_KEYS
@@ -64,8 +70,15 @@ if mail_host not in mx:
 if not [r for r in txt(EMAIL_DOMAIN) if r.startswith("v=spf1")]:
     problems.append(f"{EMAIL_DOMAIN} has no SPF record")
 for key in DKIM_KEYS:
-    if not [r for r in txt(f"{key}._domainkey.{EMAIL_DOMAIN}") if dkim_pub in r.replace(" ", "")]:
-        problems.append(f"{key}._domainkey.{EMAIL_DOMAIN} does not publish this server's DKIM key")
+    published = txt(f"{key}._domainkey.{EMAIL_DOMAIN}")
+    if key == SIGNING_SELECTOR:
+        if not [r for r in published if dkim_pub in r.replace(" ", "")]:
+            problems.append(
+                f"{key}._domainkey.{EMAIL_DOMAIN} (DKIM_SELECTOR) does not publish this "
+                "server's DKIM key: signed mail fails DKIM"
+            )
+    elif not [r for r in published if r.startswith("v=DKIM1")]:
+        problems.append(f"{key}._domainkey.{EMAIL_DOMAIN} has no DKIM key")
 if not [r for r in txt(f"_dmarc.{EMAIL_DOMAIN}") if r.startswith("v=DMARC1")]:
     problems.append(f"_dmarc.{EMAIL_DOMAIN} has no DMARC record")
 

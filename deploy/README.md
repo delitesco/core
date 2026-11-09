@@ -67,7 +67,29 @@ docker run --rm -v deploy_sl-data:/sl -v /path/to/keys:/src alpine \
   sh -c "cp /src/dkim.key /sl/dkim.key && cp /src/dkim.pub.key /sl/dkim.pub.key"
 ```
 
-Otherwise `sl-init` generates one.
+Otherwise `sl-init` generates one (RSA 2048).
+
+### Replacing a DKIM key (for example an old 1024-bit one)
+
+Custom domains point all three selectors (`dkim`, `dkim02`, `dkim03`) to the alias domain, so a new key can be
+published on a free selector first and switched to without breaking signatures:
+
+```bash
+docker compose run --rm --user 0 --entrypoint sh sl-init -c \
+  "openssl genrsa -traditional -out /sl/dkim-new.key 2048 && \
+   openssl rsa -in /sl/dkim-new.key -pubout -out /sl/dkim-new.pub.key && \
+   chown 10001:10001 /sl/dkim-new.* && chmod 600 /sl/dkim-new.key && cat /sl/dkim-new.pub.key"
+```
+
+1. Publish `TXT dkim02._domainkey.<EMAIL_DOMAIN>` → `v=DKIM1; k=rsa; p=<the key above, without the BEGIN/END
+   lines, on one line>`, and wait until it resolves (`dig TXT dkim02._domainkey.<EMAIL_DOMAIN>`).
+2. Move the new key in place and sign with it:
+   ```bash
+   docker compose run --rm --user 0 --entrypoint sh sl-init -c \
+     "mv /sl/dkim-new.key /sl/dkim.key && mv /sl/dkim-new.pub.key /sl/dkim.pub.key"
+   ```
+   then set `DKIM_SELECTOR=dkim02` in `.env` and run `docker compose up -d`.
+3. A few days later (mail already sent has been checked), publish the new key on `dkim._domainkey` too.
 
 ## 4. Start
 
