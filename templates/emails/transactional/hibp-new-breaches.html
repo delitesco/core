@@ -18,7 +18,7 @@
               <li>
                 <b>{{ breach.name }}</b>
                 {% if breach.date %}({{ breach.date.format("YYYY-MM-DD") }}){% endif %}
-                {{ breach.description }}
+                {{ breach.description|safe }}{# HTML from the HIBP API #}
               </li>
             {%- endfor %}
           </ul>

@@ -12,7 +12,7 @@ import sqlalchemy as sa
 from arrow import Arrow
 from email_validator import validate_email
 from flanker.addresslib import address
-from jinja2 import FileSystemLoader, Environment
+from jinja2 import FileSystemLoader, Environment, select_autoescape
 from sqlalchemy import orm
 from sqlalchemy import text, desc, Index, Column
 from sqlalchemy.dialects.postgresql import TSVECTOR
@@ -2102,7 +2102,11 @@ class Notification(Base, ModelMixin):
     @staticmethod
     def render(template_name, **kwargs) -> str:
         templates_dir = os.path.join(config.ROOT_DIR, "templates")
-        env = Environment(loader=FileSystemLoader(templates_dir))
+        # values such as the From header come from outside: escape them
+        env = Environment(
+            loader=FileSystemLoader(templates_dir),
+            autoescape=select_autoescape(["html"], default_for_string=False),
+        )
 
         template = env.get_template(template_name)
 
