@@ -16,7 +16,7 @@ x-app: &app
     # custom domains point their MX here: the mail server's own name
     EMAIL_SERVERS_WITH_PRIORITY: '[(10, "${MAIL_HOSTNAME:-mail.${EMAIL_DOMAIN:-${DOMAIN}}}.")]'
     DB_URI: postgresql://${POSTGRES_USER:?}:${POSTGRES_PASSWORD:?}@sl-db:5432/${POSTGRES_DB:?}
-    MEM_STORE_URI: redis://sl-redis:6379
+    MEM_STORE_URI: redis://:${REDIS_PASSWORD:?set REDIS_PASSWORD in .env}@sl-redis:6379
     # Postfix's name on the mail-out network: mail sent there comes from this
     # container's mail-out address, the only one Postfix relays for
     POSTFIX_SERVER: postfix-relay
@@ -57,9 +57,11 @@ services:
       timeout: 5s
       retries: 20
 
+  # Traefik faces the internet and shares this network, so Redis wants a password too.
   sl-redis:
     image: redis:7-alpine
     restart: unless-stopped
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD:?set REDIS_PASSWORD in .env}"]
     networks: [delitesco]
 
   # migrations, DKIM key, alias domains; runs once on each `up`. The only service that
