@@ -52,7 +52,7 @@ chmod 600 .env
 
 `sl-init` refuses to start while a value is still the example one, and the app refuses a `FLASK_SECRET` or
 `PROVISIONING_API_KEY` shorter than 32 characters. `API_ALLOWED_IPS` is required: the address of the frontend
-backend. `/api/provision/*` only answers `PROVISIONING_ALLOWED_IPS` (default: `10.77.0.0/24`, the `delitesco`
+backend. `/api/provision/*` only answers `PROVISIONING_ALLOWED_IPS` (default: `10.79.0.0/24`, the `delitesco-api`
 Docker network: a frontend on the same host joins it and calls `http://sl-app:7777` directly); allowing
 any address (`0.0.0.0/0`) also needs `PROVISIONING_EMERGENCY_OPEN=true`, and every provisioning request then
 logs an error — for emergencies only.
@@ -130,6 +130,8 @@ Send an email from an outside mailbox to any address of the domain: Postfix shou
 - The app containers run as an unprivileged user (uid 10001); `sl-init` gives it the data volume.
 - Postfix relays outgoing mail only for the app containers, which reach it on the separate `mail-out` network
   (`10.78.0.0/24`); Traefik and the socket proxy are not on that network.
+- A frontend on the same host joins only `delitesco-api` (`10.79.0.0/24`), where it meets `sl-app` and Traefik.
+  The `delitesco` network holds the database, Redis and the mail handler, which a frontend never needs.
 - Backups: volumes `deploy_sl-db-data` and `deploy_sl-data` (DKIM key, PGP keyring, stored refused emails).
 - Update: `git pull && docker compose up -d --build` (`sl-init` applies new migrations first).
 - Postfix switches from its self-signed certificate to the Let's Encrypt one within 5 minutes of it being

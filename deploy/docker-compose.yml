@@ -27,10 +27,10 @@ x-app: &app
     UPLOAD_DIR: /sl/upload
     MAILBOX_VERIFY_URL: ${MAILBOX_VERIFY_URL:-}
     UNSUBSCRIBER: ${UNSUBSCRIBER:-}
-    # Who may call /api/provision/*. Default: the "delitesco" Docker network, which the
+    # Who may call /api/provision/*. Default: the "delitesco-api" Docker network, which the
     # frontend backend joins to reach sl-app directly (CORE_URL=http://sl-app:7777).
     # Requests through Traefik are seen with the visitor's address, so they are refused.
-    PROVISIONING_ALLOWED_IPS: ${PROVISIONING_ALLOWED_IPS:-10.77.0.0/24}
+    PROVISIONING_ALLOWED_IPS: ${PROVISIONING_ALLOWED_IPS:-10.79.0.0/24}
   volumes:
     - sl-data:/sl
   networks: [delitesco, mail-out]
@@ -77,6 +77,8 @@ services:
   sl-app:
     <<: *app
     command: ["gunicorn", "wsgi:app", "-b", "0.0.0.0:7777", "-w", "2", "--timeout", "15"]
+    # The frontend backend reaches it on the api network, which holds nothing else of the core.
+    networks: [delitesco, mail-out, api]
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:7777/health')"]
       interval: 30s
@@ -197,7 +199,7 @@ services:
       - "443:443"
     volumes:
       - traefik-acme:/letsencrypt
-    networks: [delitesco, docker-api]
+    networks: [delitesco, docker-api, api]
     depends_on:
       - docker-socket-proxy
 
@@ -231,6 +233,14 @@ networks:
       config:
         - subnet: 10.77.0.0/24
           gateway: 10.77.0.1
+  # sl-app, Traefik and the frontend backend: a frontend that joined "delitesco" instead could
+  # reach Redis, the database and the mail handler, which it never needs
+  api:
+    name: delitesco-api
+    ipam:
+      config:
+        - subnet: 10.79.0.0/24
+          gateway: 10.79.0.1
 
 volumes:
   sl-db-data:
