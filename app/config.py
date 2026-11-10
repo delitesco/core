@@ -374,6 +374,27 @@ if "MAX_REPLY_PHASE_SPAM_SCORE" in os.environ:
 else:
     MAX_REPLY_PHASE_SPAM_SCORE = 5
 
+# Replies are the only way an account sends mail from our IPs to any address, so one
+# spammer can get the server blocklisted for everyone. These caps are far above personal
+# use. New accounts get lower ones: a spammer pays once and sends as much as it can.
+MAX_REPLIES_PER_DAY = int(os.environ.get("MAX_REPLIES_PER_DAY") or 300)
+MAX_REPLY_RECIPIENTS_PER_DAY = int(
+    os.environ.get("MAX_REPLY_RECIPIENTS_PER_DAY") or 100
+)
+NEW_ACCOUNT_DAYS = int(os.environ.get("NEW_ACCOUNT_DAYS") or 7)
+NEW_ACCOUNT_MAX_REPLIES_PER_DAY = int(
+    os.environ.get("NEW_ACCOUNT_MAX_REPLIES_PER_DAY") or 50
+)
+NEW_ACCOUNT_MAX_REPLY_RECIPIENTS_PER_DAY = int(
+    os.environ.get("NEW_ACCOUNT_MAX_REPLY_RECIPIENTS_PER_DAY") or 20
+)
+# Replies stop when this many in a day are refused as spam or bounce: a person writing
+# to people they know rarely gets there, a list of bought addresses gets there fast.
+REPLY_BLOCK_AFTER_SPAM = int(os.environ.get("REPLY_BLOCK_AFTER_SPAM") or 3)
+REPLY_BLOCK_AFTER_BOUNCES = int(os.environ.get("REPLY_BLOCK_AFTER_BOUNCES") or 10)
+# Gets the daily abuse report and an alert each time replies of an account are blocked
+ABUSE_REPORT_EMAIL = os.environ.get("ABUSE_REPORT_EMAIL")
+
 PGP_SENDER_PRIVATE_KEY = None
 PGP_SENDER_PRIVATE_KEY_PATH = os.environ.get("PGP_SENDER_PRIVATE_KEY_PATH")
 if PGP_SENDER_PRIVATE_KEY_PATH:

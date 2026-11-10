@@ -12,6 +12,7 @@ x-app: &app
     EMAIL_DOMAIN: ${EMAIL_DOMAIN:-${DOMAIN}}
     URL: ${URL}
     SUPPORT_EMAIL: ${SUPPORT_EMAIL}
+    ABUSE_REPORT_EMAIL: ${ABUSE_REPORT_EMAIL:-}
     NOREPLY: ${NOREPLY:-noreply@${EMAIL_DOMAIN:-${DOMAIN}}}
     # custom domains point their MX here: the mail server's own name
     EMAIL_SERVERS_WITH_PRIORITY: '[(10, "${MAIL_HOSTNAME:-mail.${EMAIL_DOMAIN:-${DOMAIN}}}.")]'

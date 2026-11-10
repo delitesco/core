@@ -135,6 +135,11 @@ Send an email from an outside mailbox to any address of the domain: Postfix shou
   frontend never needs.
 - The app containers drop all Linux capabilities; `sl-app` is limited to 1 GB and 2 CPUs and `sl-email` to 2 GB and
   2 CPUs (`mem_limit`, `cpus` in `docker-compose.yml`), so neither can take the whole server.
+- Abuse: replies are capped per account and day (`MAX_REPLIES_PER_DAY`, `MAX_REPLY_RECIPIENTS_PER_DAY`, lower
+  for accounts younger than `NEW_ACCOUNT_DAYS`), and an account's replies are blocked after
+  `REPLY_BLOCK_AFTER_SPAM` spam or `REPLY_BLOCK_AFTER_BOUNCES` bounced replies in a day; forwarding goes on.
+  `ABUSE_REPORT_EMAIL` gets an alert for each block and a daily report at 06:00 UTC. To look into a complaint
+  and act on it: `docker compose exec sl-app python -m commands.abuse --help`.
 - Backups: volumes `deploy_sl-db-data` and `deploy_sl-data` (DKIM key, PGP keyring, stored refused emails).
 - Update: `git pull && docker compose up -d --build` (`sl-init` applies new migrations first).
 - Postfix switches from its self-signed certificate to the Let's Encrypt one within 5 minutes of it being

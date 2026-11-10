@@ -177,6 +177,7 @@ from app.pgp_utils import (
     sign_data,
     load_public_key_and_check,
 )
+from app.reply_limits import block_replies_if_abusive, reply_refusal
 from app.tracker_blocker import strip_trackers_from_message
 from app.utils import sanitize_email
 from init_app import load_pgp_public_keys
@@ -1122,6 +1123,11 @@ def handle_reply(envelope, msg: Message, rcpt_to: str) -> (bool, str):
             # cannot use 5** because that generates bounce report
             return True, status.E201
 
+    # after the sender checks, so a refusal never bounces to a forged sender
+    refusal = reply_refusal(user, contact)
+    if refusal:
+        return False, refusal
+
     email_log = EmailLog.create(
         contact_id=contact.id,
         alias_id=contact.alias_id,
@@ -1174,6 +1180,7 @@ def handle_reply(envelope, msg: Message, rcpt_to: str) -> (bool, str):
             Session.commit()
 
             handle_spam(contact, alias, msg, user, mailbox, email_log, is_reply=True)
+            block_replies_if_abusive(user)
             return False, status.E506
 
     delete_all_headers_except(
@@ -1645,6 +1652,7 @@ def handle_bounce_reply_phase(envelope, msg: Message, email_log: EmailLog):
     email_log.bounced_mailbox_id = mailbox.id
 
     Session.commit()
+    block_replies_if_abusive(user)
 
     LOG.d(
         "Inform user %s about bounced email sent by %s to %s",

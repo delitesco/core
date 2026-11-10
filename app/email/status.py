@@ -65,4 +65,7 @@ E524 = "550 SL E524 Wrong use of reverse-alias"
 E525 = "550 SL E525 Alias loop"
 E526 = "550 SL E526 Too many recipients"
 E527 = "550 SL E527 Replies are disabled for this account"
+E528 = "550 SL E528 Replies are blocked for this account"
+E529 = "550 SL E529 Daily reply limit reached"
+E530 = "550 SL E530 Daily limit of new reply recipients reached"
 # endregion

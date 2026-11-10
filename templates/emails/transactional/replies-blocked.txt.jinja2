@@ -1,0 +1,11 @@
+{% extends "base.txt.jinja2" %}
+
+{% block content %}
+Hi,
+
+Replies from your aliases are paused while we look at the mail recently sent from your account. This usually happens when several replies in one day are refused as spam or bounce.
+
+Mail sent to your aliases is still forwarded to you.
+
+If you think this is a mistake, write to {{ SUPPORT_EMAIL }}.
+{% endblock %}
