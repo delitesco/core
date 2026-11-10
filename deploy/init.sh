@@ -5,7 +5,7 @@ set -eu
 
 # Refuse to start with values copied unchanged from .env.example. FLASK_SECRET and
 # PROVISIONING_API_KEY are checked by the app itself (length, placeholders).
-for name in POSTGRES_USER POSTGRES_PASSWORD DOMAIN FLASK_SECRET PROVISIONING_API_KEY; do
+for name in POSTGRES_USER POSTGRES_PASSWORD REDIS_PASSWORD DOMAIN FLASK_SECRET PROVISIONING_API_KEY; do
     eval "value=\${$name:-}"
     case "$value" in
         paste-*|put_*|"")

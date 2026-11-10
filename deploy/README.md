@@ -131,7 +131,8 @@ Send an email from an outside mailbox to any address of the domain: Postfix shou
 - Postfix relays outgoing mail only for the app containers, which reach it on the separate `mail-out` network
   (`10.78.0.0/24`); Traefik and the socket proxy are not on that network.
 - A frontend on the same host joins only `delitesco-api` (`10.79.0.0/24`), where it meets `sl-app` and Traefik.
-  The `delitesco` network holds the database, Redis and the mail handler, which a frontend never needs.
+  The `delitesco` network holds the database, Redis (password `REDIS_PASSWORD`) and the mail handler, which a
+  frontend never needs.
 - Backups: volumes `deploy_sl-db-data` and `deploy_sl-data` (DKIM key, PGP keyring, stored refused emails).
 - Update: `git pull && docker compose up -d --build` (`sl-init` applies new migrations first).
 - Postfix switches from its self-signed certificate to the Let's Encrypt one within 5 minutes of it being
