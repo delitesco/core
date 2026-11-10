@@ -8,6 +8,8 @@ class AbuserAuditLogAction(Enum):
     MarkAbuser = "mark_abuser"
     UnmarkAbuser = "unmark_abuser"
     GetAbuserBundles = "get_abuser_bundles"
+    BlockReplies = "block_replies"
+    UnblockReplies = "unblock_replies"
 
 
 def emit_abuser_audit_log(

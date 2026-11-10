@@ -350,6 +350,9 @@ class User(Base, ModelMixin):
     # an account can be disabled if having harmful behavior
     disabled = sa.Column(sa.Boolean, default=False, nullable=False, server_default="0")
 
+    # replies are refused from then on, forwarding goes on; see app/reply_limits.py
+    replies_blocked_at = sa.Column(ArrowType, nullable=True, default=None)
+
     # the default domain that's used when user creates a new random alias
     # default_alias_custom_domain_id XOR default_alias_public_domain_id
     default_alias_custom_domain_id = sa.Column(
@@ -583,6 +586,9 @@ class User(Base, ModelMixin):
         for directory in Directory.filter_by(user_id=user.id):
             if not DeletedDirectory.get_by(name=directory.name):
                 DeletedDirectory.create(name=directory.name)
+
+        # no foreign key to users: notes on blocked replies go with the account by hand
+        AbuserAuditLog.filter_by(user_id=user.id).delete()
 
         res = super(User, cls).delete(obj_id)
         if commit:

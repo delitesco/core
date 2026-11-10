@@ -11,6 +11,7 @@ from sqlalchemy.orm import joinedload
 from sqlalchemy.sql import Insert, text
 
 from app import config, file_storage
+from app.abuse_report import send_daily_report
 from app.alias_utils import nb_email_log_for_mailbox
 from app.db import Session
 from app.email_utils import (
@@ -700,3 +701,8 @@ if __name__ == "__main__":
         elif args.job == "clear_alias_delete_on":
             LOG.d("Clearing aliases pending to be deleted")
             clear_aliases_pending_to_be_deleted()
+        elif args.job == "abuse_report":
+            if config.ABUSE_REPORT_EMAIL:
+                send_daily_report()
+            else:
+                LOG.w("ABUSE_REPORT_EMAIL is not set, no abuse report sent")
