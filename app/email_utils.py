@@ -23,7 +23,6 @@ import arrow
 import dkim
 import re2 as re
 import spf
-from aiosmtpd.smtp import Envelope
 from cachetools import cached, TTLCache
 from email_validator import (
     validate_email,
@@ -396,14 +395,6 @@ def add_dkim_signature(msg: Message, email_domain: str):
             LOG.w("DKIM fail with %s", dkim_headers, exc_info=True)
             # try with another headers
             continue
-
-    # To investigate why some emails can't be DKIM signed. todo: remove
-    if config.TEMP_DIR:
-        file_name = str(uuid.uuid4()) + ".eml"
-        with open(os.path.join(config.TEMP_DIR, file_name), "wb") as f:
-            f.write(msg.as_bytes())
-
-        LOG.w("email saved to %s", file_name)
 
     raise Exception("Cannot create DKIM signature")
 
@@ -1248,8 +1239,8 @@ def spf_pass(
         except Exception:
             LOG.e("SPF error, mailbox %s, ip %s", mailbox.email, ip)
         else:
-            # TODO: Handle temperr case (e.g. dns timeout)
-            # only an absolute pass, or no SPF policy at all is 'valid'
+            # only an absolute pass, or no SPF policy at all is 'valid'; a DNS timeout
+            # (temperror) fails too, and the owner is warned of an unknown IP
             if r[0] not in ["pass", "none"]:
                 LOG.w(
                     "SPF fail for mailbox %s, reason %s, failed IP %s",
@@ -1385,24 +1376,6 @@ def save_email_for_debugging(msg: Message, file_name_prefix=None) -> str:
             f.write(msg.as_bytes())
 
         LOG.d("email saved to %s", file_name)
-        return file_name
-
-    return ""
-
-
-def save_envelope_for_debugging(envelope: Envelope, file_name_prefix=None) -> str:
-    """Save envelope for debugging to temporary location
-    Return the file path
-    """
-    if config.TEMP_DIR:
-        file_name = str(uuid.uuid4()) + ".eml"
-        if file_name_prefix:
-            file_name = "{}-{}".format(file_name_prefix, file_name)
-
-        with open(os.path.join(config.TEMP_DIR, file_name), "wb") as f:
-            f.write(envelope.original_content)
-
-        LOG.d("envelope saved to %s", file_name)
         return file_name
 
     return ""

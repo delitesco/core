@@ -295,13 +295,6 @@ PAGE_LIMIT = 20
 # Must not be served over HTTP.
 UPLOAD_DIR = get_abs_path(os.environ.get("UPLOAD_DIR", "data/upload"))
 
-# Rate Limiting
-# nb max of activity (forward/reply) an alias can have during 1 min
-MAX_ACTIVITY_DURING_MINUTE_PER_ALIAS = 10
-
-# nb max of activity (forward/reply) a mailbox can have during 1 min
-MAX_ACTIVITY_DURING_MINUTE_PER_MAILBOX = 15
-
 LANDING_PAGE_URL = os.environ.get("LANDING_PAGE_URL") or URL
 
 

@@ -90,7 +90,6 @@ from app.config import (
 from app.db import Session
 from app.email import status, headers
 from app.email.checks import check_recipient_limit
-from app.email.rate_limit import rate_limited
 from app.email.spam import get_spam_score
 from app.email_utils import (
     send_email,
@@ -122,7 +121,6 @@ from app.email_utils import (
     parse_full_address,
     get_mailbox_bounce_info,
     save_email_for_debugging,
-    save_envelope_for_debugging,
     get_verp_info_from_email,
     generate_verp_email,
     sl_formataddr,
@@ -2142,34 +2140,10 @@ def handle(envelope: Envelope, msg: Message) -> str:
 
     # endregion
 
-    if rate_limited(mail_from, rcpt_tos):
-        LOG.w("Rate Limiting applied for mail_from:%s rcpt_tos:%s", mail_from, rcpt_tos)
-
-        # add more logging info. TODO: remove
-        if len(rcpt_tos) == 1:
-            alias = Alias.get_by(email=rcpt_tos[0])
-            if alias:
-                LOG.w(
-                    "total number email log on %s, %s is %s, %s",
-                    alias,
-                    alias.user,
-                    EmailLog.filter(EmailLog.alias_id == alias.id).count(),
-                    EmailLog.filter(EmailLog.user_id == alias.user_id).count(),
-                )
-
-        if should_ignore_bounce(envelope.mail_from):
-            return status.E207
-        else:
-            return status.E522
-
     # Handle "out-of-office" auto notice, i.e. an automatic response is sent for every forwarded email
     if len(rcpt_tos) == 1 and is_reverse_alias(rcpt_tos[0]) and mail_from == "<>":
         contact = Contact.get_by(reply_email=rcpt_tos[0])
-        LOG.w(
-            "out-of-office email to reverse alias %s. Saved to %s",
-            contact,
-            save_email_for_debugging(msg),  # todo: remove
-        )
+        LOG.w("out-of-office email to reverse alias %s", contact)
         return status.E206
 
     # result of all deliveries
@@ -2319,15 +2293,12 @@ class MailHandler:
         except Exception as e:
             LOG.e(
                 "email handling fail with error:%s "
-                "mail_from:%s, rcpt_tos:%s, header_from:%s, header_to:%s, saved to %s",
+                "mail_from:%s, rcpt_tos:%s, header_from:%s, header_to:%s",
                 e,
                 envelope.mail_from,
                 envelope.rcpt_tos,
                 msg[headers.FROM],
                 msg[headers.TO],
-                save_envelope_for_debugging(
-                    envelope, file_name_prefix=e.__class__.__name__
-                ),  # todo: remove
             )
             return status.E404
 
