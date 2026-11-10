@@ -133,6 +133,8 @@ Send an email from an outside mailbox to any address of the domain: Postfix shou
 - A frontend on the same host joins only `delitesco-api` (`10.79.0.0/24`), where it meets `sl-app` and Traefik.
   The `delitesco` network holds the database, Redis (password `REDIS_PASSWORD`) and the mail handler, which a
   frontend never needs.
+- The app containers drop all Linux capabilities; `sl-app` is limited to 1 GB and 2 CPUs and `sl-email` to 2 GB and
+  2 CPUs (`mem_limit`, `cpus` in `docker-compose.yml`), so neither can take the whole server.
 - Backups: volumes `deploy_sl-db-data` and `deploy_sl-data` (DKIM key, PGP keyring, stored refused emails).
 - Update: `git pull && docker compose up -d --build` (`sl-init` applies new migrations first).
 - Postfix switches from its self-signed certificate to the Let's Encrypt one within 5 minutes of it being

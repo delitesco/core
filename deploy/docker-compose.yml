@@ -34,6 +34,9 @@ x-app: &app
   volumes:
     - sl-data:/sl
   networks: [delitesco, mail-out]
+  # They run as an unprivileged user and need no capabilities or setuid programs.
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
   depends_on:
     sl-init:
       condition: service_completed_successfully
@@ -70,6 +73,8 @@ services:
     <<: *app
     restart: "no"
     user: "0:0"
+    # as root it still needs these to hand the data volume over and write into it
+    cap_add: [CHOWN, DAC_OVERRIDE, FOWNER]
     command: ["sh", "/code/deploy/init.sh"]
     depends_on:
       sl-db:
@@ -79,8 +84,11 @@ services:
   sl-app:
     <<: *app
     command: ["gunicorn", "wsgi:app", "-b", "0.0.0.0:7777", "-w", "2", "--timeout", "15"]
-    # The frontend backend reaches it on the api network, which holds nothing else of the core.
+    # The frontend backend reaches it on the api network, which holds nothing else of the
+    # core. Limits keep a flood of API requests from starving mail handling.
     networks: [delitesco, mail-out, api]
+    mem_limit: 1g
+    cpus: 2
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:7777/health')"]
       interval: 30s
@@ -98,6 +106,9 @@ services:
   sl-email:
     <<: *app
     command: ["python", "email_handler.py", "-p", "20381"]
+    # A burst of large messages must not take the memory of the database and the API.
+    mem_limit: 2g
+    cpus: 2
 
   sl-job-runner:
     <<: *app
