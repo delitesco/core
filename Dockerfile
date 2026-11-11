@@ -42,6 +42,11 @@ COPY . .
 
 ENV PATH="/code/.venv/bin:$PATH"
 
+# The unprivileged user cannot write to the venv: build flanker's parse tables and the bytecode
+# now, or every process regenerates them and prints PLY and SyntaxWarning noise.
+RUN python -c "import flanker.addresslib.address" \
+    && python -m compileall -q /code/.venv/lib > /dev/null
+
 # run as an unprivileged user; the data volume (/sl) is handed over by deploy/init.sh
 RUN groupadd --system --gid 10001 delitesco \
     && useradd --system --uid 10001 --gid 10001 --home-dir /code --no-create-home delitesco \

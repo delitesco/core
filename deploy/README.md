@@ -140,6 +140,10 @@ Send an email from an outside mailbox to any address of the domain: Postfix shou
   `REPLY_BLOCK_AFTER_SPAM` spam or `REPLY_BLOCK_AFTER_BOUNCES` bounced replies in a day; forwarding goes on.
   `ABUSE_REPORT_EMAIL` gets an alert for each block and a daily report at 06:00 UTC. To look into a complaint
   and act on it: `docker compose exec sl-app python -m commands.abuse --help`.
+- Spam complaints: with `POSTMASTER` set and registered at Microsoft JMRP and Yahoo CFL, complaints about
+  forwarded mail and replies are matched to the alias and its owner is alerted. Microsoft's complaints
+  must come from `staff@hotmail.com` and Yahoo's from `feedback@arf.mail.yahoo.com`, and be addressed to
+  `POSTMASTER` alone; anything else goes through as normal mail.
 - Backups: volumes `deploy_sl-db-data` and `deploy_sl-data` (DKIM key, PGP keyring, stored refused emails).
 - Update: `git pull && docker compose up -d --build` (`sl-init` applies new migrations first).
 - Postfix switches from its self-signed certificate to the Let's Encrypt one within 5 minutes of it being
