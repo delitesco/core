@@ -1058,7 +1058,7 @@ def replace(msg: Union[Message, str], old, new) -> Union[Message, str]:
                 try:
                     new_payload = quopri.decodestring(payload).decode("utf-8")
                 except UnicodeDecodeError:
-                    LOG.w("cannot decode payload:%s", payload)
+                    LOG.w("cannot decode a payload of %s bytes", len(payload))
                     return msg
                 # then replace the old text
                 new_payload = new_payload.replace(old, new)
