@@ -1470,6 +1470,10 @@ class EmailLog(Base, ModelMixin):
     @classmethod
     def create(cls, *args, **kwargs):
         commit = kwargs.pop("commit", False)
+        # the sender chooses it: one longer than the column made the insert fail,
+        # and the message was deferred until the sender gave up
+        if kwargs.get("message_id"):
+            kwargs["message_id"] = kwargs["message_id"][:1024]
         email_log = super().create(*args, **kwargs)
         Session.flush()
         if "alias_id" in kwargs:
