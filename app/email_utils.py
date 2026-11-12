@@ -1439,7 +1439,10 @@ def get_verp_info_from_email(email: str) -> Optional[Tuple[VerpType, int]]:
     # verp type, object_id, time
     if len(data) != 3:
         return None
-    if data[2] > (time.time() + config.VERP_MESSAGE_LIFETIME - VERP_TIME_START) / 60:
+    # still correctly signed, but too old to speak for the email it points at
+    now_minutes = (time.time() - VERP_TIME_START) / 60
+    if data[2] < now_minutes - config.VERP_MESSAGE_LIFETIME / 60:
+        LOG.i("Expired VERP address %s", email)
         return None
     return VerpType(data[0]), data[1]
 

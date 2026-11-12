@@ -1,5 +1,6 @@
 import email
 import os
+import time
 from email.message import EmailMessage
 from email.utils import formataddr
 
@@ -901,6 +902,13 @@ def test_generate_verp_email_forward_reply_phase():
         verp_info = get_verp_info_from_email(verp)
         assert verp_info[0] == phase
         assert verp_info[1] == 100
+
+
+def test_verp_email_expires(monkeypatch):
+    verp = generate_verp_email(VerpType.bounce_reply, 100)
+    later = time.time() + config.VERP_MESSAGE_LIFETIME + 120
+    monkeypatch.setattr(time, "time", lambda: later)
+    assert get_verp_info_from_email(verp) is None
 
 
 def test_add_header_multipart_with_invalid_part():

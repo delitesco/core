@@ -481,8 +481,8 @@ ZENDESK_ENABLED = "ZENDESK_ENABLED" in os.environ
 
 DMARC_CHECK_ENABLED = "DMARC_CHECK_ENABLED" in os.environ
 
-# Bounces can happen after 5 days
-VERP_MESSAGE_LIFETIME = 5 * 86400
+# Mail servers retry for up to 5 days before they bounce, so leave some margin
+VERP_MESSAGE_LIFETIME = 7 * 86400
 VERP_PREFIX = os.environ.get("VERP_PREFIX") or "sl"
 # Generate with python3 -c 'import secrets; print(secrets.token_hex(28))'
 VERP_EMAIL_SECRET = os.environ.get("VERP_EMAIL_SECRET") or (
