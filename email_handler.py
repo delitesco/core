@@ -340,12 +340,12 @@ def add_alias_to_header_if_needed(msg, alias):
     to_header = str(msg[headers.TO]) if msg[headers.TO] else None
     cc_header = str(msg[headers.CC]) if msg[headers.CC] else None
 
-    # nothing to do
-    if to_header and alias.email in to_header:
-        return
-
-    # nothing to do
-    if cc_header and alias.email in cc_header:
+    # the header may spell the alias in another case, e.g. Me@Example.com
+    present = {
+        addr.strip().lower()
+        for _, addr in getaddresses([h for h in (to_header, cc_header) if h])
+    }
+    if alias.email.lower() in present:
         return
 
     LOG.d(f"add {alias} to To: header {to_header}")
