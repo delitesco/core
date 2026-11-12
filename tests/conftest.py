@@ -10,7 +10,11 @@ os.environ["CONFIG"] = os.path.abspath(
 )
 import sqlalchemy
 
-from app.db import Session, engine, connection
+from app.db import Session, engine
+
+# one connection for all tests, so that flask_client can roll back what a test committed
+connection = engine.connect()
+Session.configure(bind=connection)
 
 from psycopg2 import errors
 from psycopg2.errorcodes import DEPENDENT_OBJECTS_STILL_EXIST
