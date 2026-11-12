@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import dataclasses
 import enum
+import hashlib
 import os
 import random
 import uuid
@@ -1538,7 +1539,10 @@ class ApiKey(Base, ModelMixin):
     __tablename__ = "api_key"
 
     user_id = sa.Column(sa.ForeignKey(User.id, ondelete="cascade"), nullable=False)
-    code = sa.Column(sa.String(128), unique=True, nullable=False)
+    # The "code" column holds the SHA-256 of the key, so that a copy of the database
+    # does not give access to the accounts. The keys are long random strings: a plain
+    # hash is enough.
+    code_hash = sa.Column("code", sa.String(128), unique=True, nullable=False)
     name = sa.Column(sa.String(128), nullable=True)
     last_used = sa.Column(ArrowType, default=None)
     times = sa.Column(sa.Integer, default=0, nullable=False)
@@ -1546,13 +1550,19 @@ class ApiKey(Base, ModelMixin):
 
     __table_args__ = (sa.Index("ix_api_key_user_id", "user_id"),)
 
+    @staticmethod
+    def hash_code(code: str) -> str:
+        return hashlib.sha256(code.encode()).hexdigest()
+
     @classmethod
     def create(cls, user_id, name=None, **kwargs):
         code = random_string(60)
-        if cls.get_by(code=code):
-            code = str(uuid.uuid4())
-
-        return super().create(user_id=user_id, name=name, code=code, **kwargs)
+        api_key = super().create(
+            user_id=user_id, name=name, code_hash=cls.hash_code(code), **kwargs
+        )
+        # the key itself: only on the object returned here, never stored
+        api_key.code = code
+        return api_key
 
     @classmethod
     def delete_all(cls, user_id):

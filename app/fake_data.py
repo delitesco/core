@@ -70,10 +70,10 @@ def fake_data():
     )
 
     api_key = ApiKey.create(user_id=user.id, name="Chrome")
-    api_key.code = "code"
+    api_key.code_hash = ApiKey.hash_code("code")
 
     api_key = ApiKey.create(user_id=user.id, name="Firefox")
-    api_key.code = "codeFF"
+    api_key.code_hash = ApiKey.hash_code("codeFF")
 
     pgp_public_key = open(get_abs_path("local_data/public-pgp.asc")).read()
     m1 = Mailbox.create(

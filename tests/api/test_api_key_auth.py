@@ -68,3 +68,10 @@ def test_failed_api_key_attempts_are_limited(flask_client, monkeypatch):
         "/api/user_info", headers={"Authentication": key.code}, environ_base=address
     )
     assert r.status_code == 200
+
+
+def test_api_key_is_stored_hashed(flask_client):
+    user = create_new_user()
+    key = ApiKey.create(user.id, name="hashed", commit=True)
+    assert ApiKey.get(key.id).code_hash == ApiKey.hash_code(key.code)
+    assert ApiKey.get_by(code_hash=key.code) is None

@@ -56,7 +56,7 @@ def lookup_api_key(code: Optional[str]) -> Optional[ApiKey]:
         return None
     cache = g.setdefault("api_key_lookups", {})
     if code not in cache:
-        cache[code] = ApiKey.get_by(code=code)
+        cache[code] = ApiKey.get_by(code_hash=ApiKey.hash_code(code))
     return cache[code]
 
 
