@@ -80,7 +80,13 @@ def canonicalize_email(email_address: str) -> str:
     if len(parts) != 2:
         return ""
     domain = parts[1]
-    if domain not in ("gmail.com", "protonmail.com", "proton.me", "pm.me"):
+    if domain not in (
+        "gmail.com",
+        "googlemail.com",
+        "protonmail.com",
+        "proton.me",
+        "pm.me",
+    ):
         return email_address
     first = parts[0]
     try:
