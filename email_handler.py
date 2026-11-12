@@ -96,6 +96,7 @@ from app.email_utils import (
     add_dkim_signature,
     add_or_replace_header,
     delete_header,
+    drop_pgp_key_and_signature,
     render,
     get_orig_message_from_bounce,
     delete_all_headers_except,
@@ -1212,6 +1213,8 @@ def handle_reply(envelope, msg: Message, rcpt_to: str) -> (bool, str):
         ]
         + headers.MIME_HEADERS,
     )
+
+    drop_pgp_key_and_signature(msg)
 
     orig_to = msg[headers.TO]
     orig_cc = msg[headers.CC]

@@ -1000,6 +1000,33 @@ def add_header(
     return msg
 
 
+def drop_pgp_key_and_signature(msg: Message):
+    """Remove the sender's PGP public key and signature from a reply.
+
+    A mail client set up to sign attaches them, and both name the user's real address.
+    """
+    if not msg.is_multipart():
+        return
+
+    kept = []
+    for part in msg.get_payload():
+        if _is_pgp_key_or_signature(part):
+            LOG.i("Drop %s (%s)", part.get_filename(), part.get_content_type())
+            continue
+        drop_pgp_key_and_signature(part)
+        kept.append(part)
+    msg.set_payload(kept)
+
+
+def _is_pgp_key_or_signature(part: Message) -> bool:
+    if part.get_content_type() in ("application/pgp-signature", "application/pgp-keys"):
+        return True
+
+    # some clients attach the key as a plain file, e.g. publickey - me@example.com.asc
+    filename = (part.get_filename() or "").lower()
+    return filename.startswith("publickey") and filename.endswith(".asc")
+
+
 def replace(msg: Union[Message, str], old, new) -> Union[Message, str]:
     if isinstance(msg, str):
         msg = msg.replace(old, new)

@@ -19,6 +19,7 @@ from app.email_utils import (
     can_create_directory_for_address,
     email_can_be_used_as_mailbox,
     delete_header,
+    drop_pgp_key_and_signature,
     add_or_replace_header,
     send_email_with_rate_control,
     get_spam_from_header,
@@ -932,6 +933,48 @@ def test_sl_formataddr():
     # test that the same name-address can't be handled by the built-in formataddr
     with pytest.raises(UnicodeEncodeError):
         formataddr(("é", "è@ç.à"))
+
+
+def test_drop_pgp_key_and_signature():
+    msg = email.message_from_string(
+        """Content-Type: multipart/mixed; boundary="foo"
+
+--foo
+Content-Type: text/plain; charset=us-ascii
+
+hello
+
+--foo
+Content-Type: application/pgp-keys; name="OpenPGP_0xABCDEF.asc"
+
+key
+
+--foo
+Content-Type: application/octet-stream
+Content-Disposition: attachment; filename="publickey - me@example.com.asc"
+
+key
+
+--foo
+Content-Type: application/pgp-signature; name="signature.asc"
+
+signature
+
+--foo
+Content-Type: application/octet-stream
+Content-Disposition: attachment; filename="notes.asc"
+
+notes
+
+--foo--
+"""
+    )
+    drop_pgp_key_and_signature(msg)
+    assert [part.get_content_type() for part in msg.get_payload()] == [
+        "text/plain",
+        "application/octet-stream",
+    ]
+    assert msg.get_payload()[1].get_filename() == "notes.asc"
 
 
 def test_sl_formataddr_drops_line_breaks():
