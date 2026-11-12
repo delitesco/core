@@ -116,6 +116,7 @@ from app.email_utils import (
     parse_id_from_bounce,
     spf_pass,
     sanitize_header,
+    sanitize_header_value,
     get_queue_id,
     should_ignore_bounce,
     parse_full_address,
@@ -264,7 +265,10 @@ def replace_header_when_forward(msg: Message, alias: Alias, header: str):
 
         # no transformation when alias is already in the header
         if contact_email.lower() == alias.email:
-            new_addrs.append(full_address.full_spec())
+            # full_spec() would keep a line break of the display name
+            new_addrs.append(
+                sl_formataddr((full_address.display_name, full_address.address))
+            )
             continue
 
         try:
@@ -277,13 +281,12 @@ def replace_header_when_forward(msg: Message, alias: Alias, header: str):
             continue
 
         contact = Contact.get_by(alias_id=alias.id, website_email=contact_email)
-        contact_name = full_address.display_name
-        if len(contact_name) >= Contact.MAX_NAME_LENGTH:
-            contact_name = contact_name[0 : Contact.MAX_NAME_LENGTH]
+        contact_name = sanitize_header_value(full_address.display_name)
+        contact_name = contact_name[: Contact.MAX_NAME_LENGTH]
 
         if contact:
             # update the contact name if needed
-            if contact.name != full_address.display_name:
+            if contact.name != contact_name:
                 LOG.d(
                     "Update contact %s name %s to %s",
                     contact,
@@ -915,12 +918,12 @@ def forward_email_to_mailbox(
 
     msg[headers.SL_EMAIL_LOG_ID] = str(email_log.id)
     if user.include_header_email_header:
-        msg[headers.SL_ENVELOPE_FROM] = envelope.mail_from
+        msg[headers.SL_ENVELOPE_FROM] = sanitize_header_value(envelope.mail_from)
         if contact.name:
             original_from = f"{contact.name} <{contact.website_email}>"
         else:
             original_from = contact.website_email
-        msg[headers.SL_ORIGINAL_FROM] = original_from
+        msg[headers.SL_ORIGINAL_FROM] = sanitize_header_value(original_from)
     # when an alias isn't in the To: header, there's no way for users to know what alias has received the email
     msg[headers.SL_ENVELOPE_TO] = alias.email
 

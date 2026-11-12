@@ -934,6 +934,13 @@ def test_sl_formataddr():
         formataddr(("é", "è@ç.à"))
 
 
+def test_sl_formataddr_drops_line_breaks():
+    formatted = sl_formataddr(("Jo\r\nBcc: x@y.z", "a@b.c"))
+    assert "\r" not in formatted
+    assert "\n" not in formatted
+    assert formatted.endswith("<a@b.c>")
+
+
 def test_add_header_to_invalid_multipart():
     msg = load_eml_file("add_header_multipart.eml")
     msg = add_header(msg, "test", "test")
