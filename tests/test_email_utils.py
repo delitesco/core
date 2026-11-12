@@ -101,17 +101,17 @@ def test_can_be_used_as_personal_email(flask_client):
     assert not email_can_be_used_as_mailbox("ab@sl.lan")
     assert not email_can_be_used_as_mailbox("hey@d1.lan")
 
-    # custom domain as SL domain
+    # a custom domain whose mail is handled here
     domain = random_domain()
     dns_client.set_mx_records(domain, {10: ["mxdomain.com."]})
     user = create_new_user()
     domain_obj = CustomDomain.create(
-        user_id=user.id, domain=domain, verified=True, is_sl_subdomain=True, flush=True
+        user_id=user.id, domain=domain, verified=True, flush=True
     )
     assert not email_can_be_used_as_mailbox(f"hey@{domain}")
 
-    # custom domain is NOT SL domain
-    domain_obj.is_sl_subdomain = False
+    # its MX records do not point here yet
+    domain_obj.verified = False
     Session.flush()
     assert email_can_be_used_as_mailbox(f"hey@{domain}")
 
