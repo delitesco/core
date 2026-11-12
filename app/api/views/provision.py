@@ -194,7 +194,9 @@ def provision_transfer_alias(alias_id: int):
     Input (body):
         to_user_id: the receiving user
         mailbox_ids: verified mailboxes of the receiving user the alias forwards to
+        from_user_id (optional): the owner the caller expects the alias to have
     Output: 200 {"ok": true}; 404 if the alias or the user does not exist;
+        409 if the alias does not belong to from_user_id (any more);
         400 if the alias cannot be transferred (custom domain, directory, trash) or the
         mailboxes are not verified mailboxes of the receiving user.
     """
@@ -204,10 +206,17 @@ def provision_transfer_alias(alias_id: int):
     if to_user_id is None or not mailbox_ids:
         return jsonify(error="to_user_id and mailbox_ids are required"), 400
 
+    # locked: of two requests accepting the same transfer link at once, the second
+    # one waits here and then sees the new owner
+    Session.execute(
+        "SELECT id FROM alias WHERE id = :alias_id FOR UPDATE", {"alias_id": alias_id}
+    )
     alias = Alias.get(alias_id)
     new_user = _get_active_user(to_user_id)
     if not alias or not new_user:
         return jsonify(error="Alias or user not found"), 404
+    if "from_user_id" in data and alias.user_id != parse_int(data["from_user_id"]):
+        return jsonify(error="The alias has another owner"), 409
 
     mailboxes = [Mailbox.get(mailbox_id) for mailbox_id in mailbox_ids]
     if any(mailbox is None for mailbox in mailboxes):

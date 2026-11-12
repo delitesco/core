@@ -147,8 +147,11 @@ Input (body):
 
 - `to_user_id`: the receiving user
 - `mailbox_ids`: verified mailboxes of the receiving user that the alias will forward to
+- (optional) `from_user_id`: the owner the alias is expected to have. Send it so that a transfer accepted twice
+  at the same moment is carried out once.
 
-Output: 200 `{"ok": true}`; 404 if the alias or the user does not exist; 400 if the alias is on a custom domain,
+Output: 200 `{"ok": true}`; 404 if the alias or the user does not exist; 409 if the alias does not belong to
+`from_user_id`; 400 if the alias is on a custom domain,
 in a directory or in the trash, or if the mailboxes are not verified mailboxes of the receiving user.
 The previous owner gets a notification.
 

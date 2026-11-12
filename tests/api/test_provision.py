@@ -219,6 +219,27 @@ def test_transfer_alias(flask_client, provisioning_key):
     assert r.status_code in (403, 404)
 
 
+def test_transfer_refused_when_the_owner_changed(flask_client, provisioning_key):
+    old_user, _ = _user_with_mailbox()
+    new_user, new_mailbox = _user_with_mailbox()
+    other_user, _ = _user_with_mailbox()
+    alias = Alias.create_new_random(old_user)
+    Session.commit()
+
+    r = flask_client.post(
+        url_for("api.provision_transfer_alias", alias_id=alias.id),
+        headers=provisioning_key,
+        json={
+            "to_user_id": new_user.id,
+            "mailbox_ids": [new_mailbox.id],
+            "from_user_id": other_user.id,
+        },
+    )
+
+    assert r.status_code == 409
+    assert Alias.get(alias.id).user_id == old_user.id
+
+
 def test_transfer_requires_mailboxes_of_the_new_owner(flask_client, provisioning_key):
     old_user, old_mailbox = _user_with_mailbox()
     new_user, _ = _user_with_mailbox()
