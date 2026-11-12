@@ -59,8 +59,8 @@ logs an error — for emergencies only.
 
 Coming from a SimpleLogin `.env`: keep `DOMAIN`, `SUBDOMAIN`, `POSTGRES_*`, `FLASK_SECRET`, `LE_*`, DNS provider
 tokens and `SPAMHAUS_DQS_KEY`. `LOCAL_FILE_UPLOAD`, `DISABLE_REGISTRATION`, `DISABLE_ONBOARDING`, `SL_VERSION`
-and `SL_IMAGE` are not used; set the new `PROVISIONING_API_KEY`, `MAILBOX_VERIFY_URL`, `UNSUBSCRIBER` and
-`API_ALLOWED_IPS`, and move the DNS provider tokens to `traefik.env`.
+and `SL_IMAGE` are not used; set the new `PROVISIONING_API_KEY`, `POSTFIX_DB_PASSWORD`, `MAILBOX_VERIFY_URL`,
+`UNSUBSCRIBER` and `API_ALLOWED_IPS`, and move the DNS provider tokens to `traefik.env`.
 
 ## 3. Existing DKIM key (optional)
 

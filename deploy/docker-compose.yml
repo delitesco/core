@@ -129,8 +129,9 @@ services:
       DOMAIN: ${EMAIL_DOMAIN:-${DOMAIN}}
       APP_HOSTNAME: ${MAIL_HOSTNAME:-mail.${EMAIL_DOMAIN:-${DOMAIN}}}
       POSTGRES_HOST: sl-db
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      # its own role, created by sl-init: it can read the mail domains and nothing else
+      POSTGRES_USER: postfix
+      POSTGRES_PASSWORD: ${POSTFIX_DB_PASSWORD:?set POSTFIX_DB_PASSWORD in .env}
       POSTGRES_DB: ${POSTGRES_DB}
       EMAIL_HANDLER: sl-email:20381
       # Postfix relays outgoing mail only for the app containers, on the mail-out network
@@ -151,8 +152,8 @@ services:
       mail-out:
         aliases: [postfix-relay]
     depends_on:
-      sl-db:
-        condition: service_healthy
+      sl-init:
+        condition: service_completed_successfully
       sl-email:
         condition: service_started
 
