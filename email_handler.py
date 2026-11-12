@@ -582,6 +582,12 @@ def handle_forward(envelope, msg: Message, rcpt_to: str) -> List[Tuple[bool, str
         LOG.i(f"{user} is paused, defer email to {alias}")
         return [(False, status.E410)]
 
+    # Postfix only relays verified domains; this does not rely on its lookup alone
+    domain = alias.custom_domain
+    if domain and not (domain.ownership_verified and domain.verified):
+        LOG.w("%s is on an unverified custom domain, refuse email", alias)
+        return [(False, status.E520)]
+
     # check if email is sent from alias's owning mailbox(es)
     mail_from = envelope.mail_from
     for addr in alias.authorized_addresses():
@@ -1071,6 +1077,11 @@ def handle_reply(envelope, msg: Message, rcpt_to: str) -> (bool, str):
     if not is_valid_alias_address_domain(alias.email):
         LOG.e("%s domain isn't known", alias)
         return False, status.E503
+
+    domain = alias.custom_domain
+    if domain and not (domain.ownership_verified and domain.verified):
+        LOG.w("%s is on an unverified custom domain, refuse reply", alias)
+        return False, status.E520
 
     user = alias.user
 

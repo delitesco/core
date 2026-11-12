@@ -63,6 +63,7 @@ def get_auto_create_alias_tests(user: User) -> List:
         catch_all=True,
         domain=random_domain(),
         verified=True,
+        ownership_verified=True,
         flush=True,
     )
     no_catchall = CustomDomain.create(
@@ -70,6 +71,7 @@ def get_auto_create_alias_tests(user: User) -> List:
         catch_all=False,
         domain=random_domain(),
         verified=True,
+        ownership_verified=True,
         flush=True,
     )
     no_catchall_with_rule = CustomDomain.create(
@@ -77,6 +79,7 @@ def get_auto_create_alias_tests(user: User) -> List:
         catch_all=False,
         domain=random_domain(),
         verified=True,
+        ownership_verified=True,
         flush=True,
     )
     AutoCreateRule.create(
@@ -132,6 +135,18 @@ def test_auto_create_alias(flask_client):
             assert result, f"Case {test_id} - Failed address {address}"
         else:
             assert result is None, f"Case {test_id} - Failed address {address}"
+
+
+def test_no_auto_create_without_verified_ownership(flask_client):
+    user = create_new_user()
+    claimed = CustomDomain.create(
+        user_id=user.id,
+        catch_all=True,
+        domain=random_domain(),
+        verified=True,
+        flush=True,
+    )
+    assert try_auto_create(f"any@{claimed.domain}") is None
 
 
 # get_alias_recipient_name
