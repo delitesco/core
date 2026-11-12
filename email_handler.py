@@ -1073,6 +1073,10 @@ def handle_reply(envelope, msg: Message, rcpt_to: str) -> (bool, str):
         return False, status.E502
 
     alias = contact.alias
+    if alias.is_trashed():
+        LOG.i("%s is in the trash, refuse reply", alias)
+        return False, status.E502
+
     alias_address: str = contact.alias.email
     alias_domain = get_email_domain_part(alias_address)
 
