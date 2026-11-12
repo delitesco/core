@@ -73,14 +73,21 @@ def check_single_custom_domain(custom_domain: CustomDomain):
 
         custom_domain.nb_failed_checks += 1
 
-        # send alert if fail for 5 consecutive days
+        # The MX records have pointed elsewhere for six daily checks in a row: the domain
+        # may have a new owner by now. It stops receiving mail here and its ownership has
+        # to be proven again, which also lets someone else add it.
         if custom_domain.nb_failed_checks > 5:
-            LOG.w("Alert domain MX check fails %s about %s", user, custom_domain)
+            LOG.w("Deactivate %s of %s: MX check keeps failing", custom_domain, user)
+            custom_domain.verified = False
+            custom_domain.ownership_verified = False
+            custom_domain.spf_verified = False
+            custom_domain.dkim_verified = False
+            custom_domain.dmarc_verified = False
             send_email_with_rate_control(
                 user,
                 config.AlERT_WRONG_MX_RECORD_CUSTOM_DOMAIN,
                 user.email,
-                f"Please update {custom_domain.domain} DNS on {config.BRAND_NAME}",
+                f"{custom_domain.domain} is deactivated on {config.BRAND_NAME}",
                 render(
                     "transactional/custom-domain-dns-issue.txt.jinja2",
                     user=user,

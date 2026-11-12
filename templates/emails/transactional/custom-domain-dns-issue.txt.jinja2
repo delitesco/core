@@ -1,10 +1,9 @@
 {% extends "base.txt.jinja2" %}
 
 {% block content %}
-We have detected that your domain {{ custom_domain.domain }} doesn't have the DNS MX records correctly set up.
+The MX records of your domain {{ custom_domain.domain }} have not pointed to us for several days,
+so the domain has been deactivated: its aliases do not receive or send mail.
 
-Please check the domain's DNS records and update them if needed.
-
-Without the MX records correctly set up, emails sent to the {{ custom_domain.domain }}'s aliases
-  aren't properly and reliably handled.
+To use it again, set its DNS records back and check them in your account, starting with
+the ownership record.
 {% endblock %}
