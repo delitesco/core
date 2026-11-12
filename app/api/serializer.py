@@ -165,8 +165,14 @@ def get_alias_infos_with_pagination_v3(
         )
 
     if mailbox_id:
+        # joined on this mailbox only: an alias with several other mailboxes would
+        # come back once per mailbox
         q = q.join(
-            AliasMailbox, Alias.id == AliasMailbox.alias_id, isouter=True
+            AliasMailbox,
+            and_(
+                Alias.id == AliasMailbox.alias_id, AliasMailbox.mailbox_id == mailbox_id
+            ),
+            isouter=True,
         ).filter(
             or_(Alias.mailbox_id == mailbox_id, AliasMailbox.mailbox_id == mailbox_id)
         )
