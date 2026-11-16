@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 5
 requires-python = ">=3.12, <4"
 resolution-markers = [
     "python_full_version >= '3.13'",
@@ -210,17 +210,16 @@ wheels = [
 
 [[package]]
 name = "aiospamc"
-version = "0.10.0"
+version = "1.2.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "certifi" },
     { name = "loguru" },
     { name = "typer" },
-    { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/fc/46/4d75a14945f3f6c50a46f37aad617b4e3ddbd4140c2464a4629e708efbb5/aiospamc-0.10.0.tar.gz", hash = "sha256:a31abdbd809c7f74352e03166ec98685677a97ed8d1cbbbd6e1274cb8919c0d4", size = 21140, upload-time = "2023-05-29T01:24:49.436Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/44/36/887f7d742facf1ba5b72b39cd4a24c26c7fbac15af5051be110a3d0c8feb/aiospamc-1.2.0.tar.gz", hash = "sha256:3933d5529ef54e48a183d7cdf2e63ca947e53d63645911ed29ece5e19d627183", size = 21996, upload-time = "2025-10-15T21:22:05.93Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a8/02/6ace2edc9b23ed8d0a14ff39cf2506b548d243c26005462830ad5e7ba9ef/aiospamc-0.10.0-py3-none-any.whl", hash = "sha256:53381adc53814647608ec864263eb975cf9bf04370f16adc2e1c1fa7aca2f538", size = 24610, upload-time = "2023-05-29T01:24:46.422Z" },
+    { url = "https://files.pythonhosted.org/packages/50/15/79fa55c0c7d68a6b13c43658ad24c67acf600caacc56ad38456e85544c71/aiospamc-1.2.0-py3-none-any.whl", hash = "sha256:26ede83a51f8e4b413c8e6d29bb471f546f16ac2633bd6704105b5da74cab4f9", size = 27002, upload-time = "2025-10-15T21:22:04.484Z" },
 ]
 
 [[package]]
@@ -1878,6 +1877,15 @@ wheels = [
 ]
 
 [[package]]
+name = "shellingham"
+version = "1.5.4"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/58/15/8b3609fd3830ef7b27b655beb4b4e9c62313a4e8da8c676e142cc210d58e/shellingham-1.5.4.tar.gz", hash = "sha256:8dbca0739d487e5bd35ab3ca4b36e11c4078f3a234bfce294b0a0291363404de", size = 10310, upload-time = "2023-10-24T04:13:40.426Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/e0/f9/0595336914c5619e5f28a1fb793285925a8cd4b432c9da0a987836c7f822/shellingham-1.5.4-py2.py3-none-any.whl", hash = "sha256:7ecfff8f2fd72616f7481040475a65b2bf8af90a56c89140852d1120324e8686", size = 9755, upload-time = "2023-10-24T04:13:38.866Z" },
+]
+
+[[package]]
 name = "simplelogin"
 version = "0.1.0"
 source = { editable = "." }
@@ -1933,7 +1941,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "aiosmtpd", specifier = "~=1.4.6" },
-    { name = "aiospamc", specifier = "==0.10" },
+    { name = "aiospamc", specifier = "==1.2.0" },
     { name = "alembic", specifier = "~=1.4.3" },
     { name = "arrow", specifier = "~=0.16.0" },
     { name = "blinker", specifier = "~=1.9.0" },
@@ -2056,15 +2064,17 @@ wheels = [
 
 [[package]]
 name = "typer"
-version = "0.9.0"
+version = "0.16.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "click" },
+    { name = "rich" },
+    { name = "shellingham" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/5b/49/39f10d0f75886439ab3dac889f14f8ad511982a754e382c9b6ca895b29e9/typer-0.9.0.tar.gz", hash = "sha256:50922fd79aea2f4751a8e0408ff10d2662bd0c8bbfa84755a699f3bada2978b2", size = 273985, upload-time = "2023-05-02T05:20:57.63Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/43/78/d90f616bf5f88f8710ad067c1f8705bf7618059836ca084e5bb2a0855d75/typer-0.16.1.tar.gz", hash = "sha256:d358c65a464a7a90f338e3bb7ff0c74ac081449e53884b12ba658cbd72990614", size = 102836, upload-time = "2025-08-18T19:18:22.898Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/bf/0e/c68adf10adda05f28a6ed7b9f4cd7b8e07f641b44af88ba72d9c89e4de7a/typer-0.9.0-py3-none-any.whl", hash = "sha256:5d96d986a21493606a358cae4461bd8cdf83cbf33a5aa950ae629ca3b51467ee", size = 45861, upload-time = "2023-05-02T05:20:55.675Z" },
+    { url = "https://files.pythonhosted.org/packages/2d/76/06dbe78f39b2203d2a47d5facc5df5102d0561e2807396471b5f7c5a30a1/typer-0.16.1-py3-none-any.whl", hash = "sha256:90ee01cb02d9b8395ae21ee3368421faf21fa138cb2a541ed369c08cec5237c9", size = 46397, upload-time = "2025-08-18T19:18:21.663Z" },
 ]
 
 [[package]]

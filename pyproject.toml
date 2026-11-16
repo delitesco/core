@@ -50,7 +50,7 @@ dependencies = [
     "tldextract ~= 5.1",
     "Deprecated ~= 1.2.13",
     "redis == 5.2.1",
-    "aiospamc == 0.10",
+    "aiospamc==1.2.0",
     "strictyaml ~= 1.7.3",
 ]
 
